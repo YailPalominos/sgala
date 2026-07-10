@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+backend/dist/
+
+# Angular
+frontend/.angular/
+
+# Environment files with secrets
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+
+# Kiro specs
+.kiro/

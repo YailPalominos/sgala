@@ -1,0 +1,62 @@
+<div class="panel-container">
+  <header class="panel-header">
+    <h1>Panel de Dispositivos</h1>
+    <button class="btn-cerrar-sesion" (click)="cerrarSesion()">Cerrar sesión</button>
+  </header>
+
+  <!-- Estado de carga -->
+  <div *ngIf="cargando()" class="panel-cargando">
+    <p>Cargando dispositivos...</p>
+  </div>
+
+  <!-- Error de red -->
+  <div *ngIf="error()" class="panel-error">
+    <p>{{ error() }}</p>
+    <button class="btn-reintentar" (click)="cargarDispositivos()">Reintentar</button>
+  </div>
+
+  <!-- Lista de dispositivos -->
+  <div *ngIf="!cargando() && !error()" class="panel-lista">
+    <div *ngIf="dispositivos().length === 0" class="panel-vacio">
+      <p>No hay dispositivos registrados.</p>
+    </div>
+
+    <div *ngFor="let dispositivo of dispositivos()" class="dispositivo-card">
+      <div class="dispositivo-info">
+        <span class="dispositivo-telefono">{{ dispositivo.telefono }}</span>
+
+        <span
+          class="dispositivo-estado"
+          [ngClass]="{
+            'estado-conectado': dispositivo.estadoConexion === 'conectado',
+            'estado-desconectado': dispositivo.estadoConexion !== 'conectado'
+          }"
+        >
+          {{ dispositivo.estadoConexion === 'conectado' ? 'Conectado' : 'Desconectado' }}
+        </span>
+      </div>
+
+      <!-- Con localización -->
+      <div *ngIf="dispositivo.localizacion" class="dispositivo-localizacion">
+        <p>
+          Lat: {{ dispositivo.localizacion.latitud }},
+          Lng: {{ dispositivo.localizacion.longitud }},
+          Alt: {{ dispositivo.localizacion.altitud }}
+        </p>
+        <a
+          [href]="obtenerEnlaceMaps(dispositivo)"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="enlace-maps"
+        >
+          Ver en Google Maps
+        </a>
+      </div>
+
+      <!-- Sin localización -->
+      <div *ngIf="!dispositivo.localizacion" class="dispositivo-sin-localizacion">
+        <p>Sin localización disponible</p>
+      </div>
+    </div>
+  </div>
+</div>

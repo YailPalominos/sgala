@@ -1,0 +1,56 @@
+<div class="login-container">
+  <h1>Iniciar Sesión</h1>
+
+  @if (mensajeExito()) {
+    <div class="mensaje-exito" role="alert">
+      {{ mensajeExito() }}
+    </div>
+  }
+
+  @if (mensajeError()) {
+    <div class="mensaje-error" role="alert">
+      {{ mensajeError() }}
+    </div>
+  }
+
+  <form [formGroup]="formulario" (ngSubmit)="enviar()">
+    <div class="campo">
+      <label for="alias">Alias</label>
+      <input
+        id="alias"
+        type="text"
+        formControlName="alias"
+        [attr.aria-invalid]="formulario.get('alias')?.touched && formulario.get('alias')?.invalid"
+      />
+      @if (formulario.get('alias')?.touched && formulario.get('alias')?.hasError('required')) {
+        <span class="error-campo" role="alert">El alias es requerido.</span>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="contrasena">Contraseña</label>
+      <input
+        id="contrasena"
+        type="password"
+        formControlName="contrasena"
+        [attr.aria-invalid]="formulario.get('contrasena')?.touched && formulario.get('contrasena')?.invalid"
+      />
+      @if (formulario.get('contrasena')?.touched && formulario.get('contrasena')?.hasError('required')) {
+        <span class="error-campo" role="alert">La contraseña es requerida.</span>
+      }
+    </div>
+
+    <button type="submit" [disabled]="cargando()">
+      @if (cargando()) {
+        Ingresando...
+      } @else {
+        Ingresar
+      }
+    </button>
+  </form>
+
+  <div class="enlaces">
+    <a routerLink="/registro">Crear una cuenta</a>
+    <a routerLink="/recuperacion/solicitar">¿Olvidaste tu contraseña?</a>
+  </div>
+</div>
