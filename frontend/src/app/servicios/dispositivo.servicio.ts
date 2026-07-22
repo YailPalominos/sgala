@@ -1,15 +1,33 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Dispositivo } from '../interfaces/dispositivo.interface';
-import { environment } from '../../environments/environment';
+import { ConexionService, Respuesta } from './conexion.service';
 
 @Injectable({ providedIn: 'root' })
 export class DispositivoServicio {
-  private http = inject(HttpClient);
-  private baseUrl = environment.apiUrl;
 
-  obtenerDispositivos(): Observable<Dispositivo[]> {
-    return this.http.get<Dispositivo[]>(`${this.baseUrl}/api/dispositivos`);
-  }
+    private conexionService = inject(ConexionService);
+
+    public validarClave(clave: string): Observable<Respuesta<any>> {
+        return this.conexionService.get<any>(
+            `dispositivos/validar-clave/${clave}`,
+        );
+    }
+
+    public solicitarRecuperacion(datos: string): Observable<Respuesta<void>> {
+        return this.conexionService.post<void>(`dispositivos/crear`, datos);
+    }
+
+    public crear(datos: any): Observable<Respuesta<void>> {
+        return this.conexionService.post<void>(`dispositivos/crear`, datos);
+    }
+
+    public actualizar(datos: any): Observable<Respuesta<void>> {
+        return this.conexionService.put<void>(`dispositivos/actualizar`, datos);
+    }
+
+    public obtenerLocalizaciones(clave: string): Observable<Respuesta<any>> {
+        return this.conexionService.get<any>(
+            `dispositivos/obtener-localizaciones/${clave}`,
+        );
+    }
 }

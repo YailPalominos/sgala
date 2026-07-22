@@ -1,1 +1,131 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+.mat-mdc-text-field-wrapper .mat-mdc-floating-label {
+  background-color: white;
+  padding: 0 4px;
+}
+
+
+/* Snackbar personalizado — fondo de color completo */
+.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.mat-mdc-snack-bar-container .mat-mdc-snack-bar-label {
+  padding: 0 !important;
+}
+
+.cdk-overlay-container {
+  z-index: 10000 !important;
+}
+
+
+.cdk-overlay-pane:has(.mat-mdc-dialog-container) {
+  min-width: 550px !important;
+}
+
+
+
+.panel-botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 10px 0;
+
+  button {
+    height: 30px;
+    width: 30px;
+
+    .mat-icon {
+      width: 15px;
+      height: 15px;
+      font-size: 18px;
+      line-height: 18px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  h1 {
+    flex: 1;
+    margin: 0;
+    padding: 0;
+
+    font-size: 20px;
+    line-height: 1;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+
+  .btn-minimizar {
+    background-color: #f59e0b;
+    color: white;
+    margin-right: 8px;
+    transition: all .2s ease;
+
+    &:hover {
+      background-color: #d97706;
+      transform: scale(1.08);
+    }
+
+  }
+
+  .btn-expandir {
+    background-color: #1976d2;
+    color: white;
+    margin-right: 8px;
+    transition: all .2s ease;
+
+    &:hover {
+      background-color: #1565c0;
+      transform: scale(1.08);
+    }
+  }
+
+  .btn-cerrar {
+    background-color: #d32f2f;
+    color: white;
+    transition: all .2s ease;
+
+    &:hover {
+      background-color: #c62828;
+      transform: scale(1.08);
+    }
+
+  }
+}
+
+.panel-contenedor {
+  height: 100%;
+  margin-bottom: 20px;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+
+.mdc-dialog__surface {
+  border: 2px solid #585858 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25) !important;
+}

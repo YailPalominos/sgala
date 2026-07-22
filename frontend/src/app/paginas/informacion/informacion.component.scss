@@ -1,0 +1,58 @@
+.contenedor {
+
+  margin: auto;
+  width: 70%;
+  display: flex;
+  flex-wrap: wrap;
+
+  h1 {
+    text-align: center;
+    width: 100%;
+  }
+
+  .titulo {
+    font-size: 20px;
+  }
+
+  .subtitulo {
+    font-size: 15px;
+  }
+
+
+  .btn-amazon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+
+    text-decoration: none;
+    color: inherit;
+
+    width: fit-content;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .btn-amazon h2 {
+    margin: 0;
+    font-weight: 500;
+    font-size: 18px;
+    color: blue;
+    height: 30px;
+  }
+
+  .btn-amazon img {
+    width: 200px;
+    height: 50px;
+    object-fit: contain;
+  }
+
+
+  .btn-volver {
+    margin: 20px auto;
+    background-color: #ca5555;
+    color: white;
+  }
+
+}

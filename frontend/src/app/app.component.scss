@@ -1,0 +1,108 @@
+.toolbar-inicio {
+    background: white;
+    color: #1976d2;
+    border-bottom: 1px solid #e0e0e0;
+    height: 60px;
+    flex-shrink: 0;
+
+    .logo {
+        height: 28px;
+    }
+
+    button {
+        color: #1976d2;
+    }
+}
+
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.router-container {
+    flex: 1;
+    height: auto;
+    overflow: auto;
+}
+
+.contenedor-dialogos {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    z-index: 9999;
+}
+
+.chip-dialogo {
+
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  height: 40px;
+  padding: 0 8px;
+
+  border-radius: 16px;
+
+  margin-left: 5px;
+
+  border: 1px solid #cac4d0;
+
+  color: #1d1b20;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  user-select: none;
+
+  transition: .2s;
+
+  &:hover{
+    background:#e4dff0;
+  }
+}
+
+.chip-titulo{
+
+  min-width: 60px;
+  max-width: 180px;
+
+  padding: 2px 4px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  outline: none;
+
+  &:focus{
+    background: rgba(103,80,164,.12);
+    border-radius:4px;
+  }
+}
+
+.chip-boton{
+
+  width:24px !important;
+  height:24px !important;
+  padding:0 !important;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:50%;
+
+  transition:.2s;
+
+  &:hover{
+    background:rgba(0,0,0,.08);
+  }
+
+  mat-icon{
+    font-size:18px;
+    width:18px;
+    height:18px;
+    line-height:18px;
+  }
+}

@@ -1,0 +1,10 @@
+
+Para desplegar contenedores
+> docker compose up --build -d 
+
+Instala las dependencias del proyecto
+> npm install
+
+Para correr el proyecto
+> npm start
+> npm start dev

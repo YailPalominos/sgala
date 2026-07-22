@@ -1,0 +1,17 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sgala-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Sgala2024!"
+      TZ: "America/Mexico_City"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_datos:/var/opt/mssql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+volumes:
+  sql_datos:

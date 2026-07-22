@@ -1,0 +1,22 @@
+<div class="panel-botones" (mousedown)="iniciarArrastre($event)">
+    <h1>Suscripciones</h1>
+
+    <button mat-icon-button class="btn-minimizar" matTooltip="Minimizar" (click)="minimizar()">
+        <mat-icon>remove</mat-icon>
+    </button>
+
+    <button mat-icon-button class="btn-expandir" matTooltip="Expandir" (click)="expandirContraer()">
+        <mat-icon>
+            {{ expandido ? 'fullscreen_exit' : 'fullscreen' }}
+        </mat-icon>
+    </button>
+
+    <button mat-icon-button class="btn-cerrar" matTooltip="Salir" (click)="cerrar()">
+        <mat-icon>close</mat-icon>
+    </button>
+</div>
+
+<div class="panel-contenedor">
+    <app-tabla [datos]="datos" [columnas]="columnas" [filtros]="filtros" (busquedaChange)="textoFiltro = $event">
+    </app-tabla>
+</div>

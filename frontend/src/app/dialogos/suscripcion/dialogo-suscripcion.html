@@ -1,0 +1,113 @@
+<h2 mat-dialog-title class="titulo">
+    Nueva suscripción
+</h2>
+
+<mat-dialog-content>
+
+    <mat-stepper linear #stepper>
+        <mat-step [stepControl]="formulario1">
+            <form [formGroup]="formulario1">
+                <ng-template matStepLabel>Dispositivo</ng-template>
+                <mat-form-field appearance="outline" style="margin:10px;">
+                    <mat-label>Seleccione el dispositivo</mat-label>
+                    <mat-select formControlName="claveDispositivo">
+                        @for (dispositivo of dispositivos; track dispositivo.clave) {
+                        <mat-option [value]="dispositivo.clave">{{dispositivo.alias}}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+            </form>
+        </mat-step>
+        <mat-step [stepControl]="formulario2">
+            <form [formGroup]="formulario2">
+                <ng-template matStepLabel>Suscripción</ng-template>
+                <mat-form-field appearance="outline" style="margin:10px;">
+                    <mat-label>Tipo de suscripción</mat-label>
+                    <mat-select formControlName="tipoSuscripcion">
+                        @for (tipoSuscripcionFiltrado of tiposSuscripcionFiltrados; track tipoSuscripcionFiltrado.valor)
+                        {
+                        <mat-option [value]="tipoSuscripcionFiltrado.clave">{{ tipoSuscripcionFiltrado.nombre
+                            }}</mat-option>
+                        }
+                    </mat-select>
+                </mat-form-field>
+            </form>
+        </mat-step>
+        <mat-step>
+            <ng-template matStepLabel>Confirmar</ng-template>
+
+            <mat-card style="display: flex;justify-content: center;">
+                <mat-card-header style="display: flex;justify-content: center;font-size: 18px;">
+                    <mat-card-title style="font-size: 18px;">
+                        Resumen de suscripción
+                    </mat-card-title>
+                </mat-card-header>
+
+                <mat-card-content>
+
+                    @if (resumenSuscripcion) {
+
+                    <div class="resumen-header">
+                        <h3 class="periodo">{{ resumenSuscripcion.tipoSuscripcionTexto }}</h3>
+                        <h3 class="periodo">{{ resumenSuscripcion.periodo }}</h3>
+                    </div>
+
+                    @if (resumenSuscripcion.tipo !== 'G') {
+
+                    <div class="detalles-container">
+
+                        <div class="detalles-list">
+                            @for (detalle of resumenSuscripcion.detalles; track detalle.nombre) {
+                            <div class="detalle-item">
+                                <span class="detalle-nombre">{{ detalle.descripcion }}</span>
+                                <span class="detalle-precio">
+                                    ${{ detalle.precio.toFixed(2) }}
+                                </span>
+                            </div>
+                            }
+                        </div>
+
+                        <div class="separador"></div>
+
+                        <div class="precio-total">
+                            <span class="label">Total:</span>
+                            <span class="valor">
+                                ${{ resumenSuscripcion.total.toFixed(2) }}
+                            </span>
+                        </div>
+
+                    </div>
+
+                    } @else {
+
+                    <div class="precio-total">
+                        <span class="label">Total:</span>
+                        <span class="valor">$0.00</span>
+                    </div>
+
+                    }
+
+                    } @else {
+
+                    <p class="sin-resumen">
+                        Complete el formulario para ver el resumen
+                    </p>
+
+                    }
+
+                </mat-card-content>
+            </mat-card>
+
+        </mat-step>
+    </mat-stepper>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="center">
+
+    <button mat-button mat-dialog-close>Cancelar</button>
+    <button mat-raised-button color="primary" type="button" (click)="preparar()"
+        [disabled]="(formulario1.invalid || formulario2.invalid)">
+        Crear
+    </button>
+</mat-dialog-actions>

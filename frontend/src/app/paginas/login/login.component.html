@@ -1,56 +1,58 @@
-<div class="login-container">
-  <h1>Iniciar Sesión</h1>
-
-  @if (mensajeExito()) {
-    <div class="mensaje-exito" role="alert">
-      {{ mensajeExito() }}
-    </div>
-  }
-
-  @if (mensajeError()) {
-    <div class="mensaje-error" role="alert">
-      {{ mensajeError() }}
-    </div>
-  }
-
+<div class="login-card">
+  <p class="titulo">SGALA - Sistema de Gestión de Acción, Localización y Alarma</p>
+  <p class="version">
+    © 2026 Lioyabra · Versión {{ version }}
+  </p>
+  <p class="subtitulo">Iniciar sesión</p>
   <form [formGroup]="formulario" (ngSubmit)="enviar()">
-    <div class="campo">
-      <label for="alias">Alias</label>
-      <input
-        id="alias"
-        type="text"
-        formControlName="alias"
-        [attr.aria-invalid]="formulario.get('alias')?.touched && formulario.get('alias')?.invalid"
-      />
-      @if (formulario.get('alias')?.touched && formulario.get('alias')?.hasError('required')) {
-        <span class="error-campo" role="alert">El alias es requerido.</span>
+    <mat-form-field appearance="outline">
+      <mat-label>Identificador</mat-label>
+      <input matInput formControlName="identificador" autocomplete="username" />
+      <mat-icon matPrefix>person</mat-icon>
+      @if (formulario.get('identificador')?.hasError('required')) {
+      <mat-error>El identificador es requerido.</mat-error>
       }
-    </div>
+    </mat-form-field>
 
-    <div class="campo">
-      <label for="contrasena">Contraseña</label>
-      <input
-        id="contrasena"
-        type="password"
-        formControlName="contrasena"
-        [attr.aria-invalid]="formulario.get('contrasena')?.touched && formulario.get('contrasena')?.invalid"
-      />
-      @if (formulario.get('contrasena')?.touched && formulario.get('contrasena')?.hasError('required')) {
-        <span class="error-campo" role="alert">La contraseña es requerida.</span>
+    <mat-form-field appearance="outline">
+      <mat-label>Contraseña</mat-label>
+      <input matInput formControlName="contrasena" [type]="ocultarContrasena() ? 'password' : 'text'"
+        autocomplete="current-password" />
+      <mat-icon matPrefix>lock</mat-icon>
+      <button mat-icon-button matSuffix type="button" (click)="ocultarContrasena.set(!ocultarContrasena())"
+        [attr.aria-label]="ocultarContrasena() ? 'Mostrar contraseña' : 'Ocultar contraseña'">
+        <mat-icon>{{ ocultarContrasena() ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+      @if (formulario.get('contrasena')?.hasError('required')) {
+      <mat-error>La contraseña es requerida.</mat-error>
       }
-    </div>
+    </mat-form-field>
 
-    <button type="submit" [disabled]="cargando()">
-      @if (cargando()) {
-        Ingresando...
-      } @else {
+    <div class="acciones">
+      <button mat-raised-button color="primary" type="submit">
         Ingresar
-      }
-    </button>
-  </form>
+      </button>
+    </div>
 
-  <div class="enlaces">
-    <a routerLink="/registro">Crear una cuenta</a>
-    <a routerLink="/recuperacion/solicitar">¿Olvidaste tu contraseña?</a>
-  </div>
+    <div class="acciones-secundarias">
+      <button mat-raised-button class="btn-secundario" type="button" (click)="abrirRegistro()">
+        Crear una cuenta
+      </button>
+      <button mat-raised-button class="btn-secundario" type="button" (click)="abrirRecuperacion()">
+        ¿Olvidaste tu contraseña?
+      </button>
+    </div>
+
+    <div class="acciones-informacion">
+      <button mat-raised-button class="btn-informacion" type="button" (click)="abrirInformacion()">
+        Información
+      </button>
+    </div>
+
+    <div class="acciones-ayuda">
+      <button mat-raised-button class="btn-ayuda" type="button" (click)="abrirAyuda()">
+        Ayuda o contacto
+      </button>
+    </div>
+  </form>
 </div>

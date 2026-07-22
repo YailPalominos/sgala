@@ -1,42 +1,46 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 
-import { environment } from '../../environments/environment';
-import {
-  RegistroRequest,
-  LoginRequest,
-  CambioContrasenaRequest,
-} from '../interfaces/autenticacion.interface';
+export interface Sesion {
+  clave: string;
+  alias: string;
+  direccionCorreoElectronico: string;
+  idSocket: string;
+  telefono: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AutenticacionServicio {
-  private http = inject(HttpClient);
-  private baseUrl = environment.apiUrl;
 
-  registro(datos: RegistroRequest): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/api/auth/registro`, datos);
+  private readonly claveSesion = 'sesion';
+
+  private autenticadoSubject = new BehaviorSubject<boolean>(this.existeSesion());
+
+  public autenticado$ = this.autenticadoSubject.asObservable();
+
+  private existeSesion(): boolean {
+    const datos = localStorage.getItem(this.claveSesion);
+    return !!datos && datos !== 'undefined';
   }
 
-  login(datos: LoginRequest): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/api/auth/login`, datos);
+  public guardarSesion(sesion: Sesion): void {
+    localStorage.setItem(this.claveSesion, JSON.stringify(sesion));
+    this.autenticadoSubject.next(true);
   }
 
-  logout(): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/api/auth/logout`, {});
+  public obtenerSesion(): Sesion | null {
+    const datos = localStorage.getItem(this.claveSesion);
+
+    if (!datos || datos === 'undefined') {
+      return null;
+    }
+
+    return JSON.parse(datos) as Sesion;
   }
 
-  solicitarRecuperacion(correo: string): Observable<void> {
-    return this.http.post<void>(
-      `${this.baseUrl}/api/auth/recuperacion/solicitar`,
-      { correo }
-    );
+  public eliminarSesion(): void {
+    localStorage.removeItem(this.claveSesion);
+    this.autenticadoSubject.next(false);
   }
 
-  cambiarContrasena(datos: CambioContrasenaRequest): Observable<void> {
-    return this.http.post<void>(
-      `${this.baseUrl}/api/auth/recuperacion/cambiar`,
-      datos
-    );
-  }
 }

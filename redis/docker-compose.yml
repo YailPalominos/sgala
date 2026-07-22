@@ -1,0 +1,14 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: sgala-redis
+    environment:
+      TZ: "America/Mexico_City"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_datos:/data
+    restart: unless-stopped
+
+volumes:
+  redis_datos:

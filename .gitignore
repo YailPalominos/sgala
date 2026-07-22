@@ -8,9 +8,6 @@ backend/dist/
 # Angular
 frontend/.angular/
 
-# Environment files with secrets
-.env
-
 # IDE
 .vscode/
 .idea/

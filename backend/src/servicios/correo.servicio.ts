@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { entorno } from '../configuracion/entorno';
+import { entorno } from '../recursos/entorno';
 
 /**
  * URL base del frontend para construir enlaces de recuperación.
@@ -11,12 +11,13 @@ const URL_FRONTEND = 'http://localhost:4200';
  */
 function crearTransporter() {
   return nodemailer.createTransport({
+    pool: true,
     host: entorno.SMTP_HOST,
     port: entorno.SMTP_PUERTO,
-    secure: entorno.SMTP_PUERTO === 465,
+    secure: false,
     auth: {
       user: entorno.SMTP_USUARIO,
-      pass: entorno.SMTP_CONTRASENA,
+      pass: entorno.SMTP_CONTRASENA
     },
   });
 }
@@ -33,7 +34,7 @@ function crearTransporter() {
 export async function enviarCorreoRecuperacion(correo: string, llave: string): Promise<void> {
   const transporter = crearTransporter();
 
-  const enlaceRecuperacion = `${URL_FRONTEND}/recuperacion/cambiar?llave=${llave}`;
+  const enlaceRecuperacion = `${URL_FRONTEND}/restablecer/llave=${llave}`;
 
   await transporter.sendMail({
     from: entorno.SMTP_USUARIO,
@@ -46,6 +47,36 @@ export async function enviarCorreoRecuperacion(correo: string, llave: string): P
       <p><a href="${enlaceRecuperacion}">${enlaceRecuperacion}</a></p>
       <p>Este enlace expira en 3 minutos.</p>
       <p>Si no solicitaste este cambio, ignora este correo.</p>
+    `,
+  });
+}
+
+/**
+ * Envía un correo de bienvenida con las credenciales provisionales del usuario.
+ *
+ * @param correo - Dirección de correo del destinatario
+ * @param alias - Alias del usuario recién creado
+ * @param contrasenaProvisional - Contraseña generada por el servidor
+ */
+export async function enviarCorreoBienvenida(
+  datos: any
+): Promise<void> {
+  const transporter = crearTransporter();
+
+  await transporter.sendMail({
+    from: entorno.SMTP_USUARIO,
+    to: datos.direccionCorreoElectronico,
+    subject: 'SGALA - Bienvenido, tu cuenta ha sido creada',
+    html: `
+      <h2>Bienvenido a SGALA</h2>
+      <p>Tu cuenta ha sido creada exitosamente. Usa las siguientes credenciales para iniciar sesión:</p>
+      <ul>
+        <li><strong>Alias:</strong> ${datos.alias}</li>
+        <li><strong>Teléfono:</strong> ${datos.telefono}</li>
+        <li><strong>Contraseña provisional:</strong> ${datos.contrasena}</li>
+      </ul>
+      <p>Al iniciar sesión por primera vez, el sistema te pedirá que establezcas una contraseña segura.</p>
+      <p>Si no solicitaste esta cuenta, ignora este correo.</p>
     `,
   });
 }

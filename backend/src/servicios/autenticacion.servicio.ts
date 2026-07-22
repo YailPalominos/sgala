@@ -1,203 +1,182 @@
 import bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
-import { ErrorHttp } from '../utilidades/error-http';
-import * as preDispositivoRepo from '../repositorios/pre-dispositivo.repositorio';
 import * as usuarioRepo from '../repositorios/usuario.repositorio';
-import * as dispositivoRepo from '../repositorios/dispositivo.repositorio';
-import { redisRepositorio } from '../repositorios/redis.repositorio';
-import { enviarCorreoRecuperacion } from './correo.servicio';
+import { redisRepositorio, SesionRedis } from '../repositorios/redis.repositorio';
+import { enviarCorreoRecuperacion, enviarCorreoBienvenida } from './correo.servicio';
 import { sesionServicio } from './sesion.servicio';
+import { ErrorHttp } from '../interceptores/error.middleware';
 
-/**
- * Datos requeridos para registrar un nuevo usuario.
- */
-export interface RegistroRequest {
-  uuidPreDispositivo: string;
+export interface DatosUsuarioRegistro {
+  clave: string;
   alias: string;
-  correo: string;
-  contrasena: string;
-  telefono: string;
+  direccionCorreoElectronico: string;
 }
 
-/**
- * Resultado exitoso del registro.
- */
-export interface RegistroResultado {
-  usuario: usuarioRepo.Usuario;
-  dispositivo: dispositivoRepo.Dispositivo;
+export interface LoginResultado {
+  idUsuario?: number;
+  sesion?: SesionRedis;
+  requiereCambioContrasena: boolean;
 }
 
 const SALT_ROUNDS = 10;
 
+function generarContrasenaProvisional(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let resultado = '';
+  for (let i = 0; i < 10; i++) {
+    resultado += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return resultado;
+}
+
 /**
- * Registra un nuevo usuario en el sistema.
- *
- * Flujo:
- * 1. Validar campos requeridos
- * 2. Verificar pre-dispositivo (existe y no vinculado)
- * 3. Verificar unicidad de alias y correo
- * 4. Cifrar contraseña con bcrypt (10 salt rounds)
- * 5. Insertar usuario con estatus=1
- * 6. Crear dispositivo vinculando usuario + pre-dispositivo + teléfono
+ * Valida que la clave del dispositivo exista y no esté vinculada.
  */
-export async function registrar(datos: RegistroRequest): Promise<RegistroResultado> {
-  // 1. Validar campos requeridos
-  const camposFaltantes: string[] = [];
-  if (!datos.uuidPreDispositivo?.trim()) camposFaltantes.push('uuidPreDispositivo');
-  if (!datos.alias?.trim()) camposFaltantes.push('alias');
-  if (!datos.correo?.trim()) camposFaltantes.push('correo');
-  if (!datos.contrasena?.trim()) camposFaltantes.push('contrasena');
-  if (!datos.telefono?.trim()) camposFaltantes.push('telefono');
-
-  if (camposFaltantes.length > 0) {
-    throw new ErrorHttp(400, `Campos requeridos faltantes: ${camposFaltantes.join(', ')}`);
+export async function validarClave(clave: string): Promise<any> {
+  let datosUsuario;
+  try {
+    datosUsuario = await usuarioRepo.buscarPorClave(clave);
+  } catch {
+    throw new ErrorHttp(400, 'Clave de usuario inválida.')
   }
-
-  // 2. Verificar pre-dispositivo
-  const preDispositivo = await preDispositivoRepo.buscarPorUuid(datos.uuidPreDispositivo);
-  if (!preDispositivo) {
-    throw new ErrorHttp(400, 'El UUID de pre-dispositivo no existe');
+  if (datosUsuario == null) {
+    return null;
   }
+  return datosUsuario;
+}
 
-  const vinculado = await preDispositivoRepo.estaVinculado(preDispositivo.id);
-  if (vinculado) {
-    throw new ErrorHttp(400, 'El pre-dispositivo ya está vinculado a un dispositivo');
-  }
+/**
+ * Crear un nuevo usuario.
+ */
+export async function crear(datos: any): Promise<void> {
 
-  // 3. Verificar unicidad de alias y correo
-  const aliasExistente = await usuarioRepo.buscarPorAlias(datos.alias);
+  const aliasExistente = await usuarioRepo.buscarExistentePorIdentificador(datos.alias);
   if (aliasExistente) {
-    throw new ErrorHttp(409, 'El alias ya está registrado');
+    throw new ErrorHttp(409, 'El alias ya está registrado "Intente con otro"');
   }
 
-  const correoExistente = await usuarioRepo.buscarPorCorreo(datos.correo);
+  const correoExistente = await usuarioRepo.buscarExistentePorIdentificador(datos.direccionCorreoElectronico);
   if (correoExistente) {
-    throw new ErrorHttp(409, 'El correo electrónico ya está registrado');
+    throw new ErrorHttp(409, 'La dirección de correo electrónico ya está registrada');
   }
 
-  // 4. Cifrar contraseña con bcrypt
-  const contrasenaHash = await bcrypt.hash(datos.contrasena, SALT_ROUNDS);
+  const telefonoExistente = await usuarioRepo.buscarExistentePorIdentificador(datos.telefono);
+  if (telefonoExistente) {
+    throw new ErrorHttp(409, 'El número de teléfono ya está registrado');
+  }
 
-  // 5. Insertar usuario con estatus=1
-  const usuario = await usuarioRepo.crearUsuario({
-    alias: datos.alias,
-    correo: datos.correo,
-    contrasena: contrasenaHash,
-  });
+  const contrasenaProvisional = generarContrasenaProvisional();
 
-  // 6. Crear dispositivo vinculando usuario + pre-dispositivo + teléfono
-  const dispositivo = await dispositivoRepo.crearDispositivo({
-    id_usuario: usuario.id,
-    id_pre_dispositivo: preDispositivo.id,
-    telefono: datos.telefono,
-  });
+  datos.contrasena = contrasenaProvisional
+  datos.idPreUsuario = await usuarioRepo.obtenerIdPreUsuarioPorClave(datos.clave)
 
-  return { usuario, dispositivo };
+  await usuarioRepo.crearUsuario(datos);
+
+  await enviarCorreoBienvenida(datos);
 }
-
-
-const MENSAJE_CREDENCIALES_INVALIDAS = 'Credenciales inválidas';
 
 /**
- * Inicia sesión para un usuario registrado.
+/**
+ * Autentica un usuario por alias o correo + contraseña.
  *
- * Flujo:
- * 1. Buscar usuario por alias
- * 2. Verificar estatus = 1
- * 3. Comparar contraseña con bcrypt
- * 4. Crear sesión en Redis
- * 5. Retornar sessionId
- *
- * Lanza ErrorHttp(401) con mensaje genérico idéntico en todos los casos de fallo
- * para no revelar información sobre qué campo es incorrecto.
+ * Si la contraseña coincide en plano → es provisional, debe cambiarla.
+ * Si coincide con bcrypt → sesión normal.
  */
-export async function login(alias: string, contrasena: string): Promise<string> {
-  // 1. Buscar usuario por alias
-  const usuario = await usuarioRepo.buscarPorAlias(alias);
+export async function autenticar(identificador: string, contrasena: string): Promise<LoginResultado> {
 
-  // 2. Si no existe, lanzar 401
-  if (!usuario) {
-    throw new ErrorHttp(401, MENSAJE_CREDENCIALES_INVALIDAS);
+  let usuario
+  try {
+    usuario = await usuarioRepo.buscarPorIdentificador(identificador);
+  } catch (error: any) {
+
+    if (error.message === 'Usuario no encontrado.') {
+      throw new ErrorHttp(
+        404,
+        error.message
+      );
+    }
+
+    if (error.message === 'Usuario inactivo contacte al administrador.') {
+      throw new ErrorHttp(
+        403,
+        error.message
+      );
+    }
+
+    throw new ErrorHttp(
+      500,
+      'Error interno al consultar usuario'
+    );
   }
 
-  // 3. Verificar estatus = 1
-  if (usuario.estatus !== 1) {
-    throw new ErrorHttp(401, MENSAJE_CREDENCIALES_INVALIDAS);
+  // Detectar si la contraseña almacenada es un hash bcrypt
+  const esBcrypt = /^\$2[aby]?\$\d{1,2}\$.{53}$/.test(usuario.contrasena);
+
+  if (esBcrypt) {
+    // Contraseña cifrada — verificar con bcrypt
+    const contrasenaValida = await bcrypt.compare(contrasena, usuario.contrasena);
+    if (!contrasenaValida) {
+      throw new ErrorHttp(400, 'Credenciales inválidas');
+    }
+    const sesion = await sesionServicio.crearSesion(usuario.direccionCorreoElectronico, usuario.alias, usuario.id, usuario.telefono);
+    return { sesion, requiereCambioContrasena: false };
+  } else {
+    // Contraseña plana (provisional) — comparar directamente
+    if (contrasena !== usuario.contrasena) {
+      throw new ErrorHttp(400, 'Credenciales inválidas');
+    }
+    return { idUsuario: usuario.id, requiereCambioContrasena: true };
   }
 
-  // 4. Comparar contraseña con bcrypt
-  const contrasenaValida = await bcrypt.compare(contrasena, usuario.contrasena);
-  if (!contrasenaValida) {
-    throw new ErrorHttp(401, MENSAJE_CREDENCIALES_INVALIDAS);
-  }
-
-  // 5. Crear sesión y retornar sessionId
-  const sessionId = await sesionServicio.crearSesion(usuario.id, usuario.alias);
-  return sessionId;
 }
 
+/**
+ * Verifica que la identidad
+ */
+export async function verificarIdentidad(identificador: string): Promise<any> {
+  try {
+    const usuario = await usuarioRepo.buscarPorIdentificador(identificador);
+    return { telefono: usuario.telefono, direccionCorreoElectronico: usuario.direccionCorreoElectronico }
+  } catch {
+    throw new ErrorHttp(404, 'No existe un usuario con el identificador proporcionado.');
+  }
+}
 
 /**
  * Solicita recuperación de contraseña.
- *
- * Flujo:
- * 1. Buscar usuario por correo
- * 2. Si no existe, retornar sin error (anti-enumeración)
- * 3. Generar llave UUID
- * 4. Guardar llave en Redis con TTL de 180s
- * 5. Enviar correo con enlace de recuperación
- * 6. Si falla el envío, eliminar llave y lanzar ErrorHttp(500)
  */
-export async function solicitarRecuperacion(correo: string): Promise<void> {
-  // 1. Buscar usuario por correo
-  const usuario = await usuarioRepo.buscarPorCorreo(correo);
-
-  // 2. Si no existe, retornar silenciosamente (anti-enumeración)
-  if (!usuario) {
-    return;
-  }
-
-  // 3. Generar llave UUID
-  const llave = uuidv4();
-
-  // 4. Guardar llave en Redis con TTL de 180 segundos
-  await redisRepositorio.guardarLlaveRecuperacion(llave, usuario.id, 180);
-
-  // 5. Enviar correo con enlace de recuperación
+export async function solicitarRecuperacion(identificador: string, tipo: string): Promise<void> {
+  let usuario
   try {
-    await enviarCorreoRecuperacion(correo, llave);
-  } catch {
-    // 6. Si falla el envío, eliminar llave y lanzar error
-    await redisRepositorio.eliminarLlaveRecuperacion(llave);
-    throw new ErrorHttp(500, 'Error al enviar correo de recuperación');
+    usuario = await usuarioRepo.buscarPorIdentificador(identificador);
+  } catch (error: any) {
+    throw new ErrorHttp(401, error);
+  }
+  try {
+    const claveLLaveRecuperacion = await redisRepositorio.crearLlaveRecuperacion(usuario.id, 'R');
+    // if (tipo == 'C') {
+    await enviarCorreoRecuperacion(usuario.direccionCorreoElectronico, claveLLaveRecuperacion);
+    // }
+    // if (tipo == 'T') {
+    // }
+  }
+  catch (error) {
+    throw error;
   }
 }
 
 /**
  * Cambia la contraseña usando una llave de recuperación.
- *
- * Flujo:
- * 1. Verificar llave en Redis
- * 2. Si no existe, lanzar ErrorHttp(400)
- * 3. Cifrar nueva contraseña con bcrypt (10 rounds)
- * 4. Actualizar contraseña en BD
- * 5. Eliminar llave de Redis
+ * Actualiza estatus a 1 (activo normal).
  */
 export async function cambiarContrasena(llave: string, nuevaContrasena: string): Promise<void> {
-  // 1. Verificar llave en Redis
   const recuperacion = await redisRepositorio.obtenerLlaveRecuperacion(llave);
 
-  // 2. Si no existe, lanzar ErrorHttp(400)
   if (!recuperacion) {
     throw new ErrorHttp(400, 'Enlace inválido o expirado');
   }
 
-  // 3. Cifrar nueva contraseña con bcrypt (10 rounds)
   const contrasenaHash = await bcrypt.hash(nuevaContrasena, SALT_ROUNDS);
 
-  // 4. Actualizar contraseña en BD
   await usuarioRepo.actualizarContrasena(recuperacion.idUsuario, contrasenaHash);
-
-  // 5. Eliminar llave de Redis
   await redisRepositorio.eliminarLlaveRecuperacion(llave);
 }

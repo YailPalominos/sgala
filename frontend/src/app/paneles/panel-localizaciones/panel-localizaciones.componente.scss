@@ -1,0 +1,27 @@
+:host { display: block; height: 100%; }
+.panel-container { height: 100%; display: flex; flex-direction: column; }
+.panel-header { display: flex; align-items: center; gap: 4px; padding: 8px 16px; h2 { margin: 0; font-size: 18px; color: #555; } }
+.error-msg { display: flex; align-items: center; gap: 8px; color: #f44336; padding: 16px; }
+.sin-datos { text-align: center; padding: 48px; color: #666; }
+app-tabla { flex: 1; }
+
+
+
+.panel-contenedor {
+  position: relative;
+  height: 100%;
+}
+
+
+.resize-handle {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+
+.resize-handle {
+  cursor: nwse-resize;
+}

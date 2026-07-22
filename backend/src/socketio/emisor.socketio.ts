@@ -24,7 +24,7 @@ import { ioInstance } from './servidor.socketio';
 export function emitirAUsuario(idUsuario: number, evento: string, datos: unknown): void {
   if (!ioInstance) {
     console.warn(
-      `[Socket.io Emisor] Servidor no inicializado. No se puede emitir "${evento}" al usuario ${idUsuario}`
+      `⚠️  [Socket.io Emisor] Servidor no inicializado. No se puede emitir "${evento}" al usuario ${idUsuario}`
     );
     return;
   }

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 32">
+  <!-- Pin de localización -->
+  <path d="M16 2 C10 2 5 7 5 12.5 C5 20 16 30 16 30 C16 30 27 20 27 12.5 C27 7 22 2 16 2 Z" 
+        fill="#1976d2"/>
+  <circle cx="16" cy="12.5" r="4" fill="white"/>
+  <!-- Ondas -->
+  <path d="M6 5 Q3 2 0 5" stroke="#1976d2" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M26 5 Q29 2 32 5" stroke="#1976d2" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Texto SGALA -->
+  <text x="38" y="22" font-family="Roboto, sans-serif" font-size="18" font-weight="700" fill="#1976d2">SGALA</text>
+</svg>

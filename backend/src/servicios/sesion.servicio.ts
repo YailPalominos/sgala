@@ -6,18 +6,19 @@ import { redisRepositorio, SesionRedis } from '../repositorios/redis.repositorio
  * Encapsula la lógica de creación, verificación y eliminación de sesiones en Redis.
  */
 export const sesionServicio = {
+
   /**
    * Crea una nueva sesión para un usuario.
-   * Genera un UUID como identificador de sesión y lo almacena en Redis con TTL de 86400s (1 día).
-   * @param idUsuario - Identificador del usuario
+   * @param direccionCorreoElectronico - Dirección de correo electrónico del usuario
    * @param alias - Alias del usuario
+   * @param idUsuario - Id del usuario
    * @returns El sessionId generado
    */
-  async crearSesion(idUsuario: number, alias: string): Promise<string> {
-    const sessionId = uuidv4();
-    const datos: SesionRedis = { idUsuario, alias };
-    await redisRepositorio.guardarSesion(sessionId, datos, 86400);
-    return sessionId;
+  async crearSesion(direccionCorreoElectronico: string, alias: string, idUsuario: number, telefono: string): Promise<SesionRedis> {
+    const clave = uuidv4();
+    const datos: SesionRedis = { clave, direccionCorreoElectronico, alias, idUsuario, telefono };
+    await redisRepositorio.guardarSesion(clave, datos, 86400);
+    return datos;
   },
 
   /**
@@ -25,7 +26,7 @@ export const sesionServicio = {
    * @param sessionId - Identificador de la sesión a verificar
    * @returns Datos de la sesión (idUsuario, alias) o null si no existe/expiró
    */
-  async verificarSesion(sessionId: string): Promise<SesionRedis | null> {
+  async obtenerSesion(sessionId: string): Promise<SesionRedis> {
     return redisRepositorio.obtenerSesion(sessionId);
   },
 
@@ -36,4 +37,15 @@ export const sesionServicio = {
   async eliminarSesion(sessionId: string): Promise<void> {
     await redisRepositorio.eliminarSesion(sessionId);
   },
+
+  /**
+  * Actualiza el id del socker de la sesión
+  * @param claveSesion - Clave de la sesión
+  * @param idSocket - Id del socket
+  * 
+  */
+  async actualizarIdSocket(claveSesion: string, idSocket: string): Promise<void> {
+    await redisRepositorio.actualizarIdSocket(claveSesion, idSocket);
+  },
+
 };

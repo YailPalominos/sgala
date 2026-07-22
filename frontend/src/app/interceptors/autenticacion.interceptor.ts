@@ -12,7 +12,7 @@ export const autenticacionInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(reqConCredenciales).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && router.url.startsWith('/panel')) {
+      if (error.status === 401 && router.url.startsWith('/inicio')) {
         router.navigate(['/login']);
       }
       return throwError(() => error);

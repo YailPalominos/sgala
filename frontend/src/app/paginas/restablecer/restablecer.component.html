@@ -1,0 +1,78 @@
+<div class="restablecer-card">
+  <h1>Restablecer contraseña</h1>
+  <p class="subtitulo">Crea una nueva contraseña segura</p>
+
+  <form [formGroup]="formulario" (ngSubmit)="enviar()">
+    <mat-form-field appearance="outline">
+      <mat-label>Nueva contraseña</mat-label>
+      <input
+        matInput
+        formControlName="contrasena"
+        [type]="ocultarContrasena() ? 'password' : 'text'"
+        autocomplete="new-password"
+      />
+      <mat-icon matPrefix>lock</mat-icon>
+      <button mat-icon-button matSuffix type="button"
+        (click)="ocultarContrasena.set(!ocultarContrasena())">
+        <mat-icon>{{ ocultarContrasena() ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Confirmar contraseña</mat-label>
+      <input
+        matInput
+        formControlName="confirmarContrasena"
+        [type]="ocultarConfirmacion() ? 'password' : 'text'"
+        autocomplete="new-password"
+      />
+      <mat-icon matPrefix>lock_outline</mat-icon>
+      <button mat-icon-button matSuffix type="button"
+        (click)="ocultarConfirmacion.set(!ocultarConfirmacion())">
+        <mat-icon>{{ ocultarConfirmacion() ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <!-- Lista de validación de contraseña segura -->
+    <div class="reglas-contrasena">
+      <p class="reglas-titulo">Requisitos de contraseña:</p>
+      <ul>
+        <li [class.cumplido]="reglas().minimo8">
+          <mat-icon>{{ reglas().minimo8 ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+          Mínimo 8 caracteres
+        </li>
+        <li [class.cumplido]="reglas().mayuscula">
+          <mat-icon>{{ reglas().mayuscula ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+          Al menos una letra mayúscula
+        </li>
+        <li [class.cumplido]="reglas().minuscula">
+          <mat-icon>{{ reglas().minuscula ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+          Al menos una letra minúscula
+        </li>
+        <li [class.cumplido]="reglas().numero">
+          <mat-icon>{{ reglas().numero ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+          Al menos un número
+        </li>
+        <li [class.cumplido]="reglas().especial">
+          <mat-icon>{{ reglas().especial ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+          Al menos un carácter especial
+        </li>
+        <li [class.cumplido]="reglas().coinciden">
+          <mat-icon>{{ reglas().coinciden ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+          Las contraseñas coinciden
+        </li>
+      </ul>
+    </div>
+
+    <div class="acciones">
+      <button
+        mat-raised-button
+        color="primary"
+        type="submit"
+        [disabled]="!contrasenaSegura()"
+      >
+        Cambiar contraseña
+      </button>
+    </div>
+  </form>
+</div>

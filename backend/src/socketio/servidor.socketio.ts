@@ -1,27 +1,13 @@
 import { createServer, Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import { entorno } from '../configuracion/entorno';
+import { entorno } from '../recursos/entorno';
 import { sesionServicio } from '../servicios/sesion.servicio';
+import { redisRepositorio } from '../repositorios/redis.repositorio';
+import { DatosActualizar } from '@/repositorios/dispositivo.repositorio';
+
 
 /** Instancia global del servidor Socket.io, accesible por otros módulos */
 export let ioInstance: Server;
-
-/**
- * Parsea el valor de una cookie específica desde el header Cookie crudo.
- * @param cookieHeader - Cadena con las cookies del request (formato "key=value; key2=value2")
- * @param nombre - Nombre de la cookie a extraer
- * @returns Valor de la cookie o null si no se encuentra
- */
-function parsearCookie(cookieHeader: string, nombre: string): string | null {
-  const cookies = cookieHeader.split(';');
-  for (const cookie of cookies) {
-    const [clave, ...valorPartes] = cookie.trim().split('=');
-    if (clave === nombre) {
-      return decodeURIComponent(valorPartes.join('='));
-    }
-  }
-  return null;
-}
 
 /**
  * Middleware de autenticación para Socket.io.
@@ -30,25 +16,20 @@ function parsearCookie(cookieHeader: string, nombre: string): string | null {
  */
 async function middlewareAutenticacion(socket: Socket, next: (err?: Error) => void): Promise<void> {
   try {
-    const cookieHeader = socket.handshake.headers.cookie;
 
-    if (!cookieHeader) {
+    const claveSesion = socket.handshake.auth.claveSesion;
+
+    if (!claveSesion) {
       return next(new Error('No autorizado'));
     }
 
-    const sessionId = parsearCookie(cookieHeader, 'sessionId');
-
-    if (!sessionId) {
-      return next(new Error('No autorizado'));
-    }
-
-    const sesion = await sesionServicio.verificarSesion(sessionId);
+    const sesion = await sesionServicio.obtenerSesion(claveSesion);
 
     if (!sesion) {
       return next(new Error('No autorizado'));
     }
 
-    socket.data.usuario = { id: sesion.idUsuario, alias: sesion.alias };
+    socket.data.usuario = { id: sesion.idUsuario, alias: sesion.alias, claveSesion: claveSesion };
     next();
   } catch {
     next(new Error('No autorizado'));
@@ -59,13 +40,27 @@ async function middlewareAutenticacion(socket: Socket, next: (err?: Error) => vo
  * Manejador de nuevas conexiones Socket.io.
  * Une al socket a una sala identificada por el ID del usuario para dirigir eventos de forma exclusiva.
  */
-function manejarConexion(socket: Socket): void {
-  const { id, alias } = socket.data.usuario;
+async function manejarConexion(socket: Socket): Promise<void> {
+  const { id, alias, claveSesion } = socket.data.usuario;
+
   socket.join(`usuario:${id}`);
-  console.log(`Socket.io: usuario "${alias}" (id=${id}) conectado, socket=${socket.id}`);
+  console.log(`📡 Socket.io: usuario "${alias}" (id=${id}) conectado, socket=${socket.id}`);
+
+  await redisRepositorio.actualizarIdSocket(claveSesion, socket.id)
+
+  // socket.on('dispositivos', async () => {
+
+  const dispositivos = await redisRepositorio.obtenerDispositivosUsuario(id)
+  // });
+
+  socket.emit(
+    'dispositivos',
+    dispositivos
+  );
+
 
   socket.on('disconnect', () => {
-    console.log(`Socket.io: usuario "${alias}" (id=${id}) desconectado, socket=${socket.id}`);
+    console.log(`📡 Socket.io: usuario "${alias}" (id=${id}) desconectado, socket=${socket.id}`);
   });
 }
 
@@ -84,12 +79,28 @@ export function iniciarServidorSocketio(): HttpServer {
     },
   });
 
-  ioInstance.use(middlewareAutenticacion);
-  ioInstance.on('connection', manejarConexion);
+  const namespaceSocket = ioInstance.of('/socket');
+
+  namespaceSocket.use(middlewareAutenticacion);
+
+  namespaceSocket.on('connection', manejarConexion);
 
   httpServer.listen(entorno.PUERTO_SOCKET, () => {
-    console.log(`Servidor Socket.io escuchando en puerto ${entorno.PUERTO_SOCKET}`);
+    console.log(`📡 Servidor Socket.io escuchando en puerto ${entorno.PUERTO_SOCKET}`);
   });
 
   return httpServer;
+}
+
+
+export async function enviarDispositivoActualizado(
+  claveDispositivo: string
+): Promise<void> {
+
+  const dispositivo = await redisRepositorio.obtenerDispositivo(claveDispositivo);
+
+  ioInstance
+    .of('/socket')
+    .to(`usuario:${dispositivo?.idUsuario}`)
+    .emit('dispositivo', dispositivo);
 }

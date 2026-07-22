@@ -1,0 +1,152 @@
+<div class="barra-acciones">
+  <mat-form-field appearance="outline" class="buscar-input">
+    <mat-label>Buscar dispositivo</mat-label>
+    <input matInput (input)="filtrar($event)" placeholder="Clave, alias o teléfono..." />
+    <mat-icon matPrefix>search</mat-icon>
+  </mat-form-field>
+  <button mat-raised-button color="primary" (click)="agregarDispositivo()">
+    <mat-icon>add</mat-icon>
+    Agregar
+  </button>
+</div>
+
+<div class="panel-content">
+  @if (cargando()) {
+  <div class="panel-cargando">
+    <mat-spinner></mat-spinner>
+    <p>Cargando dispositivos...</p>
+  </div>
+  }
+
+  @if (!cargando() && !error() && dispositivosFiltrados().length === 0) {
+  <div class="panel-vacio">
+    <mat-icon style="font-size: 64px; width: 64px; height: 64px; color: #9e9e9e;">devices_other</mat-icon>
+    <p class="mat-body-1">No hay dispositivos.</p>
+  </div>
+  }
+
+  @if (!cargando() && !error() && dispositivosFiltrados().length > 0) {
+  <div class="dispositivos-grid">
+    @for (dispositivo of dispositivosFiltrados(); track dispositivo.clave) {
+    <mat-card class="dispositivo-card" [class.alarma-activa]="dispositivo.estadoAlarma"
+      (dblclick)="editarDispositivo(dispositivo)">
+      <!-- Sección superior: conexión + nombre -->
+      <div class="card-encabezado">
+        <mat-icon class="icono-conexion"
+          [style.color]="dispositivo.estadoConexion === 'conectado' ? '#4caf50' : '#f44336'">circle</mat-icon>
+        <span class="card-alias">{{ dispositivo.alias || 'Sin nombre' }}</span>
+      </div>
+
+      <!-- Sección media: datos -->
+      <div class="card-datos">
+
+        <p class="dato-telefono">
+          <mat-icon inline>phone</mat-icon>
+          {{ dispositivo.telefono }}
+        </p>
+
+        <p class="dato-sucripcion">
+          <mat-icon inline>date_range</mat-icon>
+
+          @if (dispositivo.fechaFinalSuscripcion) {
+
+          @if (
+          dispositivo.fechaFinalSuscripcion &&
+          dispositivo.fechaFinalSuscripcion !== 'null'
+          ) {
+          {{ dispositivo.fechaFinalSuscripcion | date:'dd/MM/yyyy' }}
+          } @else {
+          <span style="color:#9e9e9e">Sin suscripción</span>
+          }
+
+          <span [style.color]="obtenerColorSuscripcion(dispositivo.fechaFinalSuscripcion)">
+            {{ obtenerTextoSuscripcion(dispositivo.fechaFinalSuscripcion) }}
+          </span>
+
+          } @else {
+
+          <span style="color:#f44336">
+            Sin suscripción
+          </span>
+
+          }
+        </p>
+
+        <p class="dato-general">
+          Estado:
+          <b [style.color]="colorEstado(dispositivo.estado)">
+            {{ textoEstado(dispositivo.estado) }}
+          </b>
+
+          · Batería:
+          <b [style.color]="colorBateria(dispositivo.porcentajeBateria)">
+            {{ dispositivo.porcentajeBateria ?? '-' }}%
+          </b>
+        </p>
+      </div>
+
+      <div class="card-acciones">
+
+        <button mat-icon-button matTooltip="Suscripciones" (click)="verSuscripciones()">
+          <mat-icon>event</mat-icon>
+        </button>
+
+        <button mat-icon-button matTooltip="Historial de ubicaciones" (click)="verHistorial(dispositivo.clave)"
+          style="margin-right: 30px;">
+          <mat-icon>history</mat-icon>
+        </button>
+
+        <span [matTooltip]="
+    tieneCualidad(dispositivo, 'COC')
+      ? (dispositivo.estadoEncendido ? 'Activar corta corriente' : 'Desactivar corta corriente')
+      : 'El dispositivo no tiene corta corriente'
+  ">
+
+          <button mat-icon-button [disabled]="!tieneCualidad(dispositivo, 'COC')"
+            [color]="dispositivo.estadoEncendido ? 'warn' : 'primary'" (click)="toggleEncendido(dispositivo)">
+            <mat-icon>stream</mat-icon>
+          </button>
+
+        </span>
+
+
+        <span [matTooltip]="
+    tieneCualidad(dispositivo, 'ALA')
+      ? (dispositivo.estadoAlarma ? 'Desactivar alarma' : 'Activar alarma')
+      : 'El dispositivo no tiene alarma'
+  ">
+
+          <button mat-icon-button [disabled]="!tieneCualidad(dispositivo, 'ALA')"
+            [color]="dispositivo.estadoAlarma ? 'warn' : 'primary'" (click)="toggleAlarma(dispositivo)">
+            <mat-icon>
+              {{ dispositivo.estadoAlarma ? 'notifications_off' : 'notifications_active' }}
+            </mat-icon>
+          </button>
+
+        </span>
+
+        <span [matTooltip]="dispositivo.localizacion ? 'Ver la localización' : 'No hay localización'">
+
+          <button mat-icon-button color="primary" [disabled]="!dispositivo.localizacion"
+            (click)="verLocalizacion(dispositivo)">
+            <mat-icon>map</mat-icon>
+          </button>
+
+        </span>
+
+
+        <span [matTooltip]="dispositivo.localizacion ? 'Ver la localización' : 'No hay localización'">
+
+          <button mat-icon-button color="primary" [disabled]="!dispositivo.localizacion"
+            (click)="verLocalizacion(dispositivo)">
+            <mat-icon>settings_remote</mat-icon>
+          </button>
+
+        </span>
+
+      </div>
+    </mat-card>
+    }
+  </div>
+  }
+</div>
