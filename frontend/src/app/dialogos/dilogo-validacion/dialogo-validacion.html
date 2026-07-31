@@ -1,0 +1,56 @@
+<h2 class="titulo">
+  Verificar pre {{ parametros.tipo === 'U' ? 'usuario' : 'dispositivo' }}
+</h2>
+
+<mat-dialog-content>
+
+
+  <form [formGroup]="formulario" (ngSubmit)="verificar()" id="formulario">
+
+    <p style="margin: 10px;text-align: center;width: 100%">
+      Ingresa la clave del pre {{ parametros.tipo === 'U' ? 'usuario' : 'dispositivo' }}.
+      <br>
+      Ejemplo: 7f3c2a91-8b64-4d1e-a5f7-2c9e6b8d4a30
+    </p>
+
+
+    <mat-form-field appearance="outline">
+
+      <mat-label>
+        Clave del pre {{ parametros.tipo === 'U' ? 'usuario' : 'dispositivo' }}
+      </mat-label>
+
+      <input matInput formControlName="clave" autocomplete="off" />
+
+      <mat-icon matPrefix>key</mat-icon>
+
+      @if (formulario.get('clave')?.hasError('required')) {
+      <mat-error>
+        La clave es requerida.
+      </mat-error>
+      }
+
+      @if (formulario.get('clave')?.hasError('pattern')) {
+      <mat-error>
+        La clave debe tener un formato UUID válido.
+      </mat-error>
+      }
+
+    </mat-form-field>
+
+  </form>
+
+</mat-dialog-content>
+
+
+<mat-dialog-actions align="center">
+
+  <button mat-button mat-dialog-close>
+    Cancelar
+  </button>
+
+  <button mat-raised-button color="primary" type="submit" form="formulario">
+    Verificar
+  </button>
+
+</mat-dialog-actions>

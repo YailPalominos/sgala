@@ -1,0 +1,99 @@
+<h2 class="titulo">
+    {{ parametros.accion=='R'?'Nuevo usuario':(parametros?.datos.alias )}}
+</h2>
+
+<mat-dialog-content>
+
+    <form [formGroup]="formulario" (ngSubmit)="preparar()" id=formulario>
+
+
+        <p style="margin: 10px;text-align: center;width: 100%;">
+            {{
+            parametros.accion === 'R'
+            ? 'Completa la información para crear un nuevo usuario.'
+            : 'Edita la información del usuario.'
+            }}
+        </p>
+
+        <mat-form-field appearance="outline">
+            <mat-label>Alias</mat-label>
+            <input matInput formControlName="alias" type="tel" autocomplete="tel" />
+            <mat-icon matPrefix>badge</mat-icon>
+            <mat-hint>
+                Solo letras y números. Máximo 15 caracteres.
+            </mat-hint>
+
+            @if (formulario.controls.alias.hasError('required')) {
+            <mat-error>
+                El alias es obligatorio.
+            </mat-error>
+            }
+
+            @if (formulario.controls.alias.hasError('maxlength')) {
+            <mat-error>
+                El alias no puede tener más de 15 caracteres.
+            </mat-error>
+            }
+
+            @if (formulario.controls.alias.hasError('pattern')) {
+            <mat-error>
+                El alias solo puede contener letras y números.
+            </mat-error>
+            }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+            <mat-label>Dirección de correo electronico</mat-label>
+            <input matInput formControlName="direccionCorreoElectronico" autocomplete="off" />
+            <mat-icon matPrefix>email</mat-icon>
+
+            @if (formulario.controls.direccionCorreoElectronico.hasError('required')) {
+            <mat-error>
+                La dirección de correo electrónico es obligatoria.
+            </mat-error>
+            }
+
+            @if (formulario.controls.direccionCorreoElectronico.hasError('email')) {
+            <mat-error>
+                Ingresa una dirección de correo electrónico válida.
+            </mat-error>
+            }
+
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+            <mat-label>Teléfono</mat-label>
+            <input matInput formControlName="telefono" autocomplete="off" />
+            <mat-icon matPrefix>phone</mat-icon>
+
+            @if (formulario.controls.telefono.hasError('required')) {
+            <mat-error>
+                El número de teléfono es obligatorio.
+            </mat-error>
+            }
+
+            @if (formulario.controls.telefono.hasError('pattern')) {
+            <mat-error>
+                Ingresa un número de teléfono válido de 10 dígitos.
+            </mat-error>
+            }
+
+        </mat-form-field>
+
+    </form>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="center">
+
+    @if(parametros.accion=='A'){
+    <button mat-raised-button color="primary" type="buttom" style="background-color:#0059b6; color:white"
+        (click)="restablecer()" matTooltip="Cambiar de contraseña">
+        Restablecer
+    </button>
+    }
+    <button mat-button mat-dialog-close>Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" form="formulario">
+        {{ parametros.accion=='R'?'Crear':'Actualizar'}}
+    </button>
+</mat-dialog-actions>

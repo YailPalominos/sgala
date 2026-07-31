@@ -34,7 +34,7 @@ function crearTransporter() {
 export async function enviarCorreoRecuperacion(correo: string, llave: string): Promise<void> {
   const transporter = crearTransporter();
 
-  const enlaceRecuperacion = `${URL_FRONTEND}/restablecer/llave=${llave}`;
+  const enlaceRecuperacion = `${URL_FRONTEND}/restablecer?llave=${llave}`;
 
   await transporter.sendMail({
     from: entorno.SMTP_USUARIO,

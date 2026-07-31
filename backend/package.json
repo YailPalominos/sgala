@@ -4,7 +4,7 @@
   "description": "Backend del Sistema de Gestión de Acción, Localización y Alarma (SGALA)",
   "main": "src/index.js",
   "scripts": {
-    "start": "ts-node --transpile-only src/index.ts",
+    "start": "ts-node -r tsconfig-paths/register --transpile-only src/index.ts",
     "start:dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "test": "echo \"No tests configured\""

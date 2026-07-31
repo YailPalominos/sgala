@@ -36,84 +36,193 @@ body {
   min-width: 550px !important;
 }
 
+.dialogo-contenedor {
+  display: block;
+  position: relative;
+  height: 100%;
+
+  .resize {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  /* Bordes */
+
+  .resize-top {
+    top: -4px;
+    left: 8px;
+    right: 8px;
+    height: 8px;
+    cursor: ns-resize;
+  }
+
+  .resize-right {
+    top: 8px;
+    bottom: 8px;
+    right: -4px;
+    width: 8px;
+    cursor: ew-resize;
+  }
+
+  .resize-bottom {
+    left: 8px;
+    right: 8px;
+    bottom: -4px;
+    height: 8px;
+    cursor: ns-resize;
+  }
+
+  .resize-left {
+    top: 8px;
+    bottom: 8px;
+    left: -4px;
+    width: 8px;
+    cursor: ew-resize;
+  }
+
+  /* Esquinas */
+
+  .resize-top-left {
+    top: -4px;
+    left: -4px;
+    width: 12px;
+    height: 12px;
+    cursor: nwse-resize;
+  }
+
+  .resize-top-right {
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
+    cursor: nesw-resize;
+  }
+
+  .resize-bottom-right {
+    right: -4px;
+    bottom: -4px;
+    width: 12px;
+    height: 12px;
+    cursor: nwse-resize;
+  }
+
+  .resize-bottom-left {
+    left: -4px;
+    bottom: -4px;
+    width: 12px;
+    height: 12px;
+    cursor: nesw-resize;
+  }
+
+  .barra-dialogo {
+    position: relative;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    padding-bottom: 15px;
+    background: linear-gradient(to right,
+        transparent,
+        #272727 15%,
+        #272727 85%,
+        transparent) bottom / 80% 5px no-repeat;
 
 
-.panel-botones {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 10px 10px 0;
+    &.moviendo {
+      cursor: grabbing;
+    }
 
-  button {
-    height: 30px;
-    width: 30px;
 
-    .mat-icon {
-      width: 15px;
-      height: 15px;
-      font-size: 18px;
-      line-height: 18px;
+    button {
+      height: 30px;
+      width: 30px;
+
+      .mat-icon {
+        width: 15px;
+        height: 15px;
+        font-size: 18px;
+        line-height: 18px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    h1 {
+      cursor: default;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+
+      margin: 0;
+      padding: 0;
+
+      max-width: calc(100% - 150px);
+
+      font-size: 20px;
+      line-height: 1;
 
       display: flex;
       align-items: center;
       justify-content: center;
+
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+
+    .btn-intercalar-fijar {
+      background-color: #59b96e;
+      color: white;
+
+      &:hover {
+        background-color: #2a7039;
+      }
+    }
+
+    
+    .btn-reiniciar {
+      background-color: #6c60a1;
+      color: white;
+
+      &:hover {
+        background-color: #53478a;
+      }
+    }
+
+    .btn-minimizar {
+      background-color: #f59e0b;
+      color: white;
+
+      &:hover {
+        background-color: #d97706;
+      }
+    }
+
+
+    .btn-expandir {
+      background-color: #1976d2;
+      color: white;
+
+      &:hover {
+        background-color: #1565c0;
+      }
+    }
+
+
+    .btn-cerrar {
+      background-color: #d32f2f;
+      color: white;
+
+      &:hover {
+        background-color: #c62828;
+      }
     }
   }
 
-  h1 {
-    flex: 1;
-    margin: 0;
-    padding: 0;
-
-    font-size: 20px;
-    line-height: 1;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-
-  .btn-minimizar {
-    background-color: #f59e0b;
-    color: white;
-    margin-right: 8px;
-    transition: all .2s ease;
-
-    &:hover {
-      background-color: #d97706;
-      transform: scale(1.08);
-    }
-
-  }
-
-  .btn-expandir {
-    background-color: #1976d2;
-    color: white;
-    margin-right: 8px;
-    transition: all .2s ease;
-
-    &:hover {
-      background-color: #1565c0;
-      transform: scale(1.08);
-    }
-  }
-
-  .btn-cerrar {
-    background-color: #d32f2f;
-    color: white;
-    transition: all .2s ease;
-
-    &:hover {
-      background-color: #c62828;
-      transform: scale(1.08);
-    }
-
-  }
 }
 
 .panel-contenedor {
@@ -123,9 +232,30 @@ body {
   margin-right: 10px;
 }
 
-
 .mdc-dialog__surface {
   border: 2px solid #585858 !important;
   border-radius: 12px !important;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25) !important;
+}
+
+.titulo {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px !important;
+  padding: 0 !important;
+  font-size: 20px !important;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 40px;
+  height: 100%;
+}
+
+.mat-mdc-dialog-content {
+  padding: 0 !important;
 }

@@ -3,8 +3,8 @@ import { Server, Socket } from 'socket.io';
 import { entorno } from '../recursos/entorno';
 import { sesionServicio } from '../servicios/sesion.servicio';
 import { redisRepositorio } from '../repositorios/redis.repositorio';
-import { DatosActualizar } from '@/repositorios/dispositivo.repositorio';
 
+import { enviarSolicitudDispositivo } from '../mqtt/broker.mqtt';
 
 /** Instancia global del servidor Socket.io, accesible por otros módulos */
 export let ioInstance: Server;
@@ -62,6 +62,23 @@ async function manejarConexion(socket: Socket): Promise<void> {
   socket.on('disconnect', () => {
     console.log(`📡 Socket.io: usuario "${alias}" (id=${id}) desconectado, socket=${socket.id}`);
   });
+
+
+  socket.on(
+    'solicitud',
+    async (datos) => {
+
+      console.log(
+        'Solicitud resibida:',
+        datos
+      );
+
+      enviarSolicitudDispositivo(datos.clave, datos)
+      redisRepositorio.actualizarDatosDispositivo(datos.clave, datos)
+      await enviarDispositivoActualizado(datos.clave)
+
+    }
+  );
 }
 
 /**
@@ -92,15 +109,33 @@ export function iniciarServidorSocketio(): HttpServer {
   return httpServer;
 }
 
-
 export async function enviarDispositivoActualizado(
   claveDispositivo: string
 ): Promise<void> {
 
-  const dispositivo = await redisRepositorio.obtenerDispositivo(claveDispositivo);
+  const dispositivo = await redisRepositorio.obtenerDispositivo(
+    claveDispositivo
+  );
 
-  ioInstance
-    .of('/socket')
-    .to(`usuario:${dispositivo?.idUsuario}`)
-    .emit('dispositivo', dispositivo);
+  const sockets = await redisRepositorio.obtenerSocketsUsuario(
+    dispositivo.idUsuario
+  );
+
+  if (sockets.length === 0) {
+    return;
+  }
+
+
+  for (const idSocket of sockets) {
+
+    ioInstance
+      .of('/socket')
+      .to(idSocket)
+      .emit(
+        'dispositivo',
+        dispositivo
+      );
+
+  }
+
 }

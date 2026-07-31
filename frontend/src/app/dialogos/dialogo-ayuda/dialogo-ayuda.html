@@ -1,0 +1,102 @@
+<h2 mat-dialog-title class="titulo">Ayuda o contacto</h2>
+
+<mat-dialog-content>
+
+    <form [formGroup]="formulario" (ngSubmit)="enviar()" id="formulario">
+
+        <p class="descripcion">
+            Escribe tu solicitud. Puedes dejar tus datos de contacto para que podamos atenderte.
+        </p>
+
+        <mat-form-field appearance="outline">
+            <mat-label>Descripción</mat-label>
+            <textarea matInput formControlName="descripcion" rows="5" maxlength="1000"
+                placeholder="Describe tu problema o consulta..."></textarea>
+            <mat-hint align="end">{{ formulario.get('descripcion')?.value?.length || 0 }}/1000</mat-hint>
+            @if (formulario.get('descripcion')?.hasError('required')) {
+            <mat-error>La descripción es requerida.</mat-error>
+            }
+        </mat-form-field>
+
+
+        <mat-form-field appearance="outline">
+            <mat-label>¿Cómo podemos contactarte?</mat-label>
+            <mat-select formControlName="pregunta">
+                <mat-option value="correo">
+                    <mat-icon>email</mat-icon>
+                    Correo electrónico
+                </mat-option>
+
+                <mat-option value="telefono">
+                    <mat-icon>phone</mat-icon>
+                    Teléfono
+                </mat-option>
+
+                <mat-option value="no">
+                    <mat-icon>do_not_disturb_on</mat-icon>
+                    No es necesario
+                </mat-option>
+            </mat-select>
+            <!-- <mat-icon matPrefix>contact_mail</mat-icon> -->
+        </mat-form-field>
+
+
+        @if (formulario.get('pregunta')?.value == 'correo') {
+
+        <mat-form-field appearance="outline">
+            <mat-label>Correo electrónico</mat-label>
+            <input matInput type="email" formControlName="medioContacto" />
+
+            <mat-icon matPrefix>email</mat-icon>
+
+            @if (formulario.get('medioContacto')?.hasError('required')) {
+            <mat-error>
+                El correo electrónico es requerido.
+            </mat-error>
+            }
+
+            @if (formulario.get('medioContacto')?.hasError('email')) {
+            <mat-error>
+                Ingresa un correo electrónico válido.
+            </mat-error>
+            }
+
+        </mat-form-field>
+
+        }
+
+
+        @if (formulario.get('pregunta')?.value == 'telefono') {
+
+        <mat-form-field appearance="outline">
+            <mat-label>Teléfono</mat-label>
+            <input matInput type="tel" formControlName="medioContacto" />
+
+            <mat-icon matPrefix>phone</mat-icon>
+
+            @if (formulario.get('medioContacto')?.hasError('required')) {
+            <mat-error>
+                El teléfono es requerido.
+            </mat-error>
+            }
+
+            @if (formulario.get('medioContacto')?.hasError('pattern')) {
+            <mat-error>
+                El teléfono debe contener 10 dígitos.
+            </mat-error>
+            }
+
+        </mat-form-field>
+
+        }
+
+
+    </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="center">
+    <button mat-button mat-dialog-close>Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" form="formulario">
+        Enviar solicitud
+    </button>
+</mat-dialog-actions>

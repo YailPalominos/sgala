@@ -2,17 +2,15 @@
 
   <div class="barra-acciones">
     <mat-form-field appearance="outline" class="buscar-input">
-      <mat-label>{{filtros.etiqueta}}</mat-label>
-      <input matInput (input)="filtrar($event)" [placeholder]="filtros.marcador" />
+      <mat-label>{{filtros().etiqueta}}</mat-label>
+      <input matInput (input)="filtrar($event)" [placeholder]="filtros().marcador" [value]="filtros().texto" />
       <mat-icon matPrefix>search</mat-icon>
     </mat-form-field>
-    @for (boton of filtros.botones; track boton) {
+    @for (boton of filtros().botones; track boton) {
     <button mat-raised-button color="primary" (click)="boton.accion()">
-
       @if (boton.icono) {
       <mat-icon>{{ boton.icono }}</mat-icon>
       }
-
       {{ boton.texto }}
     </button>
     }

@@ -1,0 +1,58 @@
+<div class="login-card">
+  <p class="titulo">SGALA - Sistema de Gestión de Acción, Localización y Alarma</p>
+  <p class="version">
+    © 2026 Lioyabra · Versión {{ version }}
+  </p>
+  <p class="subtitulo">Iniciar sesión</p>
+  <form [formGroup]="formulario" (ngSubmit)="enviar()">
+    <mat-form-field appearance="outline">
+      <mat-label>Identificador</mat-label>
+      <input matInput formControlName="identificador" autocomplete="username" />
+      <mat-icon matPrefix>person</mat-icon>
+      @if (formulario.get('identificador')?.hasError('required')) {
+      <mat-error>El identificador es requerido.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Contraseña</mat-label>
+      <input matInput formControlName="contrasena" [type]="ocultarContrasena() ? 'password' : 'text'"
+        autocomplete="current-password" />
+      <mat-icon matPrefix>lock</mat-icon>
+      <button mat-icon-button matSuffix type="button" (click)="ocultarContrasena.set(!ocultarContrasena())"
+        [attr.aria-label]="ocultarContrasena() ? 'Mostrar contraseña' : 'Ocultar contraseña'">
+        <mat-icon>{{ ocultarContrasena() ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+      @if (formulario.get('contrasena')?.hasError('required')) {
+      <mat-error>La contraseña es requerida.</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="acciones">
+      <button mat-raised-button color="primary" type="submit">
+        Ingresar
+      </button>
+    </div>
+
+    <div class="acciones-secundarias">
+      <button mat-raised-button class="btn-secundario" type="button" (click)="registrarUsuario()">
+        Crear una cuenta
+      </button>
+      <button mat-raised-button class="btn-secundario" type="button" (click)="abrirRecuperacion()">
+        ¿Olvidaste tu contraseña?
+      </button>
+    </div>
+
+    <div class="acciones-informacion">
+      <button mat-raised-button class="btn-informacion" type="button" (click)="abrirInformacion()">
+        Información
+      </button>
+    </div>
+
+    <div class="acciones-ayuda">
+      <button mat-raised-button class="btn-ayuda" type="button" (click)="abrirAyuda()">
+        Ayuda o contacto
+      </button>
+    </div>
+  </form>
+</div>

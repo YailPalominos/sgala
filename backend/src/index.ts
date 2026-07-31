@@ -7,8 +7,8 @@ import { dispositivoRouter } from './rutas/dispositivo.ruta';
 import { solicitudRouter } from './rutas/solicitud.ruta';
 import { iniciar as iniciarBaseDatos } from './recursos/base-datos';
 import { redis } from './recursos/redis';
-import { iniciarBrokerMqtt, aedesInstance } from './mqtt/broker.mqtt';
-import { onConexion, onDesconexion, onPublicacion, iniciarConexiones } from './mqtt/manejadores.mqtt';
+import { iniciarBrokerMqtt } from './mqtt/broker.mqtt';
+import {  iniciarConexiones } from './mqtt/manejadores.mqtt';
 import { iniciarServidorSocketio } from './socketio/servidor.socketio';
 import cors from 'cors';
 import { redisRepositorio } from './repositorios/redis.repositorio';
@@ -34,30 +34,38 @@ app.use(
   middlewareSesion.unless({
     path: [
       {
-        url: '/api/usuario/iniciar-sesion',
+        url: '/api/usuarios/iniciar-sesion',
         method: 'POST'
       },
       {
-        url: '/api/usuario/validar-clave/:clave',
+        url: /^\/api\/usuarios\/validar-clave\/[^/]+$/,
         method: 'GET'
       },
       {
-        url: '/api/usuario/verificar-identidad/:identificador',
+        url: /^\/api\/usuarios\/verificar-identidad\/[^/]+$/,
+        method: 'GET'
+      },
+      {
+        url: '/api/usuarios/solicitar-recuperacion',
         method: 'POST'
       },
       {
-        url: '/api/usuario/solicitar-recuperacion',
+        url: '/api/usuarios/cambiar',
         method: 'POST'
       },
       {
-        url: '/api/usuario/recuperacion/cambiar',
+        url: '/api/usuarios/crear',
+        method: 'POST'
+      },
+      {
+        url: '/api/solicitudes/crear',
         method: 'POST'
       }
     ]
   })
 );
 
-app.use('/api/usuario', autenticacionRouter);
+app.use('/api/usuarios', autenticacionRouter);
 app.use('/api/dispositivos', dispositivoRouter);
 app.use('/api/solicitudes', solicitudRouter);
 app.use('/api/datos', datosRoute);
@@ -106,20 +114,6 @@ async function iniciar(): Promise<void> {
   ]
 
   redisRepositorio.actualizarPrecios(precios)
-
-  aedesInstance.on('client', (client) => {
-    onConexion(client.id);
-  });
-
-  aedesInstance.on('clientDisconnect', (client) => {
-    onDesconexion(client.id);
-  });
-
-  aedesInstance.on('publish', (packet, client) => {
-    if (client) {
-      onPublicacion(packet.topic, packet.payload as Buffer);
-    }
-  });
 
   // e. Iniciar servidor Socket.io
   iniciarServidorSocketio();

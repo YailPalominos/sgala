@@ -1,14 +1,14 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './paginas/login/login.component';
-import { RestablecerComponent } from './paginas/restablecer/restablecer.component';
-import { autenticacionGuard } from './guards/autenticacion.guard';
-import { Informacion } from './paginas/informacion/informacion.component';
-import { PanelPrincipalComponent } from './paneles/panel-principal/panel-principal.componente';
+import { PaginaRestablecer } from './paginas/pagina-restablecer/pagina-restablecer';
+import { PaginaInformacion } from './paginas/pagina-informacion/pagina-informacion';
+import { PaginaPrincipal } from './paginas/pagina-inicio/pagina-principal';
+import { PaginaAcceder } from './paginas/pagina-acceder/pagina-acceder';
+import { Autorizador } from './recursos/autorizador';
 export const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
-  { path: 'inicio-sesion', component: LoginComponent },
-  { path: 'restablecer', component: RestablecerComponent },
-  { path: 'inicio', component: PanelPrincipalComponent, canActivate: [autenticacionGuard] },
-  { path: 'informacion', component: Informacion },
-  { path: '**', redirectTo: 'inicio-sesion' },
+  { path: '', redirectTo: 'acceder', pathMatch: 'full' },
+  { path: 'acceder', component: PaginaAcceder },
+  { path: 'restablecer', component: PaginaRestablecer },
+  { path: 'inicio', component: PaginaPrincipal, canActivate: [Autorizador] },
+  { path: 'informacion', component: PaginaInformacion },
+  { path: '**', redirectTo: 'acceder' },
 ];

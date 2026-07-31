@@ -1,6 +1,5 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import * as autenticacionServicio from '../servicios/autenticacion.servicio';
-import { middlewareSesion } from '../interceptores/sesion.middleware';
 import { sesionServicio } from '../servicios/sesion.servicio';
 import { actualizar } from '../repositorios/usuario.repositorio';
 import { redisRepositorio } from '../repositorios/redis.repositorio';
@@ -12,20 +11,19 @@ import asyncHandler from 'express-async-handler';
  */
 autenticacionRouter.get(
   '/validar-clave/:clave',
-  asyncHandler(async (req: Request, res: Response) => {
-    const { clave } = req.params;
+  asyncHandler(async (solicitud, respuesta) => {
+    const { clave } = solicitud.params;
 
     const datosUsuario = await autenticacionServicio.validarClave(clave);
 
     if (!datosUsuario) {
-      res.status(200).json({
+      respuesta.status(200).json({
         mensaje: 'Clave disponible',
         datos: clave
       });
-      return;
     }
 
-    res.status(202).json({
+    respuesta.status(202).json({
       mensaje: 'La clave ya está siendo utilizada por otro usuario',
       datos: datosUsuario
     });
@@ -33,18 +31,16 @@ autenticacionRouter.get(
 );
 
 /**
- * POST /api/usuario/registrar
  * Registra un nuevo usuario. El servidor genera una contraseña provisional
  * y la envía por correo electrónico junto al alias.
  */
 autenticacionRouter.post('/crear',
-  asyncHandler(async (req: Request, res: Response) => {
+  asyncHandler(async (solicitud, respuesta) => {
 
-    const datos = req.body;
-
+    const datos = solicitud.body;
     await autenticacionServicio.crear(datos);
 
-    res.status(202).json({
+    respuesta.status(202).json({
       mensaje: 'El usuario fue creado exitosamente.',
     });
   })
@@ -52,7 +48,6 @@ autenticacionRouter.post('/crear',
 
 /**
  * Inicia sesión. Responde 200 si la sesión es normal, 202 si debe cambiar contraseña.
- * Body: { identificador, contraseña }
  */
 autenticacionRouter.post('/iniciar-sesion',
   asyncHandler(async (solicitud, respuesta) => {
@@ -91,7 +86,6 @@ autenticacionRouter.get('/verificar-identidad/:identificador',
   asyncHandler(async (solicitud, respuesta) => {
 
     const { identificador } = solicitud.params;
-
     const datos = await autenticacionServicio.verificarIdentidad(identificador);
 
     respuesta.status(200).json({
@@ -107,9 +101,7 @@ autenticacionRouter.get('/verificar-identidad/:identificador',
 autenticacionRouter.post('/solicitar-recuperacion',
   asyncHandler(async (solicitud, respuesta) => {
     const { identificador, tipo } = solicitud.body;
-
     await autenticacionServicio.solicitarRecuperacion(identificador, tipo);
-
     respuesta.status(200).json({
       mensaje: 'Se ha enviado el enlace para restablecer su contraseña.'
     });
@@ -123,18 +115,7 @@ autenticacionRouter.post('/solicitar-recuperacion',
 autenticacionRouter.post('/solicitar-llave-recuperacion',
   asyncHandler(async (solicitud, respuesta) => {
 
-    const claveSesion = solicitud.header('clave-sesion');
-    if (!claveSesion) {
-      throw new Error("No se encontro la clave de la sesión en el encabezado")
-    }
-
-    const sesion = await sesionServicio.obtenerSesion(claveSesion);
-
-    if (!sesion) {
-      throw new Error("No se encontro la sesión en el servidor")
-    }
-
-    const claveLLaveRecuperacion = await redisRepositorio.crearLlaveRecuperacion(sesion.idUsuario, 'A');
+    const claveLLaveRecuperacion = await redisRepositorio.crearLlaveRecuperacion(solicitud.sesion.idUsuario, 'A');
 
     respuesta.status(200).json({
       datos: claveLLaveRecuperacion,
@@ -145,10 +126,9 @@ autenticacionRouter.post('/solicitar-llave-recuperacion',
 
 
 /**
- * POST /api/usuario/recuperacion/cambiar
  * Cambia la contraseña usando una llave de recuperación válida.
  */
-autenticacionRouter.post('/recuperacion/cambiar',
+autenticacionRouter.post('/cambiar',
   asyncHandler(async (solicitud, respuesta) => {
     const { llave, nuevaContraseña } = solicitud.body;
     await autenticacionServicio.cambiarContrasena(llave, nuevaContraseña);

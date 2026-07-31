@@ -7,12 +7,9 @@ import { buscarPorClave } from '../repositorios/dispositivo.repositorio';
 export async function validarClave(clave: string, idUsuario: number): Promise<any> {
   let datosDispositivo;
   try {
-    datosDispositivo = await buscarPorClave(clave,idUsuario);
+    datosDispositivo = await buscarPorClave(clave, idUsuario);
   } catch {
     throw new ErrorHttp(400, 'Clave de dispositivo inválida.')
-  }
-  if (datosDispositivo == null) {
-    return null;
   }
   return datosDispositivo;
 }

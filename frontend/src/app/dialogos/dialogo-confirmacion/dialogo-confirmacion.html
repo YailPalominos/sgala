@@ -1,0 +1,17 @@
+<h2 mat-dialog-title class="centrado">
+    {{ parametros.titulo || 'Confirmar' }}
+</h2>
+
+<mat-dialog-content class="centrado">
+    {{ parametros.mensaje || '¿Está seguro de realizar esta acción?' }}
+</mat-dialog-content>
+
+<mat-dialog-actions align="center">
+    <button mat-button (click)="    this.cerrar(this.parametros)">
+        {{ parametros.textoNo || 'No' }}
+    </button>
+
+    <button mat-raised-button color="primary" (click)="this.cerrar(this.parametros)">
+        {{ parametros.textoSi || 'Sí' }}
+    </button>
+</mat-dialog-actions>

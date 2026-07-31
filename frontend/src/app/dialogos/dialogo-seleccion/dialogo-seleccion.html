@@ -1,0 +1,44 @@
+<h2 class="titulo">
+  {{ data.titulo || 'Seleccionar opción' }}
+</h2>
+
+<mat-dialog-content>
+
+  <div class="formulario" style="padding: 10px;">
+    @if (data.mensaje) {
+    <p>{{ data.mensaje }}</p>
+    }
+
+    <mat-form-field appearance="outline" style="width:100%;">
+      <mat-label>Selecciona una opción</mat-label>
+
+      <mat-select [(ngModel)]="seleccion">
+
+        @if (!data.requerido) {
+        <mat-option [value]="null">
+          Ninguno
+        </mat-option>
+        }
+
+        @for (opcion of data.opciones; track opcion.clave) {
+        <mat-option [value]="opcion.clave">
+          {{ opcion.texto }}
+        </mat-option>
+        }
+
+      </mat-select>
+    </mat-form-field>
+
+  </div>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="center">
+  <button mat-button (click)="cancelar()">
+    {{ data.textoCancelar || 'Cancelar' }}
+  </button>
+
+  <button mat-raised-button color="primary" [disabled]="data.requerido && !seleccion" (click)="aceptar()">
+    {{ data.textoAceptar || 'Aceptar' }}
+  </button>
+</mat-dialog-actions>

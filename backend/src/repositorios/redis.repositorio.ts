@@ -50,8 +50,8 @@ export interface EstadoDispositivoRedis {
     longitud: number;
     altitud: number;
   };
-  estatusCortaCorriente?: string;//Inidica si esta activo el corta corriente si lo esta inpide el flujo de corriente al motor
-  estatusAlarma?: string;// Indica si esta activa la alarma
+  estatusCortaCorriente?: boolean;//Inidica si esta activo el corta corriente si lo esta inpide el flujo de corriente al motor
+  estatusAlarma?: boolean;// Indica si esta activa la alarma
   fechaFinalSuscripcion?: string;//Indica la fecha de finalizacion de la suscripcion del dispositivo
   porcentajeBateria?: number,
   estado?: string;// 'E' estacionada 'M' en movimiento 'P' Prendida
@@ -136,6 +136,36 @@ export const redisRepositorio = {
       "idSocket",
       idSocket
     );
+  },
+
+  /**
+ * Obtiene todos los Socket ID activos de un usuario.
+ * @param idUsuario - Identificador del usuario.
+ * @returns Lista de Socket ID.
+ */
+  async obtenerSocketsUsuario(
+    idUsuario: number
+  ): Promise<string[]> {
+
+    const claves = await redis.keys('sesiones:*');
+
+    const sockets: string[] = [];
+
+    for (const clave of claves) {
+
+      const sesion = await redis.hgetall(clave);
+
+      if (
+        Number(sesion.idUsuario) === idUsuario &&
+        sesion.idSocket
+      ) {
+        sockets.push(sesion.idSocket);
+      }
+
+    }
+
+    return sockets;
+
   },
 
   /**
@@ -243,7 +273,8 @@ export const redisRepositorio = {
  * @param clave - UUID del dispositivo
  * @returns Estado del dispositivo o null si no existe
  */
-  async obtenerDispositivo(clave: string): Promise<EstadoDispositivoRedis | null> {
+  async obtenerDispositivo(clave: string): Promise<EstadoDispositivoRedis> {
+
     const datos = await redis.hgetall(`dispositivos:${clave}`);
 
     if (Object.keys(datos).length === 0) {
@@ -257,14 +288,29 @@ export const redisRepositorio = {
       cualidades: datos.cualidades,
       telefono: datos.telefono,
       estatusConexion: datos.estatusConexion === 'true',
+
       localizacion: datos.localizacion
         ? JSON.parse(datos.localizacion)
         : undefined,
-      estatusAlarma: datos.estatusAlarma,
-      estatusCortaCorriente: datos.estatusCortaCorriente,
-      fechaFinalSuscripcion: datos.fechaFinalSuscripcion || undefined,
-      porcentajeBateria: Number(datos.porcentajeBateria) ?? 'null',
-      estado: datos.estado ?? 'null',
+
+      estatusAlarma: datos.estatusAlarma === 'true',
+
+      estatusCortaCorriente: datos.estatusCortaCorriente === 'true',
+
+      fechaFinalSuscripcion:
+        datos.fechaFinalSuscripcion !== 'null'
+          ? datos.fechaFinalSuscripcion
+          : undefined,
+
+      porcentajeBateria:
+        datos.porcentajeBateria !== 'null'
+          ? Number(datos.porcentajeBateria)
+          : undefined,
+
+      estado:
+        datos.estado !== 'null'
+          ? datos.estado
+          : undefined,
     };
   },
 
@@ -305,8 +351,8 @@ export const redisRepositorio = {
           localizacion: datos.localizacion
             ? JSON.parse(datos.localizacion)
             : undefined,
-          estatusAlarma: datos.estatusAlarma,
-          estatusCortaCorriente: datos.estatusCortaCorriente,
+          estatusAlarma: datos.estatusAlarma === 'true',
+          estatusCortaCorriente: datos.estatusCortaCorriente === 'true',
           fechaFinalSuscripcion: datos.fechaFinalSuscripcion || undefined,
           porcentajeBateria: Number(datos.porcentajeBateria) ?? 'null',
           estado: datos.estado ?? 'null',
@@ -328,28 +374,66 @@ export const redisRepositorio = {
     clave: string,
     estatusConexion: boolean
   ): Promise<void> {
+    clave = clave.toUpperCase();
     await redis.hset(
-      `dispositivo:${clave}`,
+      `dispositivos:${clave}`,
       'estatusConexion',
       String(estatusConexion)
     );
   },
 
-
   /**
-   * Actualiza el teléfono y el alias de un dispositivo.
-   * @param datos - Datos del dispositivo.
+   * Actualiza únicamente los datos enviados de un dispositivo.
+   * @param claveDispositivo - Clave del dispositivo.
+   * @param datos - Datos del dispositivo a actualizar.
    */
-  async actualizarDatos(datos: DatosActualizar): Promise<void> {
-    await redis.hset(
-      `dispositivos:${datos.clave}`,
-      {
-        telefono: datos.telefono,
-        alias: datos.alias
-      }
-    );
-  },
+  async actualizarDatosDispositivo(
+    claveDispositivo: string,
+    datos: any
+  ): Promise<void> {
 
+    const actualizacion: Record<string, string> = {};
+
+    const campos = [
+      'alias',
+      'telefono',
+      'estatusAlarma',
+      'estatusCortaCorriente',
+      'fechaFinalSuscripcion',
+      'porcentajeBateria',
+      'estado',
+      'localizacion'
+    ];
+
+
+    for (const campo of campos) {
+
+      if (datos[campo] !== undefined) {
+
+        let valor = datos[campo];
+
+        if (campo === 'localizacion') {
+          valor = JSON.stringify(valor);
+        }
+
+        actualizacion[campo] = String(valor);
+
+      }
+
+    }
+
+
+    if (Object.keys(actualizacion).length === 0) {
+      return;
+    }
+
+
+    await redis.hset(
+      `dispositivos:${claveDispositivo}`,
+      actualizacion
+    );
+
+  },
   /**
    * Actualiza únicamente la fecha final de suscripción de un dispositivo.
    * @param clave - UUID del dispositivo
@@ -359,7 +443,6 @@ export const redisRepositorio = {
     clave: string,
     fechaFinalSuscripcion: Date | null
   ): Promise<void> {
-
     await redis.hset(
       `dispositivos:${clave}`,
       'fechaFinalSuscripcion',

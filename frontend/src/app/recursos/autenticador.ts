@@ -1,0 +1,55 @@
+import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
+
+export interface Sesion {
+  clave: string;
+  alias: string;
+  direccionCorreoElectronico: string;
+  idSocket: string;
+  telefono: string;
+}
+
+@Injectable({ providedIn: 'root' })
+export class Autenticador {
+
+  private readonly claveSesion = 'sesion';
+
+  private autenticadoSubject = new BehaviorSubject<boolean>(this.existeSesion());
+  public autenticado$ = this.autenticadoSubject.asObservable();
+
+
+  constructor(
+    private router: Router
+  ) { }
+
+
+  private existeSesion(): boolean {
+    const datos = localStorage.getItem(this.claveSesion);
+    return !!datos && datos !== 'undefined';
+  }
+
+  public guardarSesion(sesion: Sesion): void {
+    localStorage.setItem(this.claveSesion, JSON.stringify(sesion));
+    this.autenticadoSubject.next(true);
+  }
+
+  public obtenerSesion(): Sesion | null {
+    const datos = localStorage.getItem(this.claveSesion);
+
+    if (!datos || datos === 'undefined') {
+      return null;
+    }
+
+    return JSON.parse(datos) as Sesion;
+  }
+
+  public eliminarSesion(): void {
+    localStorage.removeItem(this.claveSesion);
+    this.autenticadoSubject.next(false);
+    this.router.navigate([
+      '/acceder'
+    ]);
+  }
+
+}

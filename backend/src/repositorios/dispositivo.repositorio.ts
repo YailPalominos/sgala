@@ -11,7 +11,7 @@ export interface Dispositivo {
 }
 
 export interface DatosCrear {
-  claveDispositivo: string;
+  clave: string;
   alias: string;
   telefono: string;
   idUsuario: number
@@ -63,8 +63,8 @@ export async function buscarPorClave(clave: string, idUsuario: number): Promise<
   const registro = resultado.recordset[0];
 
   // La clave existe pero todavía no está vinculada
-  if (!registro.alias) {
-    return null;
+  if (!registro.idDispositivo) {
+    return;
   }
 
   // La clave pertenece a otro usuario
@@ -80,9 +80,8 @@ export async function buscarPorClave(clave: string, idUsuario: number): Promise<
 }
 
 export async function crear(datos: DatosCrear): Promise<number> {
-
   const validacion = await pool.request()
-    .input('claveDispositivo', sql.VarChar(50), datos.claveDispositivo)
+    .input('claveDispositivo', sql.VarChar(50), datos.clave)
     .query(`
       SELECT
         pd.id AS idPreDispositivo,
@@ -92,6 +91,7 @@ export async function crear(datos: DatosCrear): Promise<number> {
         ON d.id_pre_dispositivo = pd.id
       WHERE pd.clave = TRY_CONVERT(uniqueidentifier, @claveDispositivo);
     `);
+
   if (validacion.recordset.length === 0) {
     throw new Error('La clave del pre dispositivo no existe.');
   }

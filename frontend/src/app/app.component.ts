@@ -5,156 +5,94 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialog } from '@angular/material/dialog';
-import { AutenticacionServicio, Sesion } from './servicios/autenticacion.servicio';
-import { SocketServicio } from './servicios/socket.servicio';
-import { UsuarioDialog } from './dialogos/usuario/usuario.dialog';
-import { UsuarioServicio } from './servicios/usuario.servicio';
-import { NotificadorServicio } from './servicios/notificador.servicio';
-import { CargadorServicio } from './servicios/cargador.servicio';
-import { DialogoMinimizado, DialogoServicio } from './servicios/dialogo.servicio';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatMenuModule } from '@angular/material/menu';
-import { PanelSuscripciones } from './paneles/panel-suscripciones/panel-suscripciones.componente';
-import { PanelLocalizaciones } from './paneles/panel-localizaciones/panel-localizaciones.componente';
+import { Dialogo, DialogoServicio } from './recursos/dialogo.servicio';
+import { FormularioUsuario } from './formularios/formulario-usuario/formulario-usuario';
+import { Socket } from './recursos/socket';
+import { ServicioUsuario } from './servicios/servicio-usuario';
+import { Cargador } from './recursos/cargador';
+import { Autenticador, Sesion } from './recursos/autenticador';
+import { Notificador } from './recursos/notificador';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, CargadorComponent, MatToolbarModule, MatButtonModule, MatIconModule, MatTooltipModule, MatChipsModule, MatButtonModule, MatMenuModule],
-  template: `
-
-    @if(autenticado){
-        <mat-toolbar class="toolbar-inicio">
-          <img src="logo.svg" alt="SGALA" class="logo" />
-          <span style="flex: 1;"></span>
-
-
-          <button mat-icon-button (click)="abrirPanelUsuario()">
-            <mat-icon>person</mat-icon>
-          </button>
-
-          <h2 style="font-size: 18px;">{{sesion.alias}}</h2>
-          <button mat-icon-button matTooltip="Cerrar sesión" (click)="cerrarSesion()" style="margin-left: 30px;">
-            <mat-icon>logout</mat-icon>
-          </button>
-        </mat-toolbar>
-    }
-
-    <div class="router-container">
-      <router-outlet />
-    </div>
-
-        @if(autenticado){
-          <div class="contenedor-dialogos">
-          @for(dialogo of dialogoServicio.dialogos(); track dialogo.id) {
-          <div class="chip-dialogo">
-            <button
-              mat-icon-button
-              class="chip-boton"
-              matTooltip="Restaurar"
-              (click)="restaurar(dialogo)">
-              <mat-icon>{{ dialogo.icono }}</mat-icon>
-            </button>
-
-            <div
-              class="chip-titulo"
-              contenteditable="true"
-              spellcheck="false"
-              (blur)="editar(dialogo, $event)">
-              {{ dialogo.titulo }}
-            </div>
-
-            <button
-              mat-icon-button
-              class="chip-boton"
-              [matMenuTriggerFor]="menuCerrar">
-              <mat-icon>close</mat-icon>
-            </button>
-
-            <mat-menu #menuCerrar="matMenu">
-              <button mat-menu-item (click)="cerrar(dialogo)">
-                <mat-icon>check</mat-icon>
-                <span>Sí</span>
-              </button>
-
-              <button mat-menu-item>
-                <mat-icon>close</mat-icon>
-                <span>No</span>
-              </button>
-            </mat-menu>
-
-          </div>
-        }
-</div>
-  }
-
-    <app-cargador />
-  `,
+  templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
 export class AppComponent {
 
-  private socketService = inject(SocketServicio);
-  private usuarioServicio = inject(UsuarioServicio);
-  private autenticacionServicio = inject(AutenticacionServicio);
+  private socket = inject(Socket);
+  private autenticacionServicio = inject(Autenticador);
   private router = inject(Router);
-  private dialog = inject(MatDialog);
-  private notificadorServicio = inject(NotificadorServicio);
+
   public autenticado = false;
   public dialogoServicio = inject(DialogoServicio)
   public sesion!: Sesion
-  private cargadorServicio = inject(CargadorServicio);
 
+  public cargador = inject(Cargador)
+  public notificador = inject(Notificador)
 
-  private paneles = {
-    _PanelLocalizaciones: PanelLocalizaciones,
-    _PanelSuscripciones: PanelSuscripciones
-  } as Record<string, Type<any>>;
+  public servicioUsuario = inject(ServicioUsuario)
+  public autenticador = inject(Autenticador)
+
+  //#region  Usuario
 
   ngOnInit() {
     this.autenticacionServicio.autenticado$
       .subscribe(valor => {
         this.autenticado = valor;
         if (valor) {
-          this.socketService.conectar();
+          this.socket.conectar();
           const sesion = this.autenticacionServicio.obtenerSesion()
           if (sesion != null) {
             this.sesion = sesion
           }
         } else {
-          this.socketService.desconectar();
+          this.socket.desconectar();
         }
       });
   }
 
-  public abrirPanelUsuario(): void {
-    const dialogRef = this.dialog.open(UsuarioDialog, {
-      width: '420px',
+  public actualizarUsuario(): void {
+    this.dialogoServicio.abrir({
+      referencia: FormularioUsuario,
+      titulo: 'Usuario',
+      icono: 'person',
+      width: '450px',
+      disableClose: true,
       data: {
         accion: 'A',
         datos: this.sesion
-      }
-    });
-    dialogRef.afterClosed().subscribe((respuesta: boolean | undefined) => {
-      if (respuesta == true) {
-        this.cargadorServicio.mostrar()
-        setTimeout(() => {
-          this.notificadorServicio.advertencia("Debes iniciar sesión nuevamente.")
-        }, 2000);
-        setTimeout(() => {
-          this.cargadorServicio.ocultar()
-          this.cerrarSesion();
-        }, 5000);
-      }
+      },
+      alFinalizar: this.finalizarActualizarUsuario,
+      clase: this.constructor.name
     });
   }
 
+  private finalizarActualizarUsuario() {
+    this.cargador.mostrar()
+    setTimeout(() => {
+      this.notificador.advertencia("Debes iniciar sesión nuevamente.")
+    }, 2000);
+    setTimeout(() => {
+      this.cargador.ocultar()
+      this.servicioUsuario.cerrarSesion().subscribe({
+        next: () => {
+          this.autenticador.eliminarSesion()
+          this.socket.desconectar();
+        }
+      });
+    }, 5000);
+  }
+
   public cerrarSesion(): void {
-    this.usuarioServicio.cerrarSesion().subscribe({
+    this.servicioUsuario.cerrarSesion().subscribe({
       next: () => {
         this.autenticacionServicio.eliminarSesion();
-        this.socketService.desconectar();
+        this.socket.desconectar();
         this.router.navigate(['/iniciar-sesion']);
       },
       error: (error) => {
@@ -163,45 +101,15 @@ export class AppComponent {
     });
   }
 
-  public restaurar(dialogo: any): void {
+  //#endregion
 
-
-    if (dialogo.referencia) {
-
-      dialogo.referencia.updatePosition({});
-
-      if (dialogo.expandido) {
-        dialogo.referencia.updateSize('100vw', '100vh');
-      }
-
-      // quitar del listado de minimizados
-      this.dialogoServicio.eliminar(dialogo.id);
-
-      return;
-    } else {
-
-      const componente = this.paneles[dialogo.componente];
-
-      if (!componente) {
-        console.error('No existe panel:', dialogo.componente);
-        return;
-      }
-
-      dialogo.referencia = this.dialog.open(componente, {
-        width: '850px',
-        maxWidth: '100vw',
-        maxHeight: '100vh',
-        disableClose: true,
-        data: dialogo.datos
-      });
-
-      dialogo.referencia.componentInstance.datos = dialogo.datos;
-      // dialogo.referencia.componentInstance.filtros = dialogo.filtros;
-
-    }
+  public restaurar(idDialogo: string): void {
+    this.dialogoServicio.restaurar(idDialogo)
   }
 
-  public editar(dialogo: DialogoMinimizado, evento: FocusEvent): void {
+  //#region Ventanas
+
+  public editar(dialogo: Dialogo, evento: FocusEvent): void {
 
     const elemento = evento.target as HTMLDivElement;
     const titulo = elemento.innerText.trim();
@@ -217,9 +125,12 @@ export class AppComponent {
     );
   }
 
-  public cerrar(dialogo: DialogoMinimizado): void {
-    dialogo.referencia?.close();
+  public cerrar(dialogo: Dialogo): void {
     this.dialogoServicio.eliminar(dialogo.id);
   }
+  public estaMinimizado(idDialogo: string): boolean {
+    return this.dialogoServicio.estaMinimizado(idDialogo)
+  }
 
+  //#endregion
 }

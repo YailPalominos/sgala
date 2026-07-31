@@ -1,0 +1,28 @@
+<h2 class="titulo">Recuperar contraseña</h2>
+
+<mat-dialog-content>
+
+    <form [formGroup]="formulario" (ngSubmit)="verificar()" id="formulario">
+
+        <p> Ingresa tu alias, número de teléfono o correo electrónico para validar tu identidad. Si la información es
+            correcta, te enviaremos un enlace para restablecer tu contraseña a tu correo electrónico o número de
+            teléfono
+            registrado. </p>
+
+        <mat-form-field appearance="outline">
+            <mat-label>Identificador</mat-label>
+            <input matInput formControlName="identificador" placeholder="alias, correo o teléfono" />
+            <mat-icon matPrefix>person</mat-icon>
+            @if (formulario.get('identificador')?.hasError('required')) {
+            <mat-error>El identificador es requerido.</mat-error>
+            }
+        </mat-form-field>
+    </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="center">
+    <button mat-button mat-dialog-close>Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" form="formulario">
+        Verificar
+    </button>
+</mat-dialog-actions>

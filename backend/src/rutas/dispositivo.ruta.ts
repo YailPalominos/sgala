@@ -14,7 +14,7 @@ dispositivoRouter.get('/validar-clave/:clave',
   asyncHandler(async (solicitud, respuesta) => {
     const { clave } = solicitud.params;
     const datosDispositivo = await validarClave(clave, solicitud.sesion.idUsuario);
-    respuesta.status(202).json({
+    respuesta.status(200).json({
       mensaje: 'Se valido la clave del dispostivo exitosamente.',
       datos: datosDispositivo
     });
@@ -41,7 +41,7 @@ dispositivoRouter.put('/actualizar',
   asyncHandler(async (solicitud, respuesta) => {
     const datos = solicitud.body
     await actualizar(datos);
-    redisRepositorio.actualizarDatos(datos)
+    redisRepositorio.actualizarDatosDispositivo(datos.clave, datos)
     await enviarDispositivoActualizado(datos.clave)
     respuesta.status(200).json({ mensaje: 'Dispositivo actualizado exitosamente.' });
   })
@@ -54,8 +54,8 @@ dispositivoRouter.get('/obtener-localizaciones/:clave',
   asyncHandler(async (solicitud, respuesta) => {
     const { clave } = solicitud.params;
     const localizaciones = await obtenerLocalizaciones(clave);
-    respuesta.status(202).json({
-      mensaje: 'Se valido la clave del dispostivo exitosamente.',
+    respuesta.status(200).json({
+      mensaje: 'Localizaciones obtenidas exitosamente.',
       datos: localizaciones
     });
   })

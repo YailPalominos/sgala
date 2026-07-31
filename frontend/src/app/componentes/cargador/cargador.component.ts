@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { CargadorServicio } from '../../servicios/cargador.servicio';
+import { Cargador } from '../../recursos/cargador';
 
 @Component({
   selector: 'app-cargador',
@@ -9,25 +9,63 @@ import { CargadorServicio } from '../../servicios/cargador.servicio';
   template: `
     @if (cargador.visible()) {
       <div class="cargador-overlay">
-        <mat-spinner diameter="48"></mat-spinner>
+        <div class="cargador-contenido">
+          <mat-spinner diameter="140"></mat-spinner>
+
+          <div class="texto">
+            Cargando <span class="puntos"></span>
+          </div>
+        </div>
       </div>
     }
   `,
   styles: [`
     .cargador-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.7);
+      inset: 0;
+      background: rgba(223, 223, 223, 0.7);
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       z-index: 9999;
     }
-  `],
+
+    .cargador-contenido {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .texto {
+      font-size: 18px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .puntos::after {
+      content: '';
+      display: inline-block;
+      width: 1.5em;
+      text-align: left;
+      animation: puntos 2s steps(4, end) infinite;
+    }
+
+    @keyframes puntos {
+      0%   { content: ''; }
+      10%  { content: '.'; }
+      20%  { content: '..'; }
+      30%  { content: '...'; }
+      40%  { content: '....'; }
+      50%  { content: '.....'; }
+      60%  { content: '......'; }
+      70%  { content: '.......'; }
+      80%  { content: '........'; }
+      90%  { content: '.........'; }
+      100% { content: '..........'; }
+    }
+  `]
 })
 export class CargadorComponent {
-  cargador = inject(CargadorServicio);
+  cargador = inject(Cargador);
 }

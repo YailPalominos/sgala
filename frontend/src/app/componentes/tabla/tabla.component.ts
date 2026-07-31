@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, ViewChild, SimpleChanges, signal, Output, EventEmitter } from '@angular/core';
+import { Component, Input, OnChanges, ViewChild, SimpleChanges, signal, Output, EventEmitter, WritableSignal, effect } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { MatPaginator, MatPaginatorIntl, MatPaginatorModule } from '@angular/material/paginator';
@@ -29,6 +29,7 @@ export interface Columna {
 export interface Filtros {
   etiqueta: string;
   marcador: string;
+  texto: string;
   botones?: Boton[]
 }
 
@@ -51,16 +52,12 @@ export interface Filtros {
 export class TablaComponent implements OnChanges {
   @Input() datos: any[] = [];
   @Input() columnas: Columna[] = [];
+  @Input() filtros!: WritableSignal<Filtros>;
 
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   dataSource = new MatTableDataSource<any>([]);
-
-  @Input() filtros!: Filtros;
-  @Output() busquedaChange = new EventEmitter<string>();
-
-  textoBusqueda = signal('');
 
   constructor(private paginatorIntl: MatPaginatorIntl) {
     this.paginatorIntl.itemsPerPageLabel = 'Registros por página';
@@ -83,6 +80,29 @@ export class TablaComponent implements OnChanges {
     };
 
     this.paginatorIntl.changes.next();
+
+    effect(() => {
+
+      if (!this.filtros) {
+        return;
+      }
+
+
+      const texto = this.filtros()
+        .texto
+        .trim()
+        .toLowerCase();
+
+
+      this.dataSource.filter = texto;
+
+
+      if (this.dataSource.paginator) {
+        this.dataSource.paginator.firstPage();
+      }
+
+    });
+
   }
 
   get columnasKeys(): string[] {
@@ -128,9 +148,25 @@ export class TablaComponent implements OnChanges {
   }
 
   public filtrar(evento: Event): void {
-    const texto = (evento.target as HTMLInputElement).value;
-    this.textoBusqueda.set(texto);
-    this.busquedaChange.emit(texto);
-  }
 
+    const texto = (evento.target as HTMLInputElement)
+      .value
+      .trim()
+      .toLowerCase();
+
+
+    this.filtros.update(filtro => ({
+      ...filtro,
+      texto
+    }));
+
+
+    this.dataSource.filter = texto;
+
+
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
+
+  }
 }

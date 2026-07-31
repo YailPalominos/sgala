@@ -1,0 +1,57 @@
+@if(autenticado){
+<mat-toolbar class="toolbar-inicio">
+    <img src="logo.svg" alt="SGALA" class="logo" />
+    <span style="flex: 1;"></span>
+
+
+    <button mat-icon-button (click)="abrirFormularioUsuario()">
+        <mat-icon>person</mat-icon>
+    </button>
+
+    <h2 style="font-size: 18px;">{{sesion.alias}}</h2>
+    <button mat-icon-button matTooltip="Cerrar sesión" (click)="cerrarSesion()" style="margin-left: 30px;">
+        <mat-icon>logout</mat-icon>
+    </button>
+</mat-toolbar>
+}
+
+<div class="router-container">
+    <router-outlet />
+</div>
+
+@if(autenticado){
+<div class="contenedor-dialogos">
+    @for(dialogo of dialogoServicio.dialogos(); track dialogo.id) {
+    <div class="chip-dialogo">
+
+        <button [disabled]="!estaMinimizado(dialogo.id)" mat-icon-button class="chip-boton" matTooltip="Restaurar"
+            (click)="restaurar(dialogo.id)">
+            <mat-icon>{{ dialogo.icono }}</mat-icon>
+        </button>
+
+        <div class="chip-titulo" contenteditable="true" spellcheck="false" (blur)="editar(dialogo, $event)">
+            {{ dialogo.titulo }}
+        </div>
+
+        <button mat-icon-button class="chip-boton" [matMenuTriggerFor]="menuCerrar">
+            <mat-icon>close</mat-icon>
+        </button>
+
+        <mat-menu #menuCerrar="matMenu">
+            <button mat-menu-item (click)="cerrar(dialogo)">
+                <mat-icon>check</mat-icon>
+                <span>Sí</span>
+            </button>
+
+            <button mat-menu-item>
+                <mat-icon>close</mat-icon>
+                <span>No</span>
+            </button>
+        </mat-menu>
+
+    </div>
+    }
+</div>
+}
+
+<app-cargador />
