@@ -1,51 +1,61 @@
-import { v4 as uuidv4 } from 'uuid';
-import { redisRepositorio, SesionRedis } from '../repositorios/redis.repositorio';
+import { redis } from '../recursos/redis';
+import { SesionRedis } from '@/repositorios/redis/sesiones.redis';
+
 
 /**
- * Servicio de gestión de sesiones.
- * Encapsula la lógica de creación, verificación y eliminación de sesiones en Redis.
+ * Servicio de sesión.
+ *
+ * Expone operaciones de sesión que el middleware
+ * puede usar sin conocer el idUsuario de antemano.
  */
 export const sesionServicio = {
 
-  /**
-   * Crea una nueva sesión para un usuario.
-   * @param direccionCorreoElectronico - Dirección de correo electrónico del usuario
-   * @param alias - Alias del usuario
-   * @param idUsuario - Id del usuario
-   * @returns El sessionId generado
-   */
-  async crearSesion(direccionCorreoElectronico: string, alias: string, idUsuario: number, telefono: string): Promise<SesionRedis> {
-    const clave = uuidv4();
-    const datos: SesionRedis = { clave, direccionCorreoElectronico, alias, idUsuario, telefono };
-    await redisRepositorio.guardarSesion(clave, datos, 86400);
-    return datos;
-  },
+    /**
+     * Obtiene una sesión directamente por su clave.
+     *
+     * A diferencia del repositorio (que requiere idUsuario
+     * para verificar pertenencia), este método busca el HASH
+     * directamente, útil para el middleware donde aún no
+     * se conoce el usuario.
+     *
+     * @param claveSesion - Clave UUID de la sesión.
+     * @returns Datos de la sesión.
+     * @throws Error si la sesión no existe o expiró.
+     */
+    async obtenerSesion(claveSesion: string): Promise<SesionRedis> {
 
-  /**
-   * Verifica una sesión existente en Redis.
-   * @param sessionId - Identificador de la sesión a verificar
-   * @returns Datos de la sesión (idUsuario, alias) o null si no existe/expiró
-   */
-  async obtenerSesion(sessionId: string): Promise<SesionRedis> {
-    return redisRepositorio.obtenerSesion(sessionId);
-  },
+        const datos = await redis.hgetall(
+            `sesiones:${claveSesion}`
+        );
 
-  /**
-   * Elimina una sesión de Redis.
-   * @param sessionId - Identificador de la sesión a eliminar
-   */
-  async eliminarSesion(sessionId: string): Promise<void> {
-    await redisRepositorio.eliminarSesion(sessionId);
-  },
+        if (!datos || Object.keys(datos).length === 0) {
+            throw new Error(
+                'La sesión no existe o ha expirado.'
+            );
+        }
 
-  /**
-  * Actualiza el id del socker de la sesión
-  * @param claveSesion - Clave de la sesión
-  * @param idSocket - Id del socket
-  * 
-  */
-  async actualizarIdSocket(claveSesion: string, idSocket: string): Promise<void> {
-    await redisRepositorio.actualizarIdSocket(claveSesion, idSocket);
-  },
+        if (!datos.idUsuario) {
+            throw new Error(
+                'La sesión no contiene idUsuario.'
+            );
+        }
 
+        if (!datos.alias) {
+            throw new Error(
+                'La sesión no contiene alias.'
+            );
+        }
+
+        return {
+            clave: datos.clave,
+            claveUsuario: datos.claveUsuario,
+            idUsuario: Number(datos.idUsuario),
+            alias: datos.alias,
+            direccionCorreoElectronico: datos.direccionCorreoElectronico,
+            telefono: datos.telefono,
+            claveSocket: datos.claveSocket !== 'null'
+                ? datos.claveSocket
+                : undefined
+        };
+    }
 };

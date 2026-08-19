@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,9 +11,9 @@ import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo
 import { Autenticador } from '../../recursos/autenticador';
 import { ServicioUsuario } from '../../servicios/servicio-usuario';
 import { Notificador } from '../../recursos/notificador';
-import { Cargador } from '../../recursos/cargador';
-import { Socket } from '../../recursos/socket';
-import { Formulario } from '../../recursos/dialogo.base.formulario';
+import { Formulario } from '../../recursos/dialogo.formulario';
+import { DialogoServicio } from '../../recursos/dialogo.servicio';
+import { PushServicio } from '../../recursos/push';
 
 @Component({
   selector: 'formulario-usuario',
@@ -34,14 +34,12 @@ export class FormularioUsuario extends Formulario {
   private autenticador = inject(Autenticador);
   private servicioUsuario = inject(ServicioUsuario)
   private notificador = inject(Notificador);
-
-  private cargador = inject(Cargador)
-  private dialog = inject(MatDialog);
   private router = inject(Router);
-
-  private socket = inject(Socket)
+  private dialogoServicio = inject(DialogoServicio);
+  public pushServicio = inject(PushServicio)
 
   public formulario = new FormGroup({
+    clave: new FormControl('', Validators.required),
     alias: new FormControl('', [
       Validators.required,
       Validators.maxLength(15),
@@ -50,6 +48,8 @@ export class FormularioUsuario extends Formulario {
     direccionCorreoElectronico: new FormControl('', [Validators.required, Validators.email]),
     telefono: new FormControl('', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]),
   });
+
+  public suscripcionActiva!: boolean
 
   public preparar(): void {
 
@@ -60,31 +60,41 @@ export class FormularioUsuario extends Formulario {
 
     const datos = this.formulario.getRawValue();
 
-    const esActualizar = this.parametros.accion == 'A';
+    const esActualizar = this.parametros == 'A' ? true : false;
 
-    const dialogoReferencia = this.dialog.open(DialogoConfirmacion, {
-      width: '420px',
-      data: {
+    this.dialogoServicio.abrir({
+      referencia: DialogoConfirmacion,
+      titulo: 'Confirmar',
+      icono: 'check',
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: {
         titulo: esActualizar ? 'Actualizar usuario' : 'Crear usuario',
         mensaje: esActualizar
           ? '¿Está seguro de actualizar el usuario? La sesión actual deberá cerrarse.'
           : '¿Está seguro de crear este usuario?',
-        textoSi: 'Sí',
-        textoNo: 'No'
-      }
+        esActualizar: esActualizar
+      },
+      datos: datos,
+      alFinalizar: this.finalizarConfirmacion,
+      clase: this.constructor.name
     });
+  }
 
-    dialogoReferencia.afterClosed().subscribe((respuesta?: boolean) => {
-      if (respuesta != undefined) {
-        if (respuesta == true) {
-          if (esActualizar) {
-            this.actualizar(datos);
-          } else {
-            this.crear(datos);
-          }
-        }
+  async ngOnInit() {
+    this.suscripcionActiva = await this.pushServicio.verificarSuscripcion();
+  }
+
+
+
+  public finalizarConfirmacion(respuesta: any): void {
+    if (respuesta?.resultado == true) {
+      if (respuesta.parametros.esActualizar == true) {
+        this.actualizar(respuesta.datos)
+      } else {
+        this.crear(respuesta.datos);
       }
-    });
+    }
   }
 
   public actualizar(datos: any): void {
@@ -97,11 +107,7 @@ export class FormularioUsuario extends Formulario {
   }
 
   public crear(datos: any): void {
-    const datosCrear = {
-      ...datos,
-      clave: this.parametros.datos.clave
-    };
-    this.servicioUsuario.crear(datosCrear).subscribe({
+    this.servicioUsuario.crear(datos).subscribe({
       next: () => {
         this.notificador.exitoso("Usuario creado exitosamente.")
         this.cerrar(true)
@@ -110,23 +116,27 @@ export class FormularioUsuario extends Formulario {
   }
 
   public restablecer() {
-
-    const dialogoReferencia = this.dialog.open(DialogoConfirmacion, {
-      width: '420px',
-      data: {
+    this.dialogoServicio.abrir({
+      referencia: DialogoConfirmacion,
+      titulo: 'Confirmar',
+      icono: 'check',
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: {
         titulo: 'Cambiar la contraseña',
         mensaje: '¿Estas seguro de cambiar la contraseña?',
-        textoSi: 'Si',
-        textoNo: 'No'
-      }
-    });
-
-    dialogoReferencia.afterClosed().subscribe((respuesta: boolean | undefined) => {
-      if (respuesta == true) {
-        this.solicitarLlave();
-      }
+      },
+      alFinalizar: this.finalizarRestablecer,
+      clase: this.constructor.name
     });
   }
+
+  private finalizarRestablecer(respuesta: any) {
+    if (respuesta.respuesta == true) {
+      this.solicitarLlave();
+    }
+  }
+
 
   public solicitarLlave() {
     this.servicioUsuario.solicitarLlaveRecuperacion().subscribe({
@@ -140,5 +150,12 @@ export class FormularioUsuario extends Formulario {
         this.cerrar(true)
       },
     });
+  }
+
+  async crearSuscripcion(): Promise<void> {
+    await this.pushServicio.crearSuscripcion();
+  }
+  async eliminarSuscripcion(): Promise<void> {
+    await this.pushServicio.eliminarSuscripcion();
   }
 }

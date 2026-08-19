@@ -1,5 +1,5 @@
 import sql from 'mssql';
-import { pool } from '../recursos/base-datos';
+import { pool } from '../../recursos/base-datos';
 
 export interface Solicitud {
     descripcion: string;

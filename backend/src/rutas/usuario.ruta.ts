@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import * as autenticacionServicio from '../servicios/autenticacion.servicio';
-import { sesionServicio } from '../servicios/sesion.servicio';
-import { actualizar } from '../repositorios/usuario.repositorio';
-import { redisRepositorio } from '../repositorios/redis.repositorio';
+import { actualizar } from '../repositorios/base-datos/usuario.repositorio';
 export const autenticacionRouter = Router();
 import asyncHandler from 'express-async-handler';
+import { crearLlaveRecuperacion, eliminarSesion } from '@/repositorios/redis/sesiones.redis';
+import { agregarSuscripcion } from '@/repositorios/redis/suscripciones.redis';
 
 /**
  * Verifica que la clave del pre usuario exista y no esté siendo usada.
@@ -57,7 +57,7 @@ autenticacionRouter.post('/iniciar-sesion',
       if (resultado.idUsuario === undefined) {
         throw new Error('idUsuario no definido para cambio de contraseña.');
       }
-      const claveLLaveRecuperacion = await redisRepositorio.crearLlaveRecuperacion(resultado.idUsuario, 'A');
+      const claveLLaveRecuperacion = await crearLlaveRecuperacion(resultado.idUsuario, 'A');
       respuesta.status(202).json({ mensaje: 'Debe cambiar su contraseña', datos: claveLLaveRecuperacion });
     } else {
       respuesta.status(200).json({ datos: resultado.sesion, mensaje: 'Inicio de sesión exitoso' });
@@ -70,7 +70,7 @@ autenticacionRouter.post('/iniciar-sesion',
  */
 autenticacionRouter.post('/cerrar-sesion',
   asyncHandler(async (solicitud, respuesta) => {
-    await sesionServicio.eliminarSesion(solicitud.sesion.clave);
+    await eliminarSesion(solicitud.sesion.clave);
     respuesta.status(200).json({
       mensaje: 'Sesión cerrada exitosamente'
     });
@@ -115,7 +115,7 @@ autenticacionRouter.post('/solicitar-recuperacion',
 autenticacionRouter.post('/solicitar-llave-recuperacion',
   asyncHandler(async (solicitud, respuesta) => {
 
-    const claveLLaveRecuperacion = await redisRepositorio.crearLlaveRecuperacion(solicitud.sesion.idUsuario, 'A');
+    const claveLLaveRecuperacion = await crearLlaveRecuperacion(solicitud.sesion.idUsuario, 'A');
 
     respuesta.status(200).json({
       datos: claveLLaveRecuperacion,
@@ -142,7 +142,7 @@ autenticacionRouter.post('/cambiar',
 /**
  * Solicita un enlace de recuperación de contraseña.
  */
-autenticacionRouter.post('/actualizar',
+autenticacionRouter.put('/actualizar',
   asyncHandler(async (solicitud, respuesta) => {
 
     const { alias, direccionCorreoElectronico, telefono } = solicitud.body;
@@ -169,7 +169,7 @@ autenticacionRouter.post('/actualizar',
 autenticacionRouter.post('/solicitar-llave-recuperacion',
   asyncHandler(async (solicitud, respuesta) => {
 
-    const claveLLaveRecuperacion = await redisRepositorio.crearLlaveRecuperacion(solicitud.sesion.idUsuario, 'A');
+    const claveLLaveRecuperacion = await crearLlaveRecuperacion(solicitud.sesion.idUsuario, 'A');
 
     respuesta.status(200).json({
       datos: claveLLaveRecuperacion,
@@ -177,3 +177,17 @@ autenticacionRouter.post('/solicitar-llave-recuperacion',
     });
   })
 );
+
+/**
+ * Solicita al servidor suscribirse a las notificaciones
+ */
+autenticacionRouter.post('/suscribir-a-notificaciones',
+  asyncHandler(async (solicitud, respuesta) => {
+    const suscripcion = solicitud.body;
+    await agregarSuscripcion(solicitud.sesion.idUsuario, suscripcion);
+    respuesta.status(200).json({
+      mensaje: 'Se ha suscrito al servicio de notificaciones exitosamente.'
+    });
+  })
+);
+

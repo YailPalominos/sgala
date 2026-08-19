@@ -1,0 +1,60 @@
+.informacion {
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.subtitulo {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    font-size: 15px;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.subtitulo strong {
+    font-size: 16px;
+}
+
+.subtitulo span {
+    font-size: 13px;
+    color: #666;
+}
+
+.propiedades {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.propiedad {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 15px;
+    padding: 9px 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.nombre {
+    font-weight: 500;
+}
+
+.valor {
+    word-break: break-word;
+}
+
+::ng-deep .mat-mdc-tab-label-container {
+    background: rgb(25 118 210);
+}
+
+::ng-deep .mat-mdc-tab .mdc-tab__text-label {
+    color: white !important;
+}
+
+.valor.modificado {
+    color: red;
+    font-weight: 700;
+}

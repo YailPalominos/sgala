@@ -1,5 +1,5 @@
 import sql from 'mssql';
-import { pool } from '../recursos/base-datos';
+import { pool, poolSesion } from '../../recursos/base-datos';
 
 export interface Dispositivo {
   id: number;
@@ -79,8 +79,8 @@ export async function buscarPorClave(clave: string, idUsuario: number): Promise<
   };
 }
 
-export async function crear(datos: DatosCrear): Promise<number> {
-  const validacion = await pool.request()
+export async function crear(datos: DatosCrear) {
+  const validacion = await poolSesion.request()
     .input('claveDispositivo', sql.VarChar(50), datos.clave)
     .query(`
       SELECT
@@ -102,7 +102,7 @@ export async function crear(datos: DatosCrear): Promise<number> {
     throw new Error('La clave del pre dispositivo ya está siendo utilizada.');
   }
 
-  const resultado = await pool.request()
+  await pool.request()
     .input('idUsuario', sql.Int, datos.idUsuario)
     .input('idPreDispositivo', sql.Int, registro.idPreDispositivo)
     .input('alias', sql.VarChar(100), datos.alias || null)
@@ -126,9 +126,51 @@ export async function crear(datos: DatosCrear): Promise<number> {
 
       SELECT id FROM @insertado;
     `);
+}
+
+export async function actualizar(datos: DatosActualizar): Promise<void> {
+  await poolSesion.request()
+    .input('clave', sql.UniqueIdentifier, datos.clave)
+    .input('telefono', sql.VarChar, datos.telefono)
+    .input('alias', sql.VarChar, datos.alias)
+    .query(`
+      UPDATE dis
+      SET
+        dis.alias = @alias,
+        dis.telefono = @telefono
+      FROM dispositivos dis
+      INNER JOIN pre_dispositivos pd
+        ON pd.id = dis.id_pre_dispositivo
+      WHERE pd.clave = @clave;
+    `);
+}
+
+//#region Dispositivos
 
 
-  return resultado.recordset[0].id;
+/**
+ * Obtiene los dispositivos asignados a un usuario
+ * @param idUsuario Id del usuario
+ */
+export async function obtenerListaDispositivosUsuario(
+  idUsuario: number
+): Promise<{ clave: string; alias: string }[]> {
+
+  const resultado = await pool.request()
+    .input('idUsuario', sql.Int, idUsuario)
+    .query(`
+            SELECT
+                prd.clave,
+                dis.alias
+            FROM dispositivos dis
+            INNER JOIN pre_dispositivos prd
+                ON prd.id = dis.id_pre_dispositivo
+            WHERE dis.id_usuario = @idUsuario
+              AND prd.estatus = 1
+            ORDER BY dis.alias;
+        `);
+
+  return resultado.recordset;
 }
 
 export async function obtenerDatosDispositivos(): Promise<DispositivoClave[]> {
@@ -137,7 +179,7 @@ export async function obtenerDatosDispositivos(): Promise<DispositivoClave[]> {
       SELECT 
           dis.id_usuario,
           prd.clave,
-          sus.fecha_final,
+          sus.fecha_final as fecha_final_suscripcion,
           dis.alias,
           dis.telefono,
           prd.cualidades
@@ -157,34 +199,16 @@ export async function obtenerDatosDispositivos(): Promise<DispositivoClave[]> {
   return resultado.recordset;
 }
 
-export async function actualizar(datos: DatosActualizar): Promise<void> {
-  await pool.request()
-    .input('clave', sql.UniqueIdentifier, datos.clave)
-    .input('telefono', sql.VarChar, datos.telefono)
-    .input('alias', sql.VarChar, datos.alias)
-    .query(`
-      UPDATE dis
-      SET
-        dis.alias = @alias,
-        dis.telefono = @telefono
-      FROM dispositivos dis
-      INNER JOIN pre_dispositivos pd
-        ON pd.id = dis.id_pre_dispositivo
-      WHERE pd.clave = @clave;
-    `);
-}
-
 
 /**
- * Obtiene las localizaciones de un dispositivo.
- * @param claveDispositivo UUID del dispositivo.
+ * Obtiene las localizaciones acorde a los filtros
+ * @param idUsuario Id del usuario que realiza la solicitud
+ * @param filtros Filtros para las localizaciones
  */
-export async function obtenerLocalizaciones(
-  claveDispositivo: string
-): Promise<LocalizacionDispositivo[]> {
-
+export async function obtenerLocalizaciones(idUsuario: number, filtros: any): Promise<LocalizacionDispositivo[]> {
   const consulta = await pool.request()
-    .input('claveDispositivo', sql.VarChar(50), claveDispositivo)
+    .input('idUsuario', sql.Int, idUsuario)
+    .input('claveDispositivo', sql.VarChar, filtros.claveDispositivo ?? null)
     .query(`
             SELECT
                 d.alias AS aliasDispositivo,
@@ -196,9 +220,55 @@ export async function obtenerLocalizaciones(
                 ON d.id = l.id_dispositivo
             INNER JOIN pre_dispositivos pd
                 ON pd.id = d.id_pre_dispositivo
-            WHERE pd.clave = TRY_CONVERT(uniqueidentifier, @claveDispositivo)
+            INNER JOIN usuarios u
+                ON u.id = d.id_usuario
+            WHERE u.id = @idUsuario
+              AND (
+                    @claveDispositivo IS NULL
+                    OR pd.clave = @claveDispositivo
+                  )
             ORDER BY l.id;
         `);
 
   return consulta.recordset;
 }
+
+/**
+ * Crea una localización del dispositivo
+ * @param claveDispositivo Clave del dispositivo
+ * @param localizacion Datos de ubicación
+ */
+export async function crearLocalizacion(
+  claveDispositivo: string,
+  localizacion: {
+    latitud: number;
+    longitud: number;
+    altitud: number;
+  }
+): Promise<void> {
+
+  await pool.request()
+    .input('claveDispositivo', sql.VarChar, claveDispositivo)
+    .input('latitud', sql.Float, localizacion.latitud)
+    .input('longitud', sql.Float, localizacion.longitud)
+    .input('altitud', sql.Float, localizacion.altitud)
+    .query(`
+            INSERT INTO localizaciones (
+                id_dispositivo,
+                latitud,
+                longitud,
+                altitud
+            )
+            SELECT
+                d.id,
+                @latitud,
+                @longitud,
+                @altitud
+            FROM dispositivos d
+            INNER JOIN pre_dispositivos pd
+                ON pd.id = d.id_pre_dispositivo
+            WHERE pd.clave = @claveDispositivo;
+        `);
+}
+
+//#endregion

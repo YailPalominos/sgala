@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { DialogoSeleccion } from '../dialogo-seleccion/dialogo-seleccion';
 import { ServicioUsuario } from '../../servicios/servicio-usuario';
 import { Notificador } from '../../recursos/notificador';
+import { Formulario } from '../../recursos/dialogo.formulario';
 
 @Component({
   selector: 'app-recuperacion-dialog',
@@ -22,11 +23,11 @@ import { Notificador } from '../../recursos/notificador';
   ],
   templateUrl: './dialogo-recuperacion.html',
 })
-export class DialogoRecuperacion {
+export class DialogoRecuperacion extends Formulario {
   private servicioUsuario = inject(ServicioUsuario);
   private notificador = inject(Notificador);
   private matDialog = inject(MatDialog)
-  private dialogoReferencia = inject(MatDialogRef<DialogoRecuperacion>);
+
 
   formulario = new FormGroup({
     identificador: new FormControl('', [Validators.required]),
@@ -70,7 +71,7 @@ export class DialogoRecuperacion {
     this.servicioUsuario.solicitarRecuperacion(identificador, tipo).subscribe({
       next: () => {
         this.notificador.exitoso("Se ha enviado en enlace para restablecer tu contraseña.")
-        this.dialogoReferencia.close();
+        this.cerrar();
       },
       error: (error: any) => {
         throw new Error(error)

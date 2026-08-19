@@ -9,6 +9,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { environment } from '../../../environments/environment';
 import { MatSelectModule } from '@angular/material/select';
 import { Notificador, } from '../../recursos/notificador';
+import { Dialogo } from '../../recursos/dialogo.base';
+import { Formulario } from '../../recursos/dialogo.formulario';
 
 @Component({
   selector: 'app-ayuda-dialog',
@@ -48,11 +50,9 @@ import { Notificador, } from '../../recursos/notificador';
     }
   `],
 })
-export class DialogoAyuda {
+export class DialogoAyuda extends Formulario {
   private http = inject(HttpClient);
   private notificador = inject(Notificador);
-  private dialogRef = inject(MatDialogRef<DialogoAyuda>);
-
 
   formulario = new FormGroup({
     descripcion: new FormControl('', [
@@ -67,7 +67,7 @@ export class DialogoAyuda {
     ]),
   });
 
-  constructor() {
+  iniciar() {
 
     this.formulario.get('pregunta')?.valueChanges.subscribe(valor => {
 
@@ -116,7 +116,7 @@ export class DialogoAyuda {
     this.http.post(`${environment.apiUrl}solicitudes/crear`, datos).subscribe({
       next: () => {
         this.notificador.exitoso('Solicitud enviada. Gracias por contactarnos.');
-        this.dialogRef.close(true);
+        this.cerrar(true);
       },
       error: (error) => {
         throw new Error(error)

@@ -177,3 +177,69 @@
     box-shadow: 0 0 16px 4px rgba(244, 67, 54, 0.6);
   }
 }
+
+
+
+
+.corta-activo {
+  position: relative;
+}
+
+.corta-activo::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid #00e676;
+  border-top-color: transparent;
+  animation: energia 0.8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes energia {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+
+
+
+
+.fijar-activo {
+  position: relative;
+}
+
+.fijar-activo::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 3px solid #fff01a;
+  border-top-color: transparent;
+  animation: cicular 5s linear infinite;
+  box-shadow: 0 0 4px rgba(255, 240, 26, 0.35);
+  pointer-events: none;
+}
+
+@keyframes cicular {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+.fijar-estacionamiento {
+  text-decoration-line: underline;
+  text-decoration-color: #fff01a;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 5px;
+}

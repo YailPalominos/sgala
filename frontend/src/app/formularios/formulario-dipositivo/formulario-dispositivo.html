@@ -64,8 +64,14 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="center">
-    <button mat-button mat-dialog-close>Cancelar</button>
+    <!-- <button mat-raised-button color="warn" mat-dialog-close>
+        <mat-icon>cancel</mat-icon>
+        Volver  
+    </button> -->
     <button mat-raised-button color="primary" type="submit" form="formulario">
-        {{ parametros.accion=='R'?'Crear':'Actualizar'}}
+        <mat-icon>
+            {{ parametros.accion === 'R' ? 'add' : 'edit' }}
+        </mat-icon>
+        {{ parametros.accion === 'R' ? 'Crear' : 'Actualizar' }}
     </button>
 </mat-dialog-actions>

@@ -2,8 +2,8 @@ import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { unless } from 'express-unless';
 
 import { sesionServicio } from '../servicios/sesion.servicio';
-import { SesionRedis } from '@/repositorios/redis.repositorio';
-
+import { SesionRedis } from '@/repositorios/redis/sesiones.redis';
+import { ejecutarConContexto } from './solicitud';
 
 declare global {
   namespace Express {
@@ -37,8 +37,10 @@ export const middlewareSesion = (async (
 
     solicitud.sesion = await sesionServicio.obtenerSesion(claveSesion);
 
-    siguiente();
-
+    ejecutarConContexto(
+      solicitud.sesion,
+      siguiente
+    );
   } catch (error) {
     respuesta.status(401).json({
       mensaje: error instanceof Error

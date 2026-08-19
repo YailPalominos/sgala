@@ -9,12 +9,15 @@ export class Socket {
   private socketCliente: sockerCliente | null = null;
   private socketUrl = environment.socketUrl;
   private autenticador = inject(Autenticador);
-
+  // agrgar notificaicone
   private dispositivosSubject = new BehaviorSubject<any[]>([]);
   public dispositivos$ = this.dispositivosSubject.asObservable();
 
   private dispositivoSubject = new BehaviorSubject<any>([]);
   public dispositivo$ = this.dispositivoSubject.asObservable();
+
+  private notificacionesSubject = new BehaviorSubject<any>([]);
+  public notificaciones$ = this.notificacionesSubject.asObservable();
 
   conectar(): void {
 
@@ -47,11 +50,10 @@ export class Socket {
     this.socketCliente.on(
       'dispositivos',
       (dispositivos) => {
-        console.log('📡 Dispositivos ');
+        console.log('📟 Dispositivos ');
         const normalizados = dispositivos.map((dispositivo: any) =>
           this.convertirNullStrings(dispositivo)
         );
-
         this.dispositivosSubject.next(normalizados);
       }
     );
@@ -59,9 +61,20 @@ export class Socket {
     this.socketCliente.on(
       'dispositivo',
       (dipositivo) => {
-        console.log('📡 Disposivo ');
+        console.log('💻 Dispositivo ');
         dipositivo = this.convertirNullStrings(dipositivo)
         this.dispositivoSubject.next(dipositivo);
+      }
+    );
+
+    this.socketCliente.on(
+      'notificaciones',
+      (notificaciones) => {
+        console.log('🔔 Notificaciones ');
+        const normalizados = notificaciones.map((notificacion: any) =>
+          this.convertirNullStrings(notificacion)
+        );
+        this.notificacionesSubject.next(normalizados);
       }
     );
 

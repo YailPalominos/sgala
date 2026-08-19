@@ -1,11 +1,10 @@
 <h2 class="titulo">
-    {{ parametros.accion=='R'?'Nuevo usuario':(parametros?.datos.alias )}}
+    {{ parametros=='R'?'Nuevo usuario':datos.alias }}
 </h2>
 
 <mat-dialog-content>
 
     <form [formGroup]="formulario" (ngSubmit)="preparar()" id=formulario>
-
 
         <p style="margin: 10px;text-align: center;width: 100%;">
             {{
@@ -86,14 +85,32 @@
 
 <mat-dialog-actions align="center">
 
-    @if(parametros.accion=='A'){
-    <button mat-raised-button color="primary" type="buttom" style="background-color:#0059b6; color:white"
-        (click)="restablecer()" matTooltip="Cambiar de contraseña">
+    <button mat-raised-button color="primary" type="button" style="background-color:#e0f002; color:rgb(7, 7, 7)"
+        (click)="suscripcionActiva ? eliminarSuscripcion() : crearSuscripcion()"
+        matTooltip="Configuración de notificaciones en segundo plano ">
+        <mat-icon>
+            {{ suscripcionActiva ? 'notifications_off' : 'notifications' }}
+        </mat-icon>
+        {{ suscripcionActiva ? 'Notificaciones' : 'Notificaciones' }}
+    </button>
+
+    @if (parametros == 'A') {
+    <button mat-raised-button color="primary" type="button" style="background-color:#0059b6; color:white"
+        (click)="restablecer()" matTooltip="Cambiar contraseña">
+        <mat-icon>lock_reset</mat-icon>
         Restablecer
     </button>
     }
-    <button mat-button mat-dialog-close>Cancelar</button>
+<!-- 
+    <button mat-raised-button color="warn" mat-dialog-close>
+        <mat-icon>close</mat-icon>
+        Cancelar
+    </button> -->
+
     <button mat-raised-button color="primary" type="submit" form="formulario">
-        {{ parametros.accion=='R'?'Crear':'Actualizar'}}
+        <mat-icon>
+            {{ parametros == 'R' ? 'add' : 'edit' }}
+        </mat-icon>
+        {{ parametros == 'R' ? 'Crear' : 'Actualizar' }}
     </button>
 </mat-dialog-actions>

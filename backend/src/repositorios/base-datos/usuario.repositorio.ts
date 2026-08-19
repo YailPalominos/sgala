@@ -1,8 +1,10 @@
 import sql from 'mssql';
-import { pool } from '../recursos/base-datos';
+import { pool, poolSesion } from '../../recursos/base-datos';
+import { crearEvento } from '@/recursos/evento';
 
 export interface Usuario {
   id: number;
+  clave:string;
   alias: string;
   direccionCorreoElectronico: string;
   contrasena: string;
@@ -14,7 +16,7 @@ export interface DatosCrearUsuario {
   alias: string;
   direccionCorreoElectronico: string;
   contrasena: string;
-  telefono:string;
+  telefono: string;
   idPreUsuario: number;
 }
 
@@ -84,22 +86,65 @@ export async function obtenerIdPreUsuarioPorClave(clave: string): Promise<number
 
   return registro.idPreUsuario;
 }
+export async function crearUsuario(
+  datos: DatosCrearUsuario
+): Promise<void> {
 
-export async function crearUsuario(datos: DatosCrearUsuario): Promise<Usuario> {
-  const resultado = await pool.request()
+  const consulta = await poolSesion.request()
     .input('alias', sql.VarChar(50), datos.alias)
-    .input('direccionCorreoElectronico', sql.VarChar(100), datos.direccionCorreoElectronico)
-    .input('contrasena', sql.VarChar(255), datos.contrasena)
-    .input('idPreUsuario', sql.Int, datos.idPreUsuario)
-    .input('telefono', sql.VarChar(20), datos.telefono)
-    .query(
-      `DECLARE @insertado TABLE (id INT);
-       INSERT INTO usuarios (alias, direccion_correo_electronico, contrasena, id_pre_usuario, telefono)
-       OUTPUT INSERTED.id INTO @insertado
-       VALUES (@alias, @direccionCorreoElectronico, @contrasena, @idPreUsuario, @telefono);
-       SELECT * FROM usuarios WHERE id = (SELECT id FROM @insertado);`
-    );
-  return (resultado.recordset)[0];
+    .input(
+      'direccionCorreoElectronico',
+      sql.VarChar(100),
+      datos.direccionCorreoElectronico
+    )
+    .input(
+      'contrasena',
+      sql.VarChar(255),
+      datos.contrasena
+    )
+    .input(
+      'idPreUsuario',
+      sql.Int,
+      datos.idPreUsuario
+    )
+    .input(
+      'telefono',
+      sql.VarChar(20),
+      datos.telefono
+    )
+    .query(`
+            DECLARE @insertado TABLE (id INT);
+
+            INSERT INTO usuarios (
+                alias,
+                direccion_correo_electronico,
+                contrasena,
+                id_pre_usuario,
+                telefono
+            )
+            OUTPUT INSERTED.id INTO @insertado
+            VALUES (
+                @alias,
+                @direccionCorreoElectronico,
+                @contrasena,
+                @idPreUsuario,
+                @telefono
+            );
+
+            SELECT *
+            FROM usuarios
+            WHERE id = (
+                SELECT id
+                FROM @insertado
+            );
+        `);
+
+  const usuario = consulta.recordset[0];
+
+  crearEvento(
+    'Creó el registro de Usuario',
+    usuario
+  );
 }
 
 export async function buscarPorIdentificador(identificador: string): Promise<Usuario> {
@@ -157,7 +202,7 @@ export async function actualizarEstatus(idUsuario: number, estatus: boolean): Pr
 
 export async function actualizar(datos: DatosActualizarUsuario): Promise<void> {
 
-  await pool.request()
+  const consulta = await poolSesion.request()
     .input('id', sql.Int, datos.idUsuario)
     .input('alias', sql.VarChar(50), datos.alias)
     .input('direccionCorreoElectronico', sql.VarChar(100), datos.direccionCorreoElectronico)
@@ -174,4 +219,11 @@ export async function actualizar(datos: DatosActualizarUsuario): Promise<void> {
             FROM usuarios
             WHERE id = @id;
         `);
+
+  const usuario = consulta.recordset[0];
+
+  crearEvento(
+    'Actualizó el registro de Usuario',
+    usuario
+  );
 }

@@ -1,0 +1,87 @@
+<h2 class="titulo">
+  Datos de las comparaciones
+</h2>
+
+<mat-dialog-content>
+
+  <mat-tab-group style="margin: 10px;">
+
+    <!-- CONSULTADO -->
+    <mat-tab label="Consultado">
+
+      <div class="informacion">
+
+        <h2 class="subtitulo">
+          Tipo: &nbsp;<b>{{ tipoTexto(consultado.tipo) }}</b>&nbsp;&nbsp;&nbsp;
+          Usuario: &nbsp;<b>{{consultado.aliasUsuario}}</b>&nbsp;&nbsp;&nbsp;
+          Fecha: &nbsp;<b> {{ anterior.fecha | date:'yyyy-MM-dd HH:mm:ss' }}</b>
+        </h2>
+        <div class="propiedades">
+
+          @for (propiedad of propiedadesConsultado; track propiedad) {
+
+          <div class="propiedad">
+
+            <span class="nombre">
+              {{ formatearPropiedad(propiedad) }}
+            </span>
+
+            <span class="valor" [class.modificado]="fueModificado(propiedad)">
+              {{ formatearValor(consultado.datos[propiedad]) }}
+            </span>
+          </div>
+
+          }
+
+        </div>
+
+      </div>
+
+    </mat-tab>
+
+
+    <!-- ANTERIOR -->
+    @if(anterior){
+    <mat-tab label="Anterior">
+
+      @if (anterior) {
+
+      <div class="informacion">
+
+        <h2 class="subtitulo">
+          Tipo: &nbsp;<b>{{ tipoTexto(consultado.tipo) }}</b>&nbsp;&nbsp;&nbsp;
+          Usuario: &nbsp;<b>{{consultado.aliasUsuario}}</b>&nbsp;&nbsp;&nbsp;
+          Fecha: &nbsp;<b> {{ anterior.fecha | date:'yyyy-MM-dd HH:mm:ss' }}</b>
+        </h2>
+
+        <div class="propiedades">
+
+          @for (propiedad of propiedadesAnterior; track propiedad) {
+
+          <div class="propiedad">
+
+            <span class="nombre">
+              {{ formatearPropiedad(propiedad) }}
+            </span>
+
+            <span class="valor">
+              {{ formatearValor(anterior.datos[propiedad]) }}
+            </span>
+
+          </div>
+
+          }
+
+        </div>
+
+      </div>
+
+      }
+
+    </mat-tab>
+    }
+  </mat-tab-group>
+
+
+
+</mat-dialog-content>

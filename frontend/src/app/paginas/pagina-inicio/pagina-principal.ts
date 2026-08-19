@@ -1,6 +1,5 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,16 +11,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { Dispositivo } from '../../interfaces/dispositivo';
 import { MatMenuModule } from '@angular/material/menu';
-import { Subscription } from 'rxjs';
-import { PanelSuscripciones } from '../../paneles/panel-suscripciones/panel-suscripciones.componente';
-import { PanelLocalizaciones } from '../../paneles/panel-localizaciones/panel-localizaciones.componente';
 import { Socket } from '../../recursos/socket';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
-import { Notificador } from '../../recursos/notificador';
 import { FormularioDispositivo } from '../../formularios/formulario-dipositivo/formulario-dispositivo';
 import { DialogoValidacion } from '../../dialogos/dilogo-validacion/dialogo-validacion';
-import { MatDialog } from '@angular/material/dialog';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
+import { DialogoInformacion } from '../../dialogos/dialogo-informacion/dialogo-informacion';
+import dayjs from 'dayjs';
 
 @Component({
   selector: 'app-panel',
@@ -45,11 +41,7 @@ import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo
 export class PaginaPrincipal implements OnInit {
 
   private socket = inject(Socket);
-  private router = inject(Router);
   private dialogoServicio = inject(DialogoServicio);
-  private notificador = inject(Notificador);
-  private matDialog = inject(MatDialog)
-
 
   textoBusqueda = signal('');
   cargando = signal(true);
@@ -66,39 +58,59 @@ export class PaginaPrincipal implements OnInit {
     );
   });
 
-  private suscripcion?: Subscription;
 
   ngOnInit(): void {
-    this.suscripcion =
-      this.socket.dispositivos$
-        .subscribe(dispositivos => {
-          this.dispositivos.set(dispositivos);
-          this.cargando.set(false)
-        });
+
+    this.socket.dispositivos$
+      .subscribe(dispositivos => {
+        this.dispositivos.set(dispositivos);
+        this.cargando.set(false)
+      });
 
     this.socket.dispositivo$
       .subscribe(dispositivo => {
-
         this.dispositivos.update(lista => {
-
           const indice = lista.findIndex(
             d => d.clave === dispositivo.clave
           );
-
           if (indice === -1) {
             return lista;
           }
-
           lista[indice] = {
             ...lista[indice],
             ...dispositivo
           };
-
           return [...lista];
         });
       });
+
   }
 
+  public verRazonAlarma(dispositivo: Dispositivo) {
+    if (dispositivo.alarmas == null) {
+      return
+    }
+    const mensaje = dispositivo.alarmas
+      .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+      .map((alarma, index) => {
+        const fecha = dayjs(alarma.fecha).format('YYYY-MM-DD HH:mm:ss');
+
+        return `${index + 1}) ${alarma.clave} - ${fecha} - ${alarma.descripcion}`;
+      })
+      .join('\n');
+
+    this.dialogoServicio.abrir({
+      referencia: DialogoInformacion,
+      titulo: 'Información',
+      icono: 'check',
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: {
+        titulo: "Razón de la alarma",
+        mensaje: mensaje
+      }
+    });
+  }
 
   public tieneCualidad(dispositivo: Dispositivo, cualidad: string): boolean {
     return dispositivo.cualidades
@@ -116,27 +128,58 @@ export class PaginaPrincipal implements OnInit {
     window.open(enlace, '_blank', 'noopener,noreferrer');
   }
 
-
-  intercalarCortaCorrientes(dispositivo: Dispositivo): void {
-
-  }
-
-  intercalarAlarma(dispositivo: Dispositivo): void {
-
-    const alarmaActiva = dispositivo.estatusAlarma === true
-
+  public intercalarCortaCorrientes(dispositivo: Dispositivo): void {
+    const cortaCorrientesActivo = dispositivo.estatusCortaCorriente === true
     this.dialogoServicio.abrir({
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      width: '450px',
-      disableClose: true,
-      data: {
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: {
+        titulo: "Corta corriente",
+        mensaje: cortaCorrientesActivo
+          ? '¿Desea desactivar el corta corrientes del dispositivo?'
+          : '¿Desea activar el corta corrientes del dispositivo?',
+      },
+      datos: {
+        clave: dispositivo.clave,
+        estatusCortaCorriente: cortaCorrientesActivo ? false : true
+      },
+      alFinalizar: this.finalizarIntercalarCortaCorrientes,
+      clase: this.constructor.name
+    });
+  }
+
+  private finalizarIntercalarCortaCorrientes(respuesta?: any) {
+    if (respuesta?.resultado == true) {
+      this.socket.emitir(
+        'solicitud/dispositivo',
+        {
+          clave: respuesta.datos.clave,
+          estatusCortaCorriente: respuesta.datos.estatusCortaCorriente
+        }
+      );
+    }
+  }
+
+  public intercalarAlarma(dispositivo: Dispositivo): void {
+    const alarmaActiva = dispositivo.estatusAlarma === true
+    this.dialogoServicio.abrir({
+      referencia: DialogoConfirmacion,
+      titulo: 'Confirmar',
+      icono: 'check',
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: {
         titulo: "Alarma",
         mensaje: alarmaActiva
-          ? '¿Desea apagar la alarma del dispositivo?'
-          : '¿Desea activar la alarma del dispositivo?',
-        clave: dispositivo.clave
+          ? '¿Desea desactivar la alarma del dispositivo?'
+          : '¿Desea activar la alarma del dispositivo?'
+      },
+      datos: {
+        clave: dispositivo.clave,
+        estatusAlarma: alarmaActiva ? false : true
       },
       alFinalizar: this.finalizarIntercalarAlarma,
       clase: this.constructor.name
@@ -144,28 +187,62 @@ export class PaginaPrincipal implements OnInit {
   }
 
   private finalizarIntercalarAlarma(respuesta?: any) {
-    if (respuesta != undefined) {
+    if (respuesta?.resultado == true) {
       this.socket.emitir(
-        'solicitud',
+        'solicitud/dispositivo',
         {
-          clave: respuesta.clave,
-          estatusAlarma: true
+          clave: respuesta.datos.clave,
+          estatusAlarma: respuesta.datos.estatusAlarma
         }
       );
     }
   }
 
-  editarDispositivo(dispositivo: Dispositivo): void {
+  public intercalarFijarEstacionado(dispositivo: Dispositivo): void {
+    const estatusFijarEstacionado = dispositivo.estatusFijarEstacionado === true
+    this.dialogoServicio.abrir({
+      referencia: DialogoConfirmacion,
+      titulo: 'Confirmar',
+      icono: 'check',
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: {
+        titulo: "Fijar estacionado",
+        mensaje: estatusFijarEstacionado
+          ? '¿Desea desactivar la alarma de estacionamiento? El dispositivo dejará de generar alertas cuando detecte que fue movido.'
+          : '¿Desea activar la alarma de estacionamiento? El dispositivo generará una alerta si detecta que el vehículo se mueve de su ubicación actual.'
+      },
+      datos: {
+        clave: dispositivo.clave,
+        estatusFijarEstacionado: estatusFijarEstacionado ? false : true
+      },
+      alFinalizar: this.finalizarIntercalarFijarEstacionado,
+      clase: this.constructor.name
+    });
+
+  }
+
+  private finalizarIntercalarFijarEstacionado(respuesta?: any) {
+    if (respuesta?.resultado == true) {
+      this.socket.emitir(
+        'solicitud/dispositivo',
+        {
+          clave: respuesta.datos.clave,
+          estatusFijarEstacionado: respuesta.datos.estatusFijarEstacionado
+        }
+      );
+    }
+  }
+
+  public editarDispositivo(dispositivo: Dispositivo): void {
     this.dialogoServicio.abrir({
       referencia: FormularioDispositivo,
       titulo: 'Dispositivo',
       icono: 'view_carousel',
-      width: '450px',
-      disableClose: true,
-      data: {
-        accion: 'A',
-        datos: dispositivo
-      }
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: 'A',
+      datos: dispositivo
     });
   }
 
@@ -179,11 +256,9 @@ export class PaginaPrincipal implements OnInit {
       referencia: DialogoValidacion,
       titulo: 'Validar',
       icono: 'check_circle',
-      width: '450px',
-      disableClose: true,
-      data: {
-        tipo: 'D'
-      },
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: 'D',//'D' Dipsitivo
       alFinalizar: this.finalizarAgregarDispositivo,
       clase: this.constructor.name
     });
@@ -196,35 +271,12 @@ export class PaginaPrincipal implements OnInit {
         referencia: FormularioDispositivo,
         titulo: 'Dispositivo',
         icono: 'view_carousel',
-        width: '450px',
-        disableClose: true,
-        data: {
-          accion: 'R',
-          datos: { clave: resultado }
-        },
+        ancho: '450px',
+        desactivarAutocerrado: true,
+        parametros: 'A',
+        datos: { clave: resultado }
       });
     }
-  }
-
-  public verSuscripciones(): void {
-    this.dialogoServicio.abrir({
-      referencia: PanelSuscripciones,
-      titulo: 'Suscripciones',
-      icono: 'event',
-      width: '900px',
-      disableClose: true,
-    });
-  }
-
-  public verHistorial(claveDispositivo: string): void {
-    this.dialogoServicio.abrir({
-      referencia: PanelLocalizaciones,
-      titulo: 'Localizaciones',
-      icono: 'map_search',
-      width: '900px',
-      disableClose: true,
-      data: claveDispositivo
-    });
   }
 
   public obtenerTextoSuscripcion(fechaFinal: string | Date | null): string {
@@ -319,7 +371,7 @@ export class PaginaPrincipal implements OnInit {
     return partes.length ? partes.join(' y ') : '0 días';
   }
 
-  public textoEstado(estado?: string): string {
+  public textoEstado(estado?: string | null): string {
 
     switch (estado) {
 
@@ -337,7 +389,7 @@ export class PaginaPrincipal implements OnInit {
     }
   }
 
-  public colorEstado(estado?: string): string {
+  public colorEstado(estado: string | null): string {
 
     switch (estado) {
 
@@ -355,7 +407,7 @@ export class PaginaPrincipal implements OnInit {
     }
   }
 
-  public colorBateria(porcentaje?: number): string {
+  public colorBateria(porcentaje: number | null): string {
 
     if (porcentaje == null) {
       return '#757575';

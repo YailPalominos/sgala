@@ -1,12 +1,14 @@
-import { Component, inject, signal } from '@angular/core';
-import { ReactiveFormsModule } from '@angular/forms';
+import { Component, inject, signal, TemplateRef, ViewChild } from '@angular/core';
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Columna, Filtros, TablaComponent } from '../../componentes/tabla/tabla.component';
 import { ServicioDispositivo } from '../../servicios/servicio-dispositivo';
-import { Panel } from '../../recursos/dialogo.base.panel';
+import { Panel } from '../../recursos/dialogo.panel';
+import { MatSelectModule } from '@angular/material/select';
+import { FiltroServicio } from '../../recursos/filtros.servicio';
 
 @Component({
   selector: 'app-historial',
@@ -17,18 +19,33 @@ import { Panel } from '../../recursos/dialogo.base.panel';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    TablaComponent
+    TablaComponent,
+    MatSelectModule,
+    FormsModule
   ],
   templateUrl: './panel-localizaciones.componente.html'
 })
 export class PanelLocalizaciones extends Panel {
 
+
+  @ViewChild('filtrosTemplate')
+  filtrosTemplate!: TemplateRef<any>;
+
   private servicioDispositivio = inject(ServicioDispositivo)
 
-  public filtros = signal<Filtros>({
+  private filtrosServicio = inject(FiltroServicio)
+
+  public override filtros = signal<Filtros>({
     etiqueta: 'Filtrar localizaciones',
     marcador: 'Filtrar por latitud, longitud y altitud.',
-    texto: ''
+    texto: '',
+    botones: [
+      {
+        icono: 'filter_alt',
+        texto: 'Filtros',
+        accion: () => this.abrirFiltros()
+      }
+    ]
   });
   public columnas: Columna[] = [
     { clave: 'aliasDispositivo', titulo: 'Dispositivo', formato: 'texto' },
@@ -46,14 +63,36 @@ export class PanelLocalizaciones extends Panel {
       ]
     },
   ];
-  public datos = signal<any[]>([]);
+  public override registros = signal<any[]>([]);
+  public dispositivos: any[] = []
+
+
+  public override panelFiltros = new FormGroup({
+    claveDispositivo: new FormControl(''),
+  });
 
   protected override iniciar(): void {
-    this.servicioDispositivio.obtenerLocalizaciones(this.parametros).subscribe({
+    this.servicioDispositivio.obtenerListaDispositivosUsuario().subscribe({
       next: (respuesta) => {
-        this.datos.set(respuesta.datos);
+        this.dispositivos = respuesta.datos
+        this.cargarDatos()
       }
     })
+  }
+
+  private cargarDatos() {
+    this.servicioDispositivio.obtenerLista(this.panelFiltros.getRawValue()).subscribe({
+      next: (respuesta) => {
+        this.registros.set(respuesta.datos);
+      }
+    })
+  }
+
+  async abrirFiltros() {
+    await this.filtrosServicio.abrir(
+      this.filtrosTemplate
+    );
+    this.cargarDatos()
   }
 
   public verLocalizacion(datos: any): void {

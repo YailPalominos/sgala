@@ -1,13 +1,13 @@
 import { CommonModule } from "@angular/common";
-import { Component, ComponentRef, inject, Inject, Injector, Type, ViewChild, ViewContainerRef } from "@angular/core";
+import { Component, ComponentRef, inject, Inject, Type, ViewChild, ViewContainerRef } from "@angular/core";
 import { MatButtonModule } from "@angular/material/button";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatIconModule } from "@angular/material/icon";
 import { MatTooltipModule } from "@angular/material/tooltip";
-import { DialogoBase } from "./dialogo.base";
+import { Dialogo } from "./dialogo.base";
 import { DialogoServicio } from "./dialogo.servicio";
-import { Panel } from "./dialogo.base.panel";
-import { Formulario } from "./dialogo.base.formulario";
+import { Panel } from "./dialogo.panel";
+import { Formulario } from "./dialogo.formulario";
 
 export interface EstadoDialogo {
   datos?: any;
@@ -83,7 +83,7 @@ export interface EstadoDialogo {
       mat-icon-button
       class="btn-cerrar"
       matTooltip="Salir"
-      (click)="cerrar()">
+      (click)="eliminar()">
       <mat-icon>close</mat-icon>
     </button>
 
@@ -159,12 +159,10 @@ export class DialogoContenedorComponent {
     static: true
   })
   private contenedor!: ViewContainerRef;
-
-  private componenteRef!: ComponentRef<DialogoBase>
-
+  private componenteRef!: ComponentRef<Dialogo>
   private dialogoServicio = inject(DialogoServicio)
-
   private resultadoDialogo: any = undefined;
+
   constructor(
     @Inject(MAT_DIALOG_DATA)
     public data: any,
@@ -177,23 +175,15 @@ export class DialogoContenedorComponent {
   ngAfterViewInit(): void {
 
     this.componenteRef = this.contenedor.createComponent(
-      this.data.componente as Type<DialogoBase>
+      this.data.componente as Type<Dialogo>
     );
 
     const instancia = this.componenteRef.instance;
     instancia.parametros = this.data.data;
+    instancia.datos = this.data.datos;
 
 
-    if (instancia instanceof Formulario) {
-      instancia.datos = this.data.datos;
-    }
-
-    if (instancia instanceof Panel) {
-      instancia.filtrosObjeto = this.data.filtros;
-      if (this.data.datos != undefined) {
-        instancia.datos.set(this.data.datos);
-      }
-    }
+    // console.log(this.data)
 
     instancia.cargar();
 
@@ -209,7 +199,7 @@ export class DialogoContenedorComponent {
       });
 
     this.componenteRef.instance.cerrarDialogo$.subscribe(resultado => {
-      this.resultadoDialogo = resultado;
+      this.resultadoDialogo = resultado.respuesta;
       this.cerrar()
     });
 
@@ -320,7 +310,18 @@ export class DialogoContenedorComponent {
   public cerrar(): void {
     this.dialogoReferencia.close({
       resultado: 'C',
-      resultadoDialogo: this.resultadoDialogo
+      resultadoDialogo: {
+        resultado: this.resultadoDialogo,
+        parametros: this.data.data,
+        datos: this.data.datos,
+      },
+    });
+  }
+
+  public eliminar(): void {
+    this.dialogoReferencia.close({
+      resultado: 'E',
+      resultadoDialogo: undefined
     });
   }
 

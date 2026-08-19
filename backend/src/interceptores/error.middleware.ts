@@ -1,3 +1,4 @@
+import { crearEvento } from '@/recursos/evento';
 import { Request, Response, NextFunction } from 'express';
 import { v4 as uuid } from "uuid";
 
@@ -33,6 +34,8 @@ export function manejadorErrores(
     `[${referencia}]`,
     error
   );
+
+  crearEvento("Error ", error)
 
   respuesta.status(500).json({
     mensaje: `Error interno del servidor:[${referencia}]`

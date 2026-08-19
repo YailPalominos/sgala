@@ -1,9 +1,9 @@
 import bcrypt from 'bcrypt';
-import * as usuarioRepo from '../repositorios/usuario.repositorio';
-import { redisRepositorio, SesionRedis } from '../repositorios/redis.repositorio';
+import * as usuarioRepo from '../repositorios/base-datos/usuario.repositorio';
 import { enviarCorreoRecuperacion, enviarCorreoBienvenida } from './correo.servicio';
-import { sesionServicio } from './sesion.servicio';
 import { ErrorHttp } from '../interceptores/error.middleware';
+import { crear as crearEvento } from '../repositorios/base-datos/evento.repositorio'
+import { crearLlaveRecuperacion, crearSesion, eliminarLlaveRecuperacion, obtenerLlaveRecuperacion, SesionRedis } from '@/repositorios/redis/sesiones.redis';
 
 export interface DatosUsuarioRegistro {
   clave: string;
@@ -81,7 +81,7 @@ export async function crear(datos: any): Promise<void> {
  * Si la contraseña coincide en plano → es provisional, debe cambiarla.
  * Si coincide con bcrypt → sesión normal.
  */
-export async function autenticar(identificador: string, contrasena: string): Promise<LoginResultado> {
+export async function autenticar(identificador: string, contrasena: string): Promise<any> {
 
   let usuario
   try {
@@ -117,13 +117,18 @@ export async function autenticar(identificador: string, contrasena: string): Pro
     if (!contrasenaValida) {
       throw new ErrorHttp(400, 'Credenciales inválidas');
     }
-    const sesion = await sesionServicio.crearSesion(usuario.direccionCorreoElectronico, usuario.alias, usuario.id, usuario.telefono);
+    const sesion = await crearSesion(usuario.clave, usuario.direccionCorreoElectronico, usuario.alias, usuario.id, usuario.telefono);
+
+    // const { idUsuario, ...sesionSinIdUsuario } = sesion;
+    // console.log(sesionSinIdUsuario)
+    await crearEvento('Inicio sesión.')
     return { sesion, requiereCambioContrasena: false };
   } else {
     // Contraseña plana (provisional) — comparar directamente
     if (contrasena !== usuario.contrasena) {
       throw new ErrorHttp(400, 'Credenciales inválidas');
     }
+    await crearEvento('Inicio sesión pero requiere cambiar su contraseña.')
     return { idUsuario: usuario.id, requiereCambioContrasena: true };
   }
 
@@ -152,7 +157,7 @@ export async function solicitarRecuperacion(identificador: string, tipo: string)
     throw new ErrorHttp(401, error);
   }
   try {
-    const claveLLaveRecuperacion = await redisRepositorio.crearLlaveRecuperacion(usuario.id, 'R');
+    const claveLLaveRecuperacion = await crearLlaveRecuperacion(usuario.id, 'R');
     // if (tipo == 'C') {
     await enviarCorreoRecuperacion(usuario.direccionCorreoElectronico, claveLLaveRecuperacion);
     // }
@@ -169,7 +174,7 @@ export async function solicitarRecuperacion(identificador: string, tipo: string)
  * Actualiza estatus a 1 (activo normal).
  */
 export async function cambiarContrasena(llave: string, nuevaContrasena: string): Promise<void> {
-  const recuperacion = await redisRepositorio.obtenerLlaveRecuperacion(llave);
+  const recuperacion = await obtenerLlaveRecuperacion(llave);
 
   if (!recuperacion) {
     throw new ErrorHttp(400, 'Enlace inválido o expirado');
@@ -178,5 +183,5 @@ export async function cambiarContrasena(llave: string, nuevaContrasena: string):
   const contrasenaHash = await bcrypt.hash(nuevaContrasena, SALT_ROUNDS);
 
   await usuarioRepo.actualizarContrasena(recuperacion.idUsuario, contrasenaHash);
-  await redisRepositorio.eliminarLlaveRecuperacion(llave);
+  await eliminarLlaveRecuperacion(llave);
 }

@@ -1,5 +1,6 @@
 <div class="contenedor">
 
+  @if (filtros!=undefined) {
   <div class="barra-acciones">
     <mat-form-field appearance="outline" class="buscar-input">
       <mat-label>{{filtros().etiqueta}}</mat-label>
@@ -15,6 +16,7 @@
     </button>
     }
   </div>
+  }
 
   <section class="contenedor-secundario">
     <table mat-table [dataSource]="dataSource" matSort>
@@ -24,13 +26,13 @@
           {{ columna.titulo }}
         </th>
 
-        <td mat-cell *matCellDef="let fila">
+        <td mat-cell *matCellDef="let fila" [style]="columna.estilos">
           @if (columna.formato === 'botones') {
           @for (boton of columna.botones; track boton) {
           @if (!boton.visible || boton.visible(fila)) {
           <span [matTooltip]="boton.tooltip?.(fila) ?? ''">
             <button mat-raised-button color="accent" (click)="boton.accion(fila)" class="boton-icono"
-              [disabled]="boton.estado">
+              [disabled]="boton.estado" [style]="boton.estilos?.(fila)">
               <mat-icon>{{ boton.icono }}</mat-icon>
               @if (boton.texto) {
               {{ boton.texto }}

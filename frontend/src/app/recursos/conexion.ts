@@ -29,7 +29,6 @@ export class Conexion {
 
     public get<T>(rutaControlador: string, filtros?: any): Observable<Respuesta<T>> {
         const parametros = filtros ? this.objetoAHttpParams(filtros) : undefined;
-
         return this.http.get<Respuesta<T>>(
             this.rutaServidor + rutaControlador,
             {

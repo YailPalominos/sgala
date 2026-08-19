@@ -16,6 +16,7 @@ export interface Boton<T = unknown> {
   visible?: (fila: any) => boolean;
   estado?: (fila: any) => boolean;
   tooltip?: (fila: any) => string;
+  estilos?: (fila: any) => string;
 }
 
 export interface Columna {
@@ -65,7 +66,6 @@ export class TablaComponent implements OnChanges {
     this.paginatorIntl.previousPageLabel = 'Página anterior';
     this.paginatorIntl.firstPageLabel = 'Primera página';
     this.paginatorIntl.lastPageLabel = 'Última página';
-
     this.paginatorIntl.getRangeLabel = (
       page: number,
       pageSize: number,

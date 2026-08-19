@@ -1,5 +1,5 @@
 <h2 class="titulo">
-  Verificar pre {{ parametros.tipo === 'U' ? 'usuario' : 'dispositivo' }}
+  Verificar pre {{ parametros === 'U' ? 'usuario' : 'dispositivo' }}
 </h2>
 
 <mat-dialog-content>
@@ -8,7 +8,7 @@
   <form [formGroup]="formulario" (ngSubmit)="verificar()" id="formulario">
 
     <p style="margin: 10px;text-align: center;width: 100%">
-      Ingresa la clave del pre {{ parametros.tipo === 'U' ? 'usuario' : 'dispositivo' }}.
+      Ingresa la clave del pre {{ parametros === 'U' ? 'usuario' : 'dispositivo' }}.
       <br>
       Ejemplo: 7f3c2a91-8b64-4d1e-a5f7-2c9e6b8d4a30
     </p>
@@ -17,7 +17,7 @@
     <mat-form-field appearance="outline">
 
       <mat-label>
-        Clave del pre {{ parametros.tipo === 'U' ? 'usuario' : 'dispositivo' }}
+        Clave del pre {{ parametros === 'U' ? 'usuario' : 'dispositivo' }}
       </mat-label>
 
       <input matInput formControlName="clave" autocomplete="off" />
@@ -45,12 +45,19 @@
 
 <mat-dialog-actions align="center">
 
-  <button mat-button mat-dialog-close>
-    Cancelar
-  </button>
+<button mat-raised-button color="accent" type="button">
+  <mat-icon>qr_code_2</mat-icon>
+  QR
+</button>
 
-  <button mat-raised-button color="primary" type="submit" form="formulario">
-    Verificar
-  </button>
+<!-- <button mat-raised-button color="warn" mat-dialog-close>
+  <mat-icon>close</mat-icon>
+  Cancelar
+</button> -->
+
+<button mat-raised-button color="primary" type="submit" form="formulario">
+  <mat-icon>verified_user</mat-icon>
+  Verificar
+</button>
 
 </mat-dialog-actions>

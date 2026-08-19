@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { middlewareSesion } from '../interceptores/sesion.middleware';
-import { actualizar, crear, obtenerLocalizaciones } from '../repositorios/dispositivo.repositorio';
-import { validarClave } from '../servicios/dispositivo.servicio'
-import { redisRepositorio } from '../repositorios/redis.repositorio';
+import { actualizar, crear, obtenerLocalizaciones, obtenerListaDispositivosUsuario, buscarPorClave } from '../repositorios/base-datos/dispositivo.repositorio';
 import asyncHandler from 'express-async-handler';
-import { enviarDispositivoActualizado } from '../socketio/servidor.socketio'
+import { enviarDispositivoActualizado } from '../socket'
+import { actualizarDatosDispositivo } from '@/repositorios/redis/dispositivo.redis';
+import { ErrorHttp } from '@/interceptores/error.middleware';
 export const dispositivoRouter = Router();
 
 /**
@@ -13,7 +13,15 @@ export const dispositivoRouter = Router();
 dispositivoRouter.get('/validar-clave/:clave',
   asyncHandler(async (solicitud, respuesta) => {
     const { clave } = solicitud.params;
-    const datosDispositivo = await validarClave(clave, solicitud.sesion.idUsuario);
+    let datosDispositivo;
+    try {
+      datosDispositivo = await buscarPorClave(clave, solicitud.sesion.idUsuario);
+    } catch (error: any) {
+      throw new ErrorHttp(
+        404,
+        error.message
+      );
+    }
     respuesta.status(200).json({
       mensaje: 'Se valido la clave del dispostivo exitosamente.',
       datos: datosDispositivo
@@ -41,22 +49,44 @@ dispositivoRouter.put('/actualizar',
   asyncHandler(async (solicitud, respuesta) => {
     const datos = solicitud.body
     await actualizar(datos);
-    redisRepositorio.actualizarDatosDispositivo(datos.clave, datos)
+    actualizarDatosDispositivo(datos.clave, datos)
     await enviarDispositivoActualizado(datos.clave)
     respuesta.status(200).json({ mensaje: 'Dispositivo actualizado exitosamente.' });
   })
 );
 
+
 /**
- * Verifica que la clave del pre dispositivo exista y no esté siendo usada.
+ * Obtener lista de dispositivos del usuario
  */
-dispositivoRouter.get('/obtener-localizaciones/:clave',
+dispositivoRouter.get('/obtener-lista-dipositivos-usuario',
   asyncHandler(async (solicitud, respuesta) => {
-    const { clave } = solicitud.params;
-    const localizaciones = await obtenerLocalizaciones(clave);
+
+    const idUsuario = solicitud.sesion.idUsuario;
+
+    const datos = await obtenerListaDispositivosUsuario(idUsuario);
+
     respuesta.status(200).json({
       mensaje: 'Localizaciones obtenidas exitosamente.',
-      datos: localizaciones
+      datos
+    });
+  })
+);
+
+/**
+ * Obtener lista de localizaciones 
+ */
+dispositivoRouter.get('/obtener-lista',
+  asyncHandler(async (solicitud, respuesta) => {
+
+    const filtros = solicitud.query
+    const idUsuario = solicitud.sesion.idUsuario;
+
+    const datos = await obtenerLocalizaciones(idUsuario, filtros);
+
+    respuesta.status(200).json({
+      mensaje: 'Localizaciones obtenidas exitosamente.',
+      datos
     });
   })
 );

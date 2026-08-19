@@ -4,9 +4,10 @@ import { BehaviorSubject } from 'rxjs';
 
 export interface Sesion {
   clave: string;
+  claveUsuario:string
   alias: string;
   direccionCorreoElectronico: string;
-  idSocket: string;
+  claveSocket: string;
   telefono: string;
 }
 

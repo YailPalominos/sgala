@@ -1,12 +1,12 @@
 import { Directive } from '@angular/core';
 import { FormGroup } from '@angular/forms';
-import { DialogoBase } from './dialogo.base';
+import { Dialogo } from './dialogo.base';
 
 @Directive()
-export abstract class Formulario extends DialogoBase {
+export abstract class Formulario extends Dialogo {
 
+    // Debe ser implementado por la clase hija
     public abstract formulario: FormGroup;
-    public datos: any;
 
     constructor() {
         super();

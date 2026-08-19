@@ -1,0 +1,83 @@
+.filtros-contenedor {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+}
+
+
+.filtros-contenido {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+
+.filtros-acciones {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+
+.btn-cancelar {
+    background-color: #e53935;
+    color: white;
+}
+
+
+.btn-aceptar {
+    background-color: #43a047;
+    color: white;
+}
+
+
+mat-icon {
+    margin-right: 6px;
+}
+
+
+
+
+
+
+
+
+
+
+.barra-dialogo {
+    position: relative;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    padding: 25px;
+    background: linear-gradient(to right,
+            transparent,
+            #272727 15%,
+            #272727 85%,
+            transparent) bottom / 80% 5px no-repeat;
+    h1 {
+        padding: 10px;
+        cursor: default;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+
+        margin: 0;
+        padding: 0;
+
+        max-width: calc(100% - 150px);
+
+        font-size: 20px;
+        line-height: 1;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+}

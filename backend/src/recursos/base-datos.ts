@@ -1,5 +1,6 @@
 import sql from "mssql";
 import { entorno } from "./entorno";
+import { obtenerSesion } from "@/interceptores/solicitud";
 
 function aCamello(str: string): string {
   return str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
@@ -126,61 +127,92 @@ export const pool = new Proxy({} as sql.ConnectionPool, {
 
 function crearProxyRequest(request: sql.Request) {
 
-    let proxy: any;
+  let proxy: any;
 
-    proxy = new Proxy(request, {
+  proxy = new Proxy(request, {
 
-        get(target, prop) {
+    get(target, prop) {
 
-            const original = (target as any)[prop];
-
-
-            if (typeof original !== "function") {
-                return original;
-            }
+      const original = (target as any)[prop];
 
 
-            // Interceptar solamente ejecución SQL
-            if (
-                prop === "query" ||
-                prop === "batch" ||
-                prop === "execute"
-            ) {
-
-                return async (...args: any[]) => {
-
-                    const resultado = await original.apply(
-                        target,
-                        args
-                    );
+      if (typeof original !== "function") {
+        return original;
+      }
 
 
-                    return transformarResultado(resultado);
-                };
-            }
+      // Interceptar solamente ejecución SQL
+      if (
+        prop === "query" ||
+        prop === "batch" ||
+        prop === "execute"
+      ) {
+
+        return async (...args: any[]) => {
+
+          const resultado = await original.apply(
+            target,
+            args
+          );
 
 
-            // Mantener cadena:
-            // request.input().input().query()
-            return (...args: any[]) => {
-
-                const resultado = original.apply(
-                    target,
-                    args
-                );
+          return transformarResultado(resultado);
+        };
+      }
 
 
-                if (resultado === target) {
-                    return proxy;
-                }
+      // Mantener cadena:
+      // request.input().input().query()
+      return (...args: any[]) => {
+
+        const resultado = original.apply(
+          target,
+          args
+        );
 
 
-                return resultado;
-            };
+        if (resultado === target) {
+          return proxy;
         }
 
-    });
+
+        return resultado;
+      };
+    }
+
+  });
 
 
-    return proxy;
+  return proxy;
 }
+
+export const poolSesion = {
+    request(): sql.Request {
+
+        const request = pool.request();
+
+        const sesion = obtenerSesion();
+
+        request.input(
+            'idUsuarioSesion',
+            sql.Int,
+            sesion?.idUsuario ?? 0
+        );
+
+        const queryOriginal = request.query.bind(request);
+
+        request.query = ((consulta: string) => {
+
+            return queryOriginal(`
+                EXEC sys.sp_set_session_context
+                    @key = N'idUsuario',
+                    @value = @idUsuarioSesion;
+
+                ${consulta}
+            `);
+
+        }) as typeof request.query;
+
+        return request;
+    }
+};

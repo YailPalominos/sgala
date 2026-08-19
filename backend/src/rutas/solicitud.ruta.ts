@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import asyncHandler from 'express-async-handler';
-import { crear } from '../repositorios/solicitud.repositorio'
+import { crear } from '../repositorios/base-datos/solicitud.repositorio'
 
 export const solicitudRouter = Router();
 

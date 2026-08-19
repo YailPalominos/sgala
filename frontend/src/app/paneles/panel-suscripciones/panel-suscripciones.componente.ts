@@ -1,15 +1,14 @@
-import { Component, effect, inject, signal, untracked } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Columna, Filtros, TablaComponent } from '../../componentes/tabla/tabla.component';
-import { MatDialog } from '@angular/material/dialog';
-import { ServicioDatos } from '../../servicios/servicio-datos';
-import { EstadoDialogo } from '../../recursos/dialogo.contenedor';
 import { FormularioSuscripcion } from '../../formularios/formulario-suscripcion/formulario-suscripcion';
-import { Panel } from '../../recursos/dialogo.base.panel';
+import { Panel } from '../../recursos/dialogo.panel';
+import { ServicioSuscripciones } from '../../servicios/servicio-suscripciones';
+import { DialogoServicio } from '../../recursos/dialogo.servicio';
 
 @Component({
   selector: 'app-suscripciones',
@@ -26,8 +25,8 @@ import { Panel } from '../../recursos/dialogo.base.panel';
 })
 export class PanelSuscripciones extends Panel {
 
-  private dialogo = inject(MatDialog);
-  private servicioDatos = inject(ServicioDatos)
+  private servicioSuscripciones = inject(ServicioSuscripciones)
+  private dialogoServicio = inject(DialogoServicio)
 
   public columnas: Columna[] = [
     { clave: 'clave', titulo: 'Clave', formato: 'texto' },
@@ -47,9 +46,8 @@ export class PanelSuscripciones extends Panel {
       ]
     },
   ];
-
-  public datos = signal<any[]>([])
-  public filtros = signal<Filtros>({
+  public override registros = signal<any[]>([]);
+  public override filtros = signal<Filtros>({
     etiqueta: 'Filtrar suscripciones',
     marcador: 'Filtrar por Clave, Dispositivo y Fecha inicial o final',
     texto: '',
@@ -67,25 +65,32 @@ export class PanelSuscripciones extends Panel {
   }
 
   public cargarDatos() {
-    this.servicioDatos.obtenerSuscripciones().subscribe({
+    this.servicioSuscripciones.obtenerLista({ hola: 'adsdasdas' }).subscribe({
       next: (respuesta) => {
-        this.datos.set(respuesta.datos);
+        this.registros.set(respuesta.datos);
       }
     })
   }
 
   public crearSuscripcion() {
-    const dialogoReferencia = this.dialogo.open(FormularioSuscripcion, {
-      width: '550px',
-      disableClose: true,
+    this.dialogoServicio.abrir({
+      referencia: FormularioSuscripcion,
+      titulo: 'Suscripciones',
+      icono: 'event',
+      ancho: '500px',
+      desactivarAutocerrado: true,
+      alFinalizar: this.finalizarConfirmacion,
+      clase: this.constructor.name,
     });
 
-    dialogoReferencia.afterClosed().subscribe((respuesta?: boolean) => {
-      if (respuesta === true) {
-        this.cargarDatos()
-      }
-    });
   }
+
+  public finalizarConfirmacion(respuesta: any): void {
+    if (respuesta?.resultado == true) {
+      this.cargarDatos()
+    }
+  }
+
 
   public descargarFactura(datos: any) {
   }

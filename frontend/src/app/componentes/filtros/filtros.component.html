@@ -1,0 +1,37 @@
+<div class="filtros-contenedor">
+    
+    <div class="barra-dialogo">
+        <h1>Filtros</h1>
+    </div>
+
+    <div class="filtros-contenido">
+        <ng-container *ngTemplateOutlet="cuerpo"></ng-container>
+    </div>
+
+
+    <div class="filtros-acciones">
+
+        <button mat-raised-button class="btn-cancelar" (click)="cerrar()">
+
+            <mat-icon>
+                close
+            </mat-icon>
+
+            Cancelar
+
+        </button>
+
+
+        <button mat-raised-button class="btn-aceptar" (click)="aceptar()">
+
+            <mat-icon>
+                check
+            </mat-icon>
+
+            Aceptar
+
+        </button>
+
+    </div>
+
+</div>

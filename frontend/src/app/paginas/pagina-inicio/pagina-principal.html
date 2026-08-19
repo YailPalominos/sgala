@@ -74,7 +74,8 @@
 
         <p class="dato-general">
           Estado:
-          <b [style.color]="colorEstado(dispositivo.estado)">
+          <b [style.color]="colorEstado(dispositivo.estado)"
+            [class.fijar-estacionamiento]="dispositivo.estado === 'E' && dispositivo.estatusFijarEstacionado">
             {{ textoEstado(dispositivo.estado) }}
           </b>
 
@@ -87,33 +88,42 @@
 
       <div class="card-acciones">
 
-        <button mat-icon-button matTooltip="Suscripciones" (click)="verSuscripciones()" color="accent">
-          <mat-icon>event</mat-icon>
-        </button>
-
-        <button mat-icon-button matTooltip="Historial de ubicaciones" color="accent"
-          (click)="verHistorial(dispositivo.clave)" style="margin-right: 30px;">
-          <mat-icon>history</mat-icon>
-        </button>
 
         @if (tieneCualidad(dispositivo, 'COC')) {
         <span
-          [matTooltip]="(dispositivo.estatusCortaCorriente ? 'Activar corta corriente' : 'Desactivar corta corriente')">
+          [matTooltip]="(dispositivo.estatusCortaCorriente==false ? 'Activar corta corriente' : 'Desactivar corta corriente')">
 
           <button mat-icon-button [disabled]="(dispositivo.estatusConexion == true&&dispositivo.estado!='E')?false:true"
-            [color]="dispositivo.estatusCortaCorriente==false ? 'warn' : 'primary'"
-            (click)="intercalarCortaCorrientes(dispositivo)">
+            [color]="dispositivo.estatusCortaCorriente==false ? 'primary' : 'warn'"
+            (click)="intercalarCortaCorrientes(dispositivo)" [class.corta-activo]="dispositivo.estatusCortaCorriente">
             <mat-icon>stream</mat-icon>
           </button>
 
         </span>
         }
 
+
+        @if (dispositivo.estatusAlarma==true) {
+        <span matTooltip="Ver la razón de la alarma activa">
+          <button mat-icon-button color="primary" (click)="verRazonAlarma(dispositivo)">
+            <mat-icon>
+              info
+            </mat-icon>
+          </button>
+        </span>
+        }
+
         @if (tieneCualidad(dispositivo, 'ALA')) {
-        <span [matTooltip]="dispositivo.estatusAlarma ? 'Desactivar alarma' : 'Activar alarma'">
+        <span [matTooltip]="
+              dispositivo.estatusAlarma === null
+                  ? 'No hay datos'
+                  : dispositivo.estatusAlarma
+                      ? 'Desactivar alarma'
+                      : 'Activar alarma'
+          ">
           <button mat-icon-button
             [disabled]="(dispositivo.estatusConexion == true && dispositivo.estatusAlarma!=null)?false:true"
-            [color]="dispositivo.estatusAlarma ? 'warn' : 'primary'" (click)="intercalarAlarma(dispositivo)">
+            [color]="dispositivo.estatusAlarma==false ? 'primary' : 'warn'" (click)="intercalarAlarma(dispositivo)">
             <mat-icon>
               {{ dispositivo.estatusAlarma ? 'notifications_off' : 'notifications_active' }}
             </mat-icon>
@@ -122,7 +132,33 @@
         }
 
         @if (tieneCualidad(dispositivo, 'LOC')) {
-        <span [matTooltip]="dispositivo.localizacion ? 'Ver la localización' : 'No hay localización'">
+        <span [matTooltip]="
+              dispositivo.estatusFijarEstacionado === null
+                  ? 'No hay datos'
+                  : dispositivo.estatusFijarEstacionado === false
+                      ? 'Activar alarma de estacionado'
+                      : 'Desactivar alarma de estacionado'
+        ">
+          <button mat-icon-button color="primary"
+            [disabled]="dispositivo.estatusFijarEstacionado != null && dispositivo.estado == 'E'? false : true"
+            (click)="intercalarFijarEstacionado(dispositivo)"
+            [class.fijar-activo]="dispositivo.estatusFijarEstacionado ==true && dispositivo.estado == 'E'? true : false">
+            <mat-icon>
+              {{ dispositivo.estatusFijarEstacionado ? 'stop' : 'play_arrow' }}
+            </mat-icon>
+
+          </button>
+        </span>
+        }
+
+        @if (tieneCualidad(dispositivo, 'LOC')) {
+        <span [matTooltip]="
+              dispositivo.localizacion === null
+                  ? 'No hay datos'
+                  : dispositivo.localizacion
+                      ? 'Ver la localización'
+                      : 'No hay localización'
+          ">
           <button mat-icon-button color="primary" [disabled]="!dispositivo.localizacion"
             (click)="verLocalizacion(dispositivo)">
             <mat-icon>map</mat-icon>

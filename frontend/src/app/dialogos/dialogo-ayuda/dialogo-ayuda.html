@@ -42,52 +42,40 @@
 
 
         @if (formulario.get('pregunta')?.value == 'correo') {
-
         <mat-form-field appearance="outline">
             <mat-label>Correo electrónico</mat-label>
             <input matInput type="email" formControlName="medioContacto" />
-
             <mat-icon matPrefix>email</mat-icon>
-
             @if (formulario.get('medioContacto')?.hasError('required')) {
             <mat-error>
                 El correo electrónico es requerido.
             </mat-error>
             }
-
             @if (formulario.get('medioContacto')?.hasError('email')) {
             <mat-error>
                 Ingresa un correo electrónico válido.
             </mat-error>
             }
-
         </mat-form-field>
-
         }
 
 
         @if (formulario.get('pregunta')?.value == 'telefono') {
-
         <mat-form-field appearance="outline">
             <mat-label>Teléfono</mat-label>
             <input matInput type="tel" formControlName="medioContacto" />
-
             <mat-icon matPrefix>phone</mat-icon>
-
             @if (formulario.get('medioContacto')?.hasError('required')) {
             <mat-error>
                 El teléfono es requerido.
             </mat-error>
             }
-
             @if (formulario.get('medioContacto')?.hasError('pattern')) {
             <mat-error>
                 El teléfono debe contener 10 dígitos.
             </mat-error>
             }
-
         </mat-form-field>
-
         }
 
 

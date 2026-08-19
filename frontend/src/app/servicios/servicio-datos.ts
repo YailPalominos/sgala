@@ -11,19 +11,4 @@ export class ServicioDatos {
     public obtenerPrecios(): Observable<Respuesta<any>> {
         return this.conexion.get<any>(`${this.ruta}/obtener-precios`);
     }
-
-    public obtenerSuscripcionesDispositivo(claveDispositivo: string): Observable<Respuesta<any>> {
-        return this.conexion.get<any>(`${this.ruta}/obtener-suscripciones-dispositivo/${claveDispositivo}`);
-    }
-
-    public obtenerResumenSuscripcion(claveDispositivo: string, tipoSuscripcion: string): Observable<Respuesta<any>> {
-        return this.conexion.get<any>(`${this.ruta}/obtener-resumen-suscripcion-dispositivo/${claveDispositivo}/${tipoSuscripcion}`);
-    }
-
-    public crearSuscripcion(datos: any): Observable<Respuesta<any>> {
-        return this.conexion.post<any>(`${this.ruta}/crear-suscripcion`, datos);
-    }
-    public obtenerSuscripciones(): Observable<Respuesta<any>> {
-        return this.conexion.get<any>(`${this.ruta}/obtener-suscripciones`);
-    }
 }

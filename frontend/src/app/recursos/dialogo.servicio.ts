@@ -4,29 +4,45 @@ import { DialogoContenedorComponent } from "./dialogo.contenedor";
 import { Subject } from "rxjs";
 import { clases } from "../app.config";
 import { EnvironmentInjector } from '@angular/core';
+import { Formulario } from "./dialogo.formulario";
+import { Panel } from "./dialogo.panel";
+import { Dialogo } from "./dialogo.base";
+import { RegistroInstancias } from "./dialogo.registro";
 
-export interface AbrirDialogo {
+export type ClaseDialogo =
+  | (new (...args: any[]) => Dialogo)
+  | (new (...args: any[]) => Formulario)
+  | (new (...args: any[]) => Panel);
+
+export interface ConfiguracionDialogo {
   titulo: string;
   icono: string;
-  referencia: any,
-  width?: string;
-  height?: string;
-  maxWidth?: string;
-  maxHeight?: string;
-  disableClose?: boolean;
-  data?: any,
+  referencia: ClaseDialogo;
+
+  // Datos minimos para el contenedor
+  largo?: string;
+  ancho?: string;
+  maximoLargo?: string;
+  maximoAncho?: string;
+  desactivarAutocerrado?: boolean;
+
+  // Datos que se pasan al dialogo
+  datos?: any,
+  parametros?: any;
+
   alFinalizar?: (resultado: any) => void;
   clase?: string
 }
 
-export interface Dialogo {
+export interface EstadoDialogo {
   id: string;
   titulo: string;
   icono: string;
+
   datos: any;
   parametros: any;
-  // Estado de filtros
-  filtros?: any[];
+  filtros: any;
+
   // Posición final del diálogo
   posicionX: number;
   posicionY: number;
@@ -51,12 +67,13 @@ export interface Dialogo {
 @Injectable({ providedIn: 'root' })
 export class DialogoServicio {
   private claveStorage = 'dialogos';
-  private _dialogos = signal<Dialogo[]>([]);
+  private _dialogos = signal<EstadoDialogo[]>([]);
   dialogos = this._dialogos.asReadonly();
 
   private matDialogo = inject(MatDialog);
 
   private registro = new Map<string, Type<any>>();
+  private registroInstancias = inject(RegistroInstancias)
 
   constructor(
     @Inject(clases)
@@ -71,15 +88,13 @@ export class DialogoServicio {
       );
     }
 
-
-
     const datos = localStorage.getItem(this.claveStorage);
 
     if (!datos) {
       return;
     }
 
-    const dialogos: Dialogo[] = JSON.parse(datos);
+    const dialogos: EstadoDialogo[] = JSON.parse(datos);
 
     const actualizados = dialogos.map(dialogo => ({
       ...dialogo,
@@ -122,19 +137,15 @@ export class DialogoServicio {
       id: d.id,
       titulo: d.titulo,
       icono: d.icono,
-
       datos: d.datos,
       filtros: d.filtros,
-
       posicionX: d.posicionX,
       posicionY: d.posicionY,
       ancho: d.ancho,
       alto: d.alto,
       expandido: d.expandido,
       minimizado: d.minimizado,
-
       referencia: d.referencia,
-
       width: d.width,
       height: d.height,
       maxWidth: d.maxWidth,
@@ -151,114 +162,57 @@ export class DialogoServicio {
     );
   }
 
-  public abrir(abrirDialogo: AbrirDialogo): any {
+  abrir(
+    configuracionDialogo: ConfiguracionDialogo
+  ) {
 
     const id = crypto.randomUUID()
-    const nombrePanel = abrirDialogo.referencia.name
+    const nombrePanel = configuracionDialogo.referencia.name
+    const referencia = configuracionDialogo.referencia;
 
-    const referencia =
-      this.matDialogo.open(
-        DialogoContenedorComponent,
-        {
-          width: abrirDialogo.width ?? 'auto',
-          maxWidth: abrirDialogo.maxWidth ?? 'auto',
-          maxHeight: abrirDialogo.maxHeight ?? 'auto',
-          height: abrirDialogo.height ?? 'auto',
-          disableClose: abrirDialogo.disableClose ?? true,
-          data: {
-            id,
-            titulo: abrirDialogo.titulo,
-            icono: abrirDialogo.icono,
-            componente: abrirDialogo.referencia,
-            data: abrirDialogo.data
-          }
-        }
+    const esFormulario =
+      Formulario.prototype.isPrototypeOf(referencia.prototype);
+
+    const esPanel =
+      Panel.prototype.isPrototypeOf(referencia.prototype);
+
+    const esDialogo =
+      Dialogo.prototype.isPrototypeOf(referencia.prototype);
+
+    if (!esFormulario && !esPanel && !esDialogo) {
+      throw new Error(
+        `${referencia.name} debe extender Formulario, Panel o Dialogo para ser usado por el servicio de dialogos.`
       );
+    }
 
-    const dialogo: Dialogo = {
+    const dialogo: EstadoDialogo = {
       id,
-      titulo: this.generarTitulo(abrirDialogo.titulo),
-      icono: abrirDialogo.icono,
-      datos: abrirDialogo.data,
+      titulo: this.generarTitulo(configuracionDialogo.titulo),
+      icono: configuracionDialogo.icono,
+      //Genericos
+      datos: configuracionDialogo.datos,
+      parametros: configuracionDialogo.parametros,
       filtros: [],
-      // Movimiento
+      // datos por defecto
       posicionX: 0,
       posicionY: 0,
       ancho: 0,
       alto: 0,
       expandido: false,
       minimizado: false,
-      parametros: abrirDialogo.data,
+      // Referencias para abri 
       referencia: nombrePanel,
-      alFinalizar: abrirDialogo.alFinalizar?.name,
-      clase: abrirDialogo.clase
+      alFinalizar: configuracionDialogo.alFinalizar?.name,
+      clase: configuracionDialogo.clase
     };
     this._dialogos.update(lista => [
       ...lista,
       dialogo
     ]);
     this.guardar();
-
-
-    const resultadoDialogo = new Subject<any>();
-
-    referencia.afterClosed()
-      .subscribe((respuesta) => {
-        if (respuesta?.resultado === 'M') {
-
-          this.actualizarEstadoContenedor(
-            dialogo.id,
-            {
-              minimizado: true
-            }
-          );
-
-          return;
-        }
-
-
-        if (respuesta?.resultado === 'C' || respuesta === undefined || respuesta === '') {
-
-          this.eliminar(dialogo.id);
-
-          if (dialogo.alFinalizar != undefined) {
-
-            const instancia = this.obtenerInstancia(dialogo.clase ?? '');
-
-            const metodo = dialogo.alFinalizar;
-
-            if (
-              metodo &&
-              typeof instancia[metodo] === 'function'
-            ) {
-
-              instancia[metodo](
-                respuesta.resultadoDialogo
-              );
-
-            } else {
-              console.warn(
-                `No existe el método ${metodo} en ${dialogo.clase}`
-              );
-            }
-
-          }
-
-          resultadoDialogo.next(
-            respuesta?.resultadoDialogo
-          );
-          resultadoDialogo.complete();
-        }
-
-      });
-
-    return {
-      afterClosed: () => resultadoDialogo.asObservable(),
-      close: (valor?: any) => {
-        referencia.close(valor);
-      }
-    };
+    this.abrirDialogo(dialogo.id);
   }
+
 
   private generarTitulo(titulo: string): string {
     const existentes = this._dialogos()
@@ -269,7 +223,7 @@ export class DialogoServicio {
     return `${titulo} ${existentes.length + 1}`;
   }
 
-  public restaurar(id: string): any {
+  public abrirDialogo(id: string) {
     const dialogo =
       this._dialogos()
         .find(d => d.id === id);
@@ -319,11 +273,10 @@ export class DialogoServicio {
         }
       );
 
-    const resultadoDialogo = new Subject<any>();
 
     referencia.afterClosed()
-      .subscribe((respuesta) => {
-        if (respuesta?.resultado === 'M') {
+      .subscribe((resultado) => {
+        if (resultado?.resultado === 'M') {
 
           this.actualizarEstadoContenedor(
             dialogo.id,
@@ -335,25 +288,22 @@ export class DialogoServicio {
           return;
         }
 
+        if (resultado?.resultado === 'C') {
+          if (dialogo.clase && dialogo.alFinalizar) {
+            const instancia = this.obtenerInstancia(dialogo.clase);
 
-        if (respuesta?.resultado === 'C' || respuesta === undefined || respuesta === '') {
+            if (instancia && dialogo.alFinalizar) {
+              const funcion = instancia[dialogo.alFinalizar as keyof typeof instancia];
 
-          this.eliminar(dialogo.id);
-
-          resultadoDialogo.next(
-            respuesta?.resultadoDialogo
-          );
-          resultadoDialogo.complete();
+              if (typeof funcion === 'function') {
+                funcion.call(instancia, resultado?.resultadoDialogo);
+              }
+            }
+          }
         }
 
+        this.eliminar(dialogo.id);
       });
-
-    return {
-      afterClosed: () => resultadoDialogo.asObservable(),
-      close: (valor?: any) => {
-        referencia.close(valor);
-      }
-    };
   }
 
   public estaMinimizado(id: string): boolean {
@@ -459,24 +409,38 @@ export class DialogoServicio {
 
   }
 
-  private obtenerInstancia(nombre: string): any | undefined {
 
+  private obtenerInstancia(nombre: string): Dialogo | undefined {
+
+    // Intentar obtener una instancia ya existente
+    const instancia = this.registroInstancias.obtener(nombre);
+
+    if (instancia) {
+      return instancia;
+    }
+
+    // Si no existe, obtener la clase registrada
     const clase = this.registro.get(nombre);
 
     if (!clase) {
       return undefined;
     }
 
-    return runInInjectionContext(
+    // Crear una nueva instancia
+    const nuevaInstancia = runInInjectionContext(
       this.injector,
       () => new clase()
     );
+
+    // Registrarla para reutilizarla posteriormente
+    this.registroInstancias.registrar(nuevaInstancia);
+
+    return nuevaInstancia;
   }
+
 
   private obtenerClase(nombre: string): Type<any> | undefined {
     return this.registro.get(nombre);
   }
 
 }
-
-

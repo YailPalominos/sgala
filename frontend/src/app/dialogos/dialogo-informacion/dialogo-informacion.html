@@ -1,0 +1,14 @@
+<h2 mat-dialog-title class="centrado">
+    {{ parametros.titulo || 'Información' }}
+</h2>
+
+<mat-dialog-content class="centrado">
+    {{ parametros.mensaje || '-' }}
+</mat-dialog-content>
+
+<mat-dialog-actions align="center">
+    <button mat-raised-button color="primary" (click)="responder(true)">
+        <mat-icon>check</mat-icon>
+        Cerrar
+    </button>
+</mat-dialog-actions>

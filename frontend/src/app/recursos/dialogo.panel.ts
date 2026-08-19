@@ -1,21 +1,24 @@
-import { Directive, effect, untracked, WritableSignal } from '@angular/core';
-import { DialogoBase } from './dialogo.base';
+import { Directive, effect, signal, untracked, WritableSignal } from '@angular/core';
+import { Dialogo } from './dialogo.base';
+import { FormGroup } from '@angular/forms';
 
 @Directive()
-export abstract class Panel extends DialogoBase {
+export abstract class Panel extends Dialogo {
 
-    public abstract datos: WritableSignal<any[]>;
-    public abstract filtros: WritableSignal<any>;
+    public registros = signal<any[]>([]);
+    public filtros?: WritableSignal<any>;
     public filtrosObjeto: any;
+
+    public panelFiltros?: FormGroup;
 
     constructor() {
         super();
         effect(() => {
             const estado = {
-                datos: this.datos(),
-                filtros: {
-                    busqueda: this.filtros().texto
-                }
+                datos: this.registros(),
+                // filtros: {
+                //     busqueda: this.filtros()?.texto
+                // }
             };
             untracked(() => {
                 this.actualizarDialogo(estado);
@@ -37,15 +40,17 @@ export abstract class Panel extends DialogoBase {
             }
         }
 
-        if (!this.datos().length) {
+        if (this.registros().length === 0) {
             this.iniciar();
         }
-
     }
 
 
     protected iniciar(): void {
     }
 
+    public restablecer() {
+        this.panelFiltros?.reset()
+    }
 
 }

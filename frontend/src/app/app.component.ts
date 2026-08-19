@@ -7,18 +7,30 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatMenuModule } from '@angular/material/menu';
-import { Dialogo, DialogoServicio } from './recursos/dialogo.servicio';
+import { DialogoServicio } from './recursos/dialogo.servicio';
 import { FormularioUsuario } from './formularios/formulario-usuario/formulario-usuario';
 import { Socket } from './recursos/socket';
 import { ServicioUsuario } from './servicios/servicio-usuario';
 import { Cargador } from './recursos/cargador';
 import { Autenticador, Sesion } from './recursos/autenticador';
 import { Notificador } from './recursos/notificador';
+import { PanelSuscripciones } from './paneles/panel-suscripciones/panel-suscripciones.componente';
+import { PanelLocalizaciones } from './paneles/panel-localizaciones/panel-localizaciones.componente';
+import { MatBadgeModule } from '@angular/material/badge';
+import { PanelEventos } from './paneles/panel-eventos/panel-eventos.componente';
+
+export interface Notificacion {
+  clave: string,
+  icono: string,
+  descripcion: string,
+  fecha: string,
+  atendida: boolean
+}
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CargadorComponent, MatToolbarModule, MatButtonModule, MatIconModule, MatTooltipModule, MatChipsModule, MatButtonModule, MatMenuModule],
+  imports: [RouterOutlet, CargadorComponent, MatToolbarModule, MatButtonModule, MatIconModule, MatTooltipModule, MatChipsModule, MatMenuModule, MatBadgeModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
@@ -38,9 +50,12 @@ export class AppComponent {
   public servicioUsuario = inject(ServicioUsuario)
   public autenticador = inject(Autenticador)
 
+  public notificaciones: any[] = []
+
   //#region  Usuario
 
   ngOnInit() {
+
     this.autenticacionServicio.autenticado$
       .subscribe(valor => {
         this.autenticado = valor;
@@ -54,6 +69,45 @@ export class AppComponent {
           this.socket.desconectar();
         }
       });
+
+
+    this.socket.notificaciones$
+      .subscribe(notificaciones => {
+        this.notificaciones = notificaciones;
+      });
+  }
+
+  get totalNotificacionesPendientes(): number {
+    return this.notificaciones.filter(
+      n => n.atendida === null || n.atendida === false
+    ).length;
+  }
+
+  get notificacionesOrdenadas(): Notificacion[] {
+    return [...this.notificaciones].sort((a, b) => {
+
+      const prioridad = (atendida: boolean | null): number => {
+        if (atendida === null) {
+          return 0;
+        }
+
+        if (atendida === false) {
+          return 1;
+        }
+
+        return 2;
+      };
+
+      return prioridad(a.atendida) - prioridad(b.atendida);
+
+    });
+  }
+
+  public cambiarEstado(notificacion: any): void {
+    this.socket.emitir(
+      'solicitud/notificacion',
+      { clave: notificacion.clave }
+    );
   }
 
   public actualizarUsuario(): void {
@@ -61,31 +115,30 @@ export class AppComponent {
       referencia: FormularioUsuario,
       titulo: 'Usuario',
       icono: 'person',
-      width: '450px',
-      disableClose: true,
-      data: {
-        accion: 'A',
-        datos: this.sesion
-      },
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: 'A',
+      datos: this.sesion,
       alFinalizar: this.finalizarActualizarUsuario,
       clase: this.constructor.name
     });
   }
 
-  private finalizarActualizarUsuario() {
-    this.cargador.mostrar()
-    setTimeout(() => {
-      this.notificador.advertencia("Debes iniciar sesión nuevamente.")
-    }, 2000);
-    setTimeout(() => {
-      this.cargador.ocultar()
-      this.servicioUsuario.cerrarSesion().subscribe({
-        next: () => {
-          this.autenticador.eliminarSesion()
-          this.socket.desconectar();
-        }
-      });
-    }, 5000);
+  private finalizarActualizarUsuario(respuesta: any) {
+    console.log('>>>>',respuesta)
+    // this.cargador.mostrar()
+    // setTimeout(() => {
+    //   this.notificador.advertencia("Debes iniciar sesión nuevamente.")
+    // }, 2000);
+    // setTimeout(() => {
+    //   this.cargador.ocultar()
+    //   this.servicioUsuario.cerrarSesion().subscribe({
+    //     next: () => {
+    //       this.autenticador.eliminarSesion()
+    //       this.socket.desconectar();
+    //     }
+    //   });
+    // }, 5000);
   }
 
   public cerrarSesion(): void {
@@ -101,15 +154,46 @@ export class AppComponent {
     });
   }
 
+
+  public verSuscripciones(): void {
+    this.dialogoServicio.abrir({
+      referencia: PanelSuscripciones,
+      titulo: 'Suscripciones',
+      icono: 'hourglass_top',
+      ancho: '900px',
+      desactivarAutocerrado: true,
+    });
+  }
+
+  public verEventos(): void {
+    this.dialogoServicio.abrir({
+      referencia: PanelEventos,
+      titulo: 'Eventos',
+      icono: 'event',
+      ancho: '900px',
+      desactivarAutocerrado: true,
+    });
+  }
+
+  public verHistorial(): void {
+    this.dialogoServicio.abrir({
+      referencia: PanelLocalizaciones,
+      titulo: 'Localizaciones',
+      icono: 'map_search',
+      ancho: '900px',
+      desactivarAutocerrado: true,
+    });
+  }
+
   //#endregion
 
   public restaurar(idDialogo: string): void {
-    this.dialogoServicio.restaurar(idDialogo)
+    this.dialogoServicio.abrirDialogo(idDialogo)
   }
 
   //#region Ventanas
 
-  public editar(dialogo: Dialogo, evento: FocusEvent): void {
+  public editar(dialogo: any, evento: FocusEvent): void {
 
     const elemento = evento.target as HTMLDivElement;
     const titulo = elemento.innerText.trim();
@@ -125,9 +209,10 @@ export class AppComponent {
     );
   }
 
-  public cerrar(dialogo: Dialogo): void {
+  public cerrar(dialogo: any): void {
     this.dialogoServicio.eliminar(dialogo.id);
   }
+
   public estaMinimizado(idDialogo: string): boolean {
     return this.dialogoServicio.estaMinimizado(idDialogo)
   }

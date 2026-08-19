@@ -1,7 +1,9 @@
 import { Component } from '@angular/core';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { DialogoBase } from '../../recursos/dialogo.base';
+import { Dialogo } from '../../recursos/dialogo.base';
+import { MatIconModule } from '@angular/material/icon';
+
 
 export interface ConfirmacionData {
   titulo?: string;
@@ -15,7 +17,8 @@ export interface ConfirmacionData {
   standalone: true,
   imports: [
     MatDialogModule,
-    MatButtonModule
+    MatButtonModule,
+    MatIconModule
   ],
   templateUrl: './dialogo-confirmacion.html',
   styles: [`
@@ -35,7 +38,12 @@ export interface ConfirmacionData {
     }
   `]
 })
-export class DialogoConfirmacion extends DialogoBase {
-
+export class DialogoConfirmacion extends Dialogo {
+  public responder(respuesta: boolean): void {
+    this.cerrar({
+      resultado: this.datos,
+      respuesta: respuesta
+    })
+  }
 
 }

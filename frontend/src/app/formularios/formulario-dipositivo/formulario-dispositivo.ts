@@ -1,6 +1,6 @@
-import { Component, inject, Input } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
-import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,9 +8,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { Notificador } from '../../recursos/notificador';
 import { ServicioDispositivo } from '../../servicios/servicio-dispositivo';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
-import { DialogoBase } from '../../recursos/dialogo.base';
-import { EstadoDialogo } from '../../recursos/dialogo.contenedor';
-import { Formulario } from '../../recursos/dialogo.base.formulario';
+import { Formulario } from '../../recursos/dialogo.formulario';
+import { DialogoServicio } from '../../recursos/dialogo.servicio';
 
 
 @Component({
@@ -30,7 +29,7 @@ export class FormularioDispositivo extends Formulario {
 
   private notificador = inject(Notificador);
   private servicioDispositivo = inject(ServicioDispositivo);
-  private dialog = inject(MatDialog);
+  private dialogoServicio = inject(DialogoServicio);
 
   public formulario = new FormGroup({
     clave: new FormControl(''),
@@ -45,7 +44,7 @@ export class FormularioDispositivo extends Formulario {
     ]),
   });
 
-  
+
   public preparar(): void {
 
     if (this.formulario.invalid) {
@@ -54,31 +53,37 @@ export class FormularioDispositivo extends Formulario {
     }
 
     const datos = this.formulario.getRawValue();
+    const esActualizar = this.parametros == 'A';
 
-    const esActualizar = this.parametros.accion == 'A';
-
-    const dialogRef = this.dialog.open(DialogoConfirmacion, {
-      width: '420px',
-      data: {
+    this.dialogoServicio.abrir({
+      referencia: DialogoConfirmacion,
+      titulo: 'Confirmar',
+      icono: 'check',
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: {
         titulo: esActualizar ? 'Actualizar dispositivo' : 'Crear dispositivo',
         mensaje: esActualizar
           ? '¿Está seguro de actualizar el dispositivo?'
           : '¿Está seguro de crear este dispositivo?',
         textoSi: 'Sí',
-        textoNo: 'No'
-      }
+        textoNo: 'No',
+        esActualizar: esActualizar
+      },
+      datos: datos,
+      alFinalizar: this.finalizarConfirmacion,
+      clase: this.constructor.name
     });
+  }
 
-    dialogRef.afterClosed().subscribe((respuesta: boolean | undefined) => {
-      if (respuesta !== true) {
-        return;
+  public finalizarConfirmacion(respuesta: any): void {
+    if (respuesta?.resultado == true) {
+      if (respuesta.parametros.esActualizar == true) {
+        this.actualizar(respuesta.datos)
+      } else {
+        this.crear(respuesta.datos);
       }
-
-      esActualizar
-        ? this.actualizar(datos)
-        : this.crear(datos);
-    });
-
+    }
   }
 
   public crear(datos: any): void {
@@ -86,10 +91,7 @@ export class FormularioDispositivo extends Formulario {
       next: () => {
         this.notificador.exitoso("Dispositivo creado exitosamente.")
         this.cerrar(true)
-      },
-      error: (error) => {
-        throw new Error(error)
-      },
+      }
     });
   }
 
@@ -98,10 +100,7 @@ export class FormularioDispositivo extends Formulario {
       next: () => {
         this.notificador.exitoso("Dispositivo actualizado exitosamente.")
         this.cerrar(true)
-      },
-      error: (error) => {
-        throw new Error(error)
-      },
+      }
     });
   }
 }

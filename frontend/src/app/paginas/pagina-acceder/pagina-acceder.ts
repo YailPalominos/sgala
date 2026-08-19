@@ -78,9 +78,9 @@ export class PaginaAcceder {
       referencia: DialogoValidacion,
       titulo: 'Validar',
       icono: 'check_circle',
-      width: '450px',
-      disableClose: true,
-      data: {
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      datos: {
         tipo: 'U'
       },
       alFinalizar: this.finalizarRegistrarUsuario,
@@ -96,12 +96,10 @@ export class PaginaAcceder {
       referencia: FormularioUsuario,
       titulo: 'Usuario',
       icono: 'person',
-      width: '450px',
-      disableClose: true,
-      data: {
-        accion: 'R',
-        datos: { clave: respuesta }
-      }
+      ancho: '450px',
+      desactivarAutocerrado: true,
+      parametros: 'C',
+      datos: { clave: respuesta }
     });
   }
 

@@ -1,5 +1,5 @@
 import sql from 'mssql';
-import { pool } from '../recursos/base-datos';
+import { pool } from '../../recursos/base-datos';
 
 export interface Suscripcion {
     clave?: string;
@@ -223,7 +223,7 @@ export async function crearSuscripcion(claveDispositivo: string, tipoSuscripcion
         `);
 }
 
-export async function obtenerSuscripciones(idUsuario: number): Promise<Suscripcion[]> {
+export async function obtenerSuscripciones(idUsuario: number, filtros: any): Promise<Suscripcion[]> {
     const consulta = await pool.request()
         .input('idUsuario', sql.Int, idUsuario)
         .query(`

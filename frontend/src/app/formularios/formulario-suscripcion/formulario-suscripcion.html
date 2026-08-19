@@ -1,7 +1,6 @@
-<h2 mat-dialog-title class="titulo">
+<h2 class="titulo">
     Nueva suscripción
 </h2>
-
 <mat-dialog-content>
 
     <mat-stepper linear #stepper>
@@ -104,10 +103,15 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="center">
-
-    <button mat-button mat-dialog-close>Cancelar</button>
+    <button mat-raised-button color="warn" mat-dialog-close>
+        <mat-icon>cancel</mat-icon>
+        Volver
+    </button>
     <button mat-raised-button color="primary" type="button" (click)="preparar()"
         [disabled]="(formulario1.invalid || formulario2.invalid)">
+        <mat-icon>
+            add
+        </mat-icon>
         Crear
     </button>
 </mat-dialog-actions>

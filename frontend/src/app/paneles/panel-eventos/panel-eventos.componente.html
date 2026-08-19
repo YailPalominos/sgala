@@ -1,0 +1,83 @@
+<div class="panel-contenedor">
+    <div #filtrosTemplate>
+        <form [formGroup]="panelFiltros">
+
+            <!-- Descripción -->
+            <mat-form-field appearance="outline" style="width: 100%;">
+                <mat-label>Descripción</mat-label>
+                <input matInput formControlName="descripcion" placeholder="Buscar por descripción">
+            </mat-form-field>
+
+
+            <!-- Fechas y horas -->
+            <div style="
+      display: flex;
+      gap: 10px;
+      width: 100%;
+    ">
+
+                <!-- Rango de fechas -->
+                <mat-form-field appearance="outline" style="flex: 1;">
+                    <mat-label>Rango de fechas</mat-label>
+
+                    <mat-date-range-input [rangePicker]="picker">
+                        <input matStartDate formControlName="fechaInicial" placeholder="Fecha inicial">
+
+                        <input matEndDate formControlName="fechaFinal" placeholder="Fecha final">
+                    </mat-date-range-input>
+
+                    <mat-datepicker-toggle matIconSuffix [for]="picker">
+                    </mat-datepicker-toggle>
+
+                    <mat-date-range-picker #picker></mat-date-range-picker>
+                </mat-form-field>
+
+
+                <!-- Rango de horas -->
+                <!-- Rango de horas -->
+                <mat-form-field appearance="outline" style="flex: 1;">
+                    <mat-label>Rango de horas</mat-label>
+
+                    <div style="
+    display: flex;
+    align-items: center;
+    width: 100%;
+  ">
+                        <input matInput type="time" formControlName="horaInicial" style="border: none; outline: none;">
+
+                        <span style="margin: 0 8px;">—</span>
+
+                        <input matInput type="time" formControlName="horaFinal" style="border: none; outline: none;">
+                    </div>
+
+                    <mat-icon matSuffix style="cursor: pointer;">
+                        access_time
+                    </mat-icon>
+                </mat-form-field>
+            </div>
+
+
+            <!-- Botones -->
+            <div style="
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    ">
+                <button mat-icon-button type="button" matTooltip="Reiniciar"
+                    style="background-color: #ff9800; color: white;" (click)="restablecer()">
+                    <mat-icon>refresh</mat-icon>
+                </button>
+
+                <button mat-icon-button type="button" matTooltip="Buscar"
+                    style="background-color: #5bbdeb; color: white;" (click)="cargarDatos()">
+                    <mat-icon>search</mat-icon>
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+    <app-tabla [datos]="registros()" [columnas]="columnas">
+    </app-tabla>
+</div>

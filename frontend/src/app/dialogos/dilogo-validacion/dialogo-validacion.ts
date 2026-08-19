@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ServicioUsuario } from '../../servicios/servicio-usuario';
 import { ServicioDispositivo } from '../../servicios/servicio-dispositivo';
 import { Notificador } from '../../recursos/notificador';
-import { Formulario } from '../../recursos/dialogo.base.formulario';
+import { Formulario } from '../../recursos/dialogo.formulario';
 
 export interface ValidarClaveData {
   tipo: 'U' | 'D';
@@ -48,7 +48,7 @@ export class DialogoValidacion extends Formulario {
 
     const clave = this.formulario.getRawValue().clave!;
 
-    const peticion = this.parametros.tipo === 'U'
+    const peticion = this.parametros === 'U'
       ? this.servicioUsuario.validarClave(clave)
       : this.servicioDispositivo.validarClave(clave);
 

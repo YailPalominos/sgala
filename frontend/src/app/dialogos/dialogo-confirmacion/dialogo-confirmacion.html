@@ -7,11 +7,14 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="center">
-    <button mat-button (click)="    this.cerrar(this.parametros)">
-        {{ parametros.textoNo || 'No' }}
-    </button>
 
-    <button mat-raised-button color="primary" (click)="this.cerrar(this.parametros)">
-        {{ parametros.textoSi || 'Sí' }}
-    </button>
+<button mat-raised-button (click)="responder(false)">
+    <mat-icon>close</mat-icon>
+    {{ parametros.textoNo || 'No' }}
+</button>
+
+<button mat-raised-button color="primary" (click)="responder(true)">
+    <mat-icon>check</mat-icon>
+    {{ parametros.textoSi || 'Sí' }}
+</button>
 </mat-dialog-actions>

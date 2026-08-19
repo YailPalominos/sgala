@@ -35,14 +35,18 @@ export class ServicioUsuario {
     }
 
     public cambiarContrasena(datos: any): Observable<Respuesta<void>> {
-        return this.conexion.post<void>(`${this.ruta}/cambiar`, { llave: datos.llave, nuevaContraseña: datos.nuevaContrasena });
+        return this.conexion.put<void>(`${this.ruta}/cambiar`, { llave: datos.llave, nuevaContraseña: datos.nuevaContrasena });
     }
 
     public actualizar(datos: any): Observable<Respuesta<void>> {
-        return this.conexion.post<void>(`${this.ruta}/actualizar`, datos);
+        return this.conexion.put<void>(`${this.ruta}/actualizar`, datos);
     }
 
     public crear(datos: any): Observable<Respuesta<void>> {
         return this.conexion.post<void>(`${this.ruta}/crear`, datos);
+    }
+
+    public suscribirANotificaciones(datos: any): Observable<Respuesta<void>> {
+        return this.conexion.post<void>(`${this.ruta}/suscribir-a-notificaciones`, datos);
     }
 }

@@ -1,4 +1,20 @@
 <div class="panel-contenedor">
-    <app-tabla [datos]="datos()" [columnas]="columnas" [filtros]="filtros">
+    <app-tabla [datos]="registros()" [columnas]="columnas" [filtros]="filtros">
     </app-tabla>
 </div>
+
+<ng-template #filtrosTemplate style="padding: 10px;">
+    <form [formGroup]="panelFiltros">
+
+        <mat-form-field appearance="outline">
+            <mat-label>Dispositivo</mat-label>
+            <mat-select formControlName="claveDispositivo">
+                @for(dispositivo of dispositivos; track dispositivo.clave) {
+                <mat-option [value]="dispositivo.clave">{{ dispositivo.alias }}</mat-option>
+                }
+            </mat-select>
+        </mat-form-field>
+
+    </form>
+
+</ng-template>
