@@ -6,11 +6,12 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
 import { ErrorGlobal } from './recursos/error-global';
 import { Solicitudes } from './recursos/solicitudes';
+import { provideNgxMask } from 'ngx-mask';
 
 import { PanelSuscripciones } from './paneles/panel-suscripciones/panel-suscripciones.componente';
 import { FormularioUsuario } from './formularios/formulario-usuario/formulario-usuario';
 import { DialogoValidacion } from './dialogos/dilogo-validacion/dialogo-validacion';
-import { PaginaPrincipal } from './paginas/pagina-inicio/pagina-principal';
+import { PaginaInicio } from './paginas/pagina-inicio/pagina-inicio';
 
 import { InjectionToken, Type, isDevMode } from '@angular/core';
 import { FormularioSuscripcion } from './formularios/formulario-suscripcion/formulario-suscripcion';
@@ -23,6 +24,9 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { DialogoInformacion } from './dialogos/dialogo-informacion/dialogo-informacion';
 import { PanelEventos } from './paneles/panel-eventos/panel-eventos.componente';
 import { DialogoComparacion } from './dialogos/dilogo-comparacion/dialogo-comparacion';
+import { DialogoSeleccion } from './dialogos/dialogo-seleccion/dialogo-seleccion';
+import { DialogoAyuda } from './dialogos/dialogo-ayuda/dialogo-ayuda';
+import { DialogoAlarmas } from './dialogos/dialogo-alarmas/dialogo-alarmas';
 
 export const clases = new InjectionToken<Type<any>[]>('clases');
 
@@ -32,6 +36,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(withInterceptors([Solicitudes])), provideAnimationsAsync(),
     provideHttpClient(withInterceptors([Solicitudes])),
+    provideNgxMask(),
     {
       provide: ErrorHandler,
       useClass: ErrorGlobal
@@ -45,24 +50,26 @@ export const appConfig: ApplicationConfig = {
     {
       provide: clases,
       useValue: [
-        FormularioUsuario,
         FormularioSuscripcion,
         FormularioDispositivo,
         FormularioUsuario,
         PanelSuscripciones,
         PanelLocalizaciones,
         PanelEventos,
-        PaginaPrincipal,
+        PaginaInicio,
         PaginaAcceder,
         DialogoValidacion,
         DialogoConfirmacion,
         DialogoRecuperacion,
         DialogoInformacion,
-        DialogoComparacion
+        DialogoComparacion,
+        DialogoSeleccion,
+        DialogoAyuda,
+        DialogoAlarmas
       ]
     },
     provideServiceWorker('ngsw-worker.js', {
-      enabled: true,
+      enabled: !isDevMode(),
       registrationStrategy: 'registerImmediately'
     })
   ]

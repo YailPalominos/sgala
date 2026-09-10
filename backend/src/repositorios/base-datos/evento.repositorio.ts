@@ -45,6 +45,42 @@ export async function crear(descripcion: string): Promise<void> {
         `);
 }
 
+
+/**
+ * Crea un evento del sistema (sin sesión HTTP).
+ */
+export async function crearEventoSistema(idUsuario: number, descripcion: string): Promise<void> {
+
+    await pool.request()
+        .input(
+            'descripcion',
+            sql.VarChar(1000),
+            descripcion.trim()
+        )
+        .input(
+            'fecha',
+            sql.DateTime,
+            dayjs().toDate()
+        )
+        .input(
+            'idUsuario',
+            sql.Int,
+            idUsuario
+        )
+        .query(`
+            INSERT INTO eventos (
+                descripcion,
+                fecha,
+                id_usuario
+            )
+            VALUES (
+                @descripcion,
+                @fecha,
+                @idUsuario
+            )
+        `);
+}
+
 /**
 Obtiene los eventos acorde al usuario y filtros
 @param idUsuario Id del usuario que realiza la solicitud

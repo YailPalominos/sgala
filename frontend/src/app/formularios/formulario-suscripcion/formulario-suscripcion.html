@@ -3,115 +3,91 @@
 </h2>
 <mat-dialog-content>
 
-    <mat-stepper linear #stepper>
-        <mat-step [stepControl]="formulario1">
-            <form [formGroup]="formulario1">
-                <ng-template matStepLabel>Dispositivo</ng-template>
-                <mat-form-field appearance="outline" style="margin:10px;">
-                    <mat-label>Seleccione el dispositivo</mat-label>
-                    <mat-select formControlName="claveDispositivo">
-                        @for (dispositivo of dispositivos; track dispositivo.clave) {
-                        <mat-option [value]="dispositivo.clave">{{dispositivo.alias}}</mat-option>
-                        }
-                    </mat-select>
-                </mat-form-field>
-            </form>
-        </mat-step>
-        <mat-step [stepControl]="formulario2">
-            <form [formGroup]="formulario2">
-                <ng-template matStepLabel>Suscripción</ng-template>
-                <mat-form-field appearance="outline" style="margin:10px;">
-                    <mat-label>Tipo de suscripción</mat-label>
-                    <mat-select formControlName="tipoSuscripcion">
-                        @for (tipoSuscripcionFiltrado of tiposSuscripcionFiltrados; track tipoSuscripcionFiltrado.valor)
-                        {
-                        <mat-option [value]="tipoSuscripcionFiltrado.clave">{{ tipoSuscripcionFiltrado.nombre
-                            }}</mat-option>
-                        }
-                    </mat-select>
-                </mat-form-field>
-            </form>
-        </mat-step>
-        <mat-step>
-            <ng-template matStepLabel>Confirmar</ng-template>
+    <form [formGroup]="formulario" (ngSubmit)="preparar()">
 
-            <mat-card style="display: flex;justify-content: center;">
-                <mat-card-header style="display: flex;justify-content: center;font-size: 18px;">
-                    <mat-card-title style="font-size: 18px;">
-                        Resumen de suscripción
-                    </mat-card-title>
-                </mat-card-header>
+        <mat-form-field appearance="outline">
+            <mat-label>Seleccione el dispositivo</mat-label>
+            <mat-select formControlName="claveDispositivo">
+                @for (dispositivo of dispositivos; track dispositivo.clave) {
+                <mat-option [value]="dispositivo.clave">{{dispositivo.alias}}</mat-option>
+                }
+            </mat-select>
+        </mat-form-field>
 
-                <mat-card-content>
+        <mat-form-field appearance="outline">
+            <mat-label>Tipo de suscripción</mat-label>
+            <mat-select formControlName="tipoSuscripcion">
+                @for (tipo of tiposSuscripcionFiltrados; track tipo.valor) {
+                <mat-option [value]="tipo.clave">{{ tipo.nombre }}</mat-option>
+                }
+            </mat-select>
+        </mat-form-field>
 
-                    @if (resumenSuscripcion) {
+        @if (resumenSuscripcion) {
 
-                    <div class="resumen-header">
-                        <h3 class="periodo">{{ resumenSuscripcion.tipoSuscripcionTexto }}</h3>
-                        <h3 class="periodo">{{ resumenSuscripcion.periodo }}</h3>
-                    </div>
+        <mat-card>
+            <mat-card-header style="display: flex;justify-content: center;">
+                <mat-card-title style="font-size: 16px;">
+                    Resumen de suscripción
+                </mat-card-title>
+            </mat-card-header>
 
-                    @if (resumenSuscripcion.tipo !== 'G') {
+            <mat-card-content>
 
-                    <div class="detalles-container">
+                <div class="resumen-header">
+                    <h3 class="periodo">{{ resumenSuscripcion.tipoSuscripcionTexto }}</h3>
+                    <h3 class="periodo">{{ resumenSuscripcion.periodo }}</h3>
+                </div>
 
-                        <div class="detalles-list">
-                            @for (detalle of resumenSuscripcion.detalles; track detalle.nombre) {
-                            <div class="detalle-item">
-                                <span class="detalle-nombre">{{ detalle.descripcion }}</span>
-                                <span class="detalle-precio">
-                                    ${{ detalle.precio.toFixed(2) }}
-                                </span>
-                            </div>
-                            }
-                        </div>
+                @if (resumenSuscripcion.tipo !== 'G') {
 
-                        <div class="separador"></div>
+                <div class="detalles-container">
 
-                        <div class="precio-total">
-                            <span class="label">Total:</span>
-                            <span class="valor">
-                                ${{ resumenSuscripcion.total.toFixed(2) }}
+                    <div class="detalles-list">
+                        @for (detalle of resumenSuscripcion.detalles; track detalle.nombre) {
+                        <div class="detalle-item">
+                            <span class="detalle-nombre">{{ detalle.descripcion }}</span>
+                            <span class="detalle-precio">
+                                ${{ detalle.precio.toFixed(2) }}
                             </span>
                         </div>
-
+                        }
                     </div>
 
-                    } @else {
+                    <div class="separador"></div>
 
                     <div class="precio-total">
                         <span class="label">Total:</span>
-                        <span class="valor">$0.00</span>
+                        <span class="valor">
+                            ${{ resumenSuscripcion.total.toFixed(2) }}
+                        </span>
                     </div>
 
-                    }
+                </div>
 
-                    } @else {
+                } @else {
 
-                    <p class="sin-resumen">
-                        Complete el formulario para ver el resumen
-                    </p>
+                <div class="precio-total">
+                    <span class="label">Total:</span>
+                    <span class="valor">$0.00</span>
+                </div>
 
-                    }
+                }
 
-                </mat-card-content>
-            </mat-card>
+            </mat-card-content>
+        </mat-card>
 
-        </mat-step>
-    </mat-stepper>
+        }
+
+        <div class="acciones-formulario acciones-1">
+            <div>
+                <button mat-raised-button color="primary" type="submit" [disabled]="formulario.invalid">
+                    <mat-icon>add</mat-icon>
+                    Crear
+                </button>
+            </div>
+        </div>
+
+    </form>
 
 </mat-dialog-content>
-
-<mat-dialog-actions align="center">
-    <button mat-raised-button color="warn" mat-dialog-close>
-        <mat-icon>cancel</mat-icon>
-        Volver
-    </button>
-    <button mat-raised-button color="primary" type="button" (click)="preparar()"
-        [disabled]="(formulario1.invalid || formulario2.invalid)">
-        <mat-icon>
-            add
-        </mat-icon>
-        Crear
-    </button>
-</mat-dialog-actions>

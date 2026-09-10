@@ -6,14 +6,18 @@
     }
 </h2>
 <mat-dialog-content>
-    <form [formGroup]="formulario" (ngSubmit)="preparar()" id="formulario">
+    <form [formGroup]="formulario" (ngSubmit)="preparar()">
 
-        <p style="margin: 10px;text-align: center;width: 100%;">
-            {{
-            parametros.accion === 'R'
-            ? 'Completa la información para crear un nuevo dispositivo.'
-            : 'Edita la información del dispositivo.'
-            }}
+        <p style="text-align: center;width: 100%;">
+            @if (parametros.accion === 'R') {
+            Completa la información para crear un nuevo dispositivo.
+            } @else {
+            Edita la información del dispositivo.
+            <br>
+            <span style="font-size: 12px; color: #757575; font-family: monospace;">
+                Clave: {{ datos?.clave }}
+            </span>
+            }
         </p>
 
         <mat-form-field appearance="outline">
@@ -43,7 +47,7 @@
 
         <mat-form-field appearance="outline">
             <mat-label>Teléfono</mat-label>
-            <input matInput formControlName="telefono" type="tel" />
+            <input matInput formControlName="telefono" type="tel" mask="0000000000" />
             <mat-icon matPrefix>phone</mat-icon>
 
             @if (formulario.get('telefono')?.hasError('required')) {
@@ -60,18 +64,16 @@
 
         </mat-form-field>
 
+        <div class="acciones-formulario acciones-1">
+            <div>
+                <button mat-raised-button color="primary" type="submit">
+                    <mat-icon>
+                        {{ parametros.accion === 'R' ? 'add' : 'edit' }}
+                    </mat-icon>
+                    {{ parametros.accion === 'R' ? 'Crear' : 'Actualizar' }}
+                </button>
+            </div>
+        </div>
+
     </form>
 </mat-dialog-content>
-
-<mat-dialog-actions align="center">
-    <!-- <button mat-raised-button color="warn" mat-dialog-close>
-        <mat-icon>cancel</mat-icon>
-        Volver  
-    </button> -->
-    <button mat-raised-button color="primary" type="submit" form="formulario">
-        <mat-icon>
-            {{ parametros.accion === 'R' ? 'add' : 'edit' }}
-        </mat-icon>
-        {{ parametros.accion === 'R' ? 'Crear' : 'Actualizar' }}
-    </button>
-</mat-dialog-actions>

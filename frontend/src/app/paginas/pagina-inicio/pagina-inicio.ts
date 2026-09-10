@@ -16,8 +16,7 @@ import { DialogoServicio } from '../../recursos/dialogo.servicio';
 import { FormularioDispositivo } from '../../formularios/formulario-dipositivo/formulario-dispositivo';
 import { DialogoValidacion } from '../../dialogos/dilogo-validacion/dialogo-validacion';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
-import { DialogoInformacion } from '../../dialogos/dialogo-informacion/dialogo-informacion';
-import dayjs from 'dayjs';
+import { DialogoAlarmas } from '../../dialogos/dialogo-alarmas/dialogo-alarmas';
 
 @Component({
   selector: 'app-panel',
@@ -35,17 +34,18 @@ import dayjs from 'dayjs';
     MatInputModule,
     MatMenuModule
   ],
-  templateUrl: './pagina-principal.html',
-  styleUrl: './pagina-principal.scss',
+  templateUrl: './pagina-inicio.html',
+  styleUrl: './pagina-inicio.scss',
 })
-export class PaginaPrincipal implements OnInit {
+export class PaginaInicio implements OnInit {
 
   private socket = inject(Socket);
   private dialogoServicio = inject(DialogoServicio);
 
   textoBusqueda = signal('');
   cargando = signal(true);
-  error = signal<string | null>(null);//'ENB', 'SBL'
+  error = signal<string | null>(null);
+  procesando = signal<Set<string>>(new Set());
 
   dispositivos = signal<Dispositivo[]>([]);
   dispositivosFiltrados = computed(() => {
@@ -69,6 +69,7 @@ export class PaginaPrincipal implements OnInit {
 
     this.socket.dispositivo$
       .subscribe(dispositivo => {
+        this.quitarProcesando(dispositivo.clave);
         this.dispositivos.update(lista => {
           const indice = lista.findIndex(
             d => d.clave === dispositivo.clave
@@ -84,30 +85,48 @@ export class PaginaPrincipal implements OnInit {
         });
       });
 
+    this.socket.errorDispositivo$
+      .subscribe(() => {
+        this.procesando.set(new Set());
+      });
+
   }
 
-  public verRazonAlarma(dispositivo: Dispositivo) {
-    if (dispositivo.alarmas == null) {
-      return
-    }
-    const mensaje = dispositivo.alarmas
-      .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
-      .map((alarma, index) => {
-        const fecha = dayjs(alarma.fecha).format('YYYY-MM-DD HH:mm:ss');
+  public estaProcesando(clave: string): boolean {
+    return this.procesando().has(clave);
+  }
 
-        return `${index + 1}) ${alarma.clave} - ${fecha} - ${alarma.descripcion}`;
-      })
-      .join('\n');
+  private marcarProcesando(clave: string): void {
+    this.procesando.update(set => {
+      const nuevo = new Set(set);
+      nuevo.add(clave);
+      return nuevo;
+    });
+  }
+
+  private quitarProcesando(clave: string): void {
+    this.procesando.update(set => {
+      const nuevo = new Set(set);
+      nuevo.delete(clave);
+      return nuevo;
+    });
+  }
+
+  public verAlarmas(dispositivo: Dispositivo) {
+    if (!dispositivo.alarmas || dispositivo.alarmas.length === 0) {
+      return;
+    }
 
     this.dialogoServicio.abrir({
-      referencia: DialogoInformacion,
-      titulo: 'Información',
-      icono: 'check',
-      ancho: '450px',
+      referencia: DialogoAlarmas,
+      titulo: 'Alarmas',
+      icono: 'notifications_active',
+      largo: '450px',
       desactivarAutocerrado: true,
-      parametros: {
-        titulo: "Razón de la alarma",
-        mensaje: mensaje
+      datos: {
+        alias: dispositivo.alias,
+        claveDispositivo: dispositivo.clave,
+        alarmas: [...dispositivo.alarmas]
       }
     });
   }
@@ -134,7 +153,7 @@ export class PaginaPrincipal implements OnInit {
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      ancho: '450px',
+      largo: '450px',
       desactivarAutocerrado: true,
       parametros: {
         titulo: "Corta corriente",
@@ -146,53 +165,18 @@ export class PaginaPrincipal implements OnInit {
         clave: dispositivo.clave,
         estatusCortaCorriente: cortaCorrientesActivo ? false : true
       },
-      alFinalizar: this.finalizarIntercalarCortaCorrientes,
-      clase: this.constructor.name
+      alFinalizar: this.finalizarIntercalarCortaCorrientes.bind(this)
     });
   }
 
   private finalizarIntercalarCortaCorrientes(respuesta?: any) {
     if (respuesta?.resultado == true) {
+      this.marcarProcesando(respuesta.datos.clave);
       this.socket.emitir(
         'solicitud/dispositivo',
         {
           clave: respuesta.datos.clave,
           estatusCortaCorriente: respuesta.datos.estatusCortaCorriente
-        }
-      );
-    }
-  }
-
-  public intercalarAlarma(dispositivo: Dispositivo): void {
-    const alarmaActiva = dispositivo.estatusAlarma === true
-    this.dialogoServicio.abrir({
-      referencia: DialogoConfirmacion,
-      titulo: 'Confirmar',
-      icono: 'check',
-      ancho: '450px',
-      desactivarAutocerrado: true,
-      parametros: {
-        titulo: "Alarma",
-        mensaje: alarmaActiva
-          ? '¿Desea desactivar la alarma del dispositivo?'
-          : '¿Desea activar la alarma del dispositivo?'
-      },
-      datos: {
-        clave: dispositivo.clave,
-        estatusAlarma: alarmaActiva ? false : true
-      },
-      alFinalizar: this.finalizarIntercalarAlarma,
-      clase: this.constructor.name
-    });
-  }
-
-  private finalizarIntercalarAlarma(respuesta?: any) {
-    if (respuesta?.resultado == true) {
-      this.socket.emitir(
-        'solicitud/dispositivo',
-        {
-          clave: respuesta.datos.clave,
-          estatusAlarma: respuesta.datos.estatusAlarma
         }
       );
     }
@@ -204,7 +188,7 @@ export class PaginaPrincipal implements OnInit {
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      ancho: '450px',
+      largo: '450px',
       desactivarAutocerrado: true,
       parametros: {
         titulo: "Fijar estacionado",
@@ -216,14 +200,14 @@ export class PaginaPrincipal implements OnInit {
         clave: dispositivo.clave,
         estatusFijarEstacionado: estatusFijarEstacionado ? false : true
       },
-      alFinalizar: this.finalizarIntercalarFijarEstacionado,
-      clase: this.constructor.name
+      alFinalizar: this.finalizarIntercalarFijarEstacionado.bind(this)
     });
 
   }
 
   private finalizarIntercalarFijarEstacionado(respuesta?: any) {
     if (respuesta?.resultado == true) {
+      this.marcarProcesando(respuesta.datos.clave);
       this.socket.emitir(
         'solicitud/dispositivo',
         {
@@ -239,7 +223,7 @@ export class PaginaPrincipal implements OnInit {
       referencia: FormularioDispositivo,
       titulo: 'Dispositivo',
       icono: 'view_carousel',
-      ancho: '450px',
+      largo: '450px',
       desactivarAutocerrado: true,
       parametros: 'A',
       datos: dispositivo
@@ -256,11 +240,10 @@ export class PaginaPrincipal implements OnInit {
       referencia: DialogoValidacion,
       titulo: 'Validar',
       icono: 'check_circle',
-      ancho: '450px',
+      largo: '450px',
       desactivarAutocerrado: true,
       parametros: 'D',//'D' Dipsitivo
-      alFinalizar: this.finalizarAgregarDispositivo,
-      clase: this.constructor.name
+      alFinalizar: this.finalizarAgregarDispositivo.bind(this)
     });
 
   }
@@ -271,7 +254,7 @@ export class PaginaPrincipal implements OnInit {
         referencia: FormularioDispositivo,
         titulo: 'Dispositivo',
         icono: 'view_carousel',
-        ancho: '450px',
+        largo: '450px',
         desactivarAutocerrado: true,
         parametros: 'A',
         datos: { clave: resultado }
@@ -371,40 +354,24 @@ export class PaginaPrincipal implements OnInit {
     return partes.length ? partes.join(' y ') : '0 días';
   }
 
-  public textoEstado(estado?: string | null): string {
-
-    switch (estado) {
-
-      case 'E':
-        return 'Estacionada';
-
-      case 'M':
-        return 'En movimiento';
-
-      case 'P':
-        return 'Prendida';
-
-      default:
-        return '-';
-    }
+  public textoEncendida(estatus: boolean | null): string {
+    if (estatus === null) return '-';
+    return estatus ? 'Encendida' : 'Apagada';
   }
 
-  public colorEstado(estado: string | null): string {
+  public textoMovimiento(estatus: boolean | null): string {
+    if (estatus === null) return '-';
+    return estatus ? 'En movimiento' : 'Sin movimiento';
+  }
 
-    switch (estado) {
+  public colorEncendida(estatus: boolean | null): string {
+    if (estatus === null) return '#757575';
+    return estatus ? '#FF9800' : '#4CAF50';
+  }
 
-      case 'E':
-        return '#4CAF50'; // Verde
-
-      case 'M':
-        return '#2196F3'; // Azul
-
-      case 'P':
-        return '#FF9800'; // Naranja
-
-      default:
-        return '#757575'; // Gris
-    }
+  public colorMovimiento(estatus: boolean | null): string {
+    if (estatus === null) return '#757575';
+    return estatus ? '#2196F3' : '#757575';
   }
 
   public colorBateria(porcentaje: number | null): string {

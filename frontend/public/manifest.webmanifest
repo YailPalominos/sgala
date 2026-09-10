@@ -1,7 +1,7 @@
 {
   "name": "Sgala",
   "short_name": "Sgala",
-  "theme_color": "#1976d2",
+  "theme_color": "#424242",
   "background_color": "#fafafa",
   "display": "standalone",
   "scope": "./",

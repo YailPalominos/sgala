@@ -10,7 +10,7 @@ import { Cargador } from '../../recursos/cargador';
     @if (cargador.visible()) {
       <div class="cargador-overlay">
         <div class="cargador-contenido">
-          <mat-spinner diameter="140"></mat-spinner>
+          <mat-spinner diameter="140" strokeWidth="8"></mat-spinner>
 
           <div class="texto">
             Cargando <span class="puntos"></span>
@@ -35,6 +35,10 @@ import { Cargador } from '../../recursos/cargador';
       flex-direction: column;
       align-items: center;
       gap: 16px;
+    }
+
+    :host ::ng-deep .mat-mdc-progress-spinner circle {
+      stroke: #616161 !important;
     }
 
     .texto {

@@ -1,5 +1,6 @@
 import webpush from 'web-push';
 import { entorno } from './recursos/entorno';
+import { eliminarSuscripcion } from './repositorios/redis/suscripciones.redis';
 let configurado = false;
 
 /**
@@ -20,12 +21,14 @@ export function iniciarWebPush(): void {
 
 /**
  * Envía una notificación push.
+ * Si la suscripción fue revocada (410), la elimina automáticamente.
  */
 export async function enviarWebPush(
     suscripcion: webpush.PushSubscription,
     titulo: string,
     mensaje: string,
-    datos?: unknown
+    datos?: unknown,
+    idUsuario?: number
 ): Promise<void> {
     try {
         await webpush.sendNotification(
@@ -36,10 +39,15 @@ export async function enviarWebPush(
                 data: datos
             })
         );
-    } catch (error) {
-        console.error(
-            '❌ Error enviando Web Push:',
-            error
-        );
+    } catch (error: any) {
+        if (error?.statusCode === 410 && idUsuario) {
+            await eliminarSuscripcion(idUsuario, suscripcion.endpoint);
+            console.log(`🗑️ Suscripción revocada eliminada: ${suscripcion.endpoint.slice(0, 50)}...`);
+        } else {
+            console.error(
+                '❌ Error enviando Web Push:',
+                error?.statusCode || error
+            );
+        }
     }
 }

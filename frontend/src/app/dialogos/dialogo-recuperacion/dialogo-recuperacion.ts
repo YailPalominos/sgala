@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
-import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,6 +9,7 @@ import { DialogoSeleccion } from '../dialogo-seleccion/dialogo-seleccion';
 import { ServicioUsuario } from '../../servicios/servicio-usuario';
 import { Notificador } from '../../recursos/notificador';
 import { Formulario } from '../../recursos/dialogo.formulario';
+import { DialogoServicio } from '../../recursos/dialogo.servicio';
 
 @Component({
   selector: 'app-recuperacion-dialog',
@@ -26,7 +27,7 @@ import { Formulario } from '../../recursos/dialogo.formulario';
 export class DialogoRecuperacion extends Formulario {
   private servicioUsuario = inject(ServicioUsuario);
   private notificador = inject(Notificador);
-  private matDialog = inject(MatDialog)
+  private dialogoServicio = inject(DialogoServicio);
 
 
   formulario = new FormGroup({
@@ -43,26 +44,35 @@ export class DialogoRecuperacion extends Formulario {
     this.servicioUsuario.verificarIdentidad(identificador).subscribe({
       next: (respuesta) => {
         this.notificador.exitoso("Identidad verificada exitosamente.")
-        this.matDialog.open(DialogoSeleccion, {
-          data: {
+        this.dialogoServicio.abrir({
+          referencia: DialogoSeleccion,
+          titulo: 'Seleccionar medio',
+          icono: 'contact_mail',
+          largo: '400px',
+          desactivarAutocerrado: true,
+          recordar: false,
+          parametros: {
             titulo: 'Selecciona',
             mensaje: 'Como quieres que te llegue el enlace de recuperación para restablecer tu contraseña.',
             requerido: true,
             opciones: [
               { clave: 'C', texto: 'Correo electronico (' + respuesta.datos.direccionCorreoElectronico + ')' },
-              // { clave: 'C', texto: 'Teléfono (' + respuesta.datos.telefono + ')' },
             ]
-          }
-        }).afterClosed().subscribe((clave: any) => {
-          if (clave) {
-            this.enviar(identificador, clave)
-          }
+          },
+          alFinalizar: this.finalizarSeleccion.bind(this)
         });
       },
       error: (error: any) => {
         throw new Error(error)
       },
     });
+  }
+
+  private finalizarSeleccion(respuesta: any): void {
+    if (respuesta?.resultado) {
+      const identificador = this.formulario.getRawValue().identificador!;
+      this.enviar(identificador, respuesta.resultado);
+    }
   }
 
 

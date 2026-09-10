@@ -119,10 +119,17 @@ export async function autenticar(identificador: string, contrasena: string): Pro
     }
     const sesion = await crearSesion(usuario.clave, usuario.direccionCorreoElectronico, usuario.alias, usuario.id, usuario.telefono);
 
-    // const { idUsuario, ...sesionSinIdUsuario } = sesion;
-    // console.log(sesionSinIdUsuario)
     await crearEvento('Inicio sesión.')
-    return { sesion, requiereCambioContrasena: false };
+    return {
+      sesion: {
+        clave: sesion.clave,
+        claveUsuario: sesion.claveUsuario,
+        alias: sesion.alias,
+        direccionCorreoElectronico: sesion.direccionCorreoElectronico,
+        telefono: sesion.telefono
+      },
+      requiereCambioContrasena: false
+    };
   } else {
     // Contraseña plana (provisional) — comparar directamente
     if (contrasena !== usuario.contrasena) {

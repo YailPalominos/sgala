@@ -6,9 +6,10 @@ import { enviarDispositivoActualizado, enviarNotificacionUsuario } from './socke
 import { obtenerDatosDispositivos, crearLocalizacion } from './repositorios/base-datos/dispositivo.repositorio';
 import dayjs from "dayjs";
 import { enviarWebPush } from './webpush';
-import { actualizarDatosDispositivo, actualizarEstatusConexion, EstadoDispositivoRedis, guardarEstadosDispositivos, obtenerDispositivo, obtenerDispositivosSinConexion } from './repositorios/redis/dispositivo.redis';
-import { agregarNotificacion, eliminarNotificacionDesconexion } from './repositorios/redis/notificaciones.redis';
+import { actualizarDatosDispositivo, actualizarEstatusConexion, agregarAlarma, eliminarAlarma, eliminarAlarmasDesconexion, EstadoDispositivoRedis, guardarEstadosDispositivos, obtenerDispositivo, obtenerDispositivosSinConexion } from './repositorios/redis/dispositivo.redis';
+import { agregarNotificacion, eliminarNotificacionDesconexion, eliminarNotificacionPorAlarma } from './repositorios/redis/notificaciones.redis';
 import { obtenerSuscripciones } from './repositorios/redis/suscripciones.redis';
+import { crearEventoSistema } from './repositorios/base-datos/evento.repositorio';
 
 export interface ClienteMqtt extends Client {
   claveDispositivo: string;
@@ -141,13 +142,13 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
 
   aedesInstance.addListener(
     'publish',
-    (packet, cliente) => {
+    async (packet, cliente) => {
 
       if (!cliente) {
         return;
       }
 
-      onPublicacion(
+      await onPublicacion(
         (cliente as ClienteMqtt).claveDispositivo,
         packet.topic,
         packet.payload as Buffer
@@ -166,9 +167,23 @@ export async function conectar(claveDispositivo: string) {
   try {
 
     await actualizarEstatusConexion(claveDispositivo, true);
-    await enviarDispositivoActualizado(claveDispositivo)
+
+    const clavesAlarmasEliminadas = await eliminarAlarmasDesconexion(claveDispositivo);
+
     const dispositivo = await obtenerDispositivo(claveDispositivo);
-    await eliminarNotificacionDesconexion(dispositivo.idUsuario, dispositivo.clave)
+
+    for (const claveAlarma of clavesAlarmasEliminadas) {
+      await eliminarNotificacionPorAlarma(dispositivo.idUsuario, claveAlarma);
+    }
+
+    await eliminarNotificacionDesconexion(dispositivo.idUsuario, dispositivo.clave);
+
+    await crearEventoSistema(
+      dispositivo.idUsuario,
+      `Dispositivo ${claveDispositivo} conectado.`
+    );
+
+    await enviarDispositivoActualizado(claveDispositivo)
     await enviarNotificacionUsuario(dispositivo.idUsuario)
 
   } catch (error) {
@@ -188,13 +203,22 @@ export async function desconectar(claveDispositivo: string) {
       estatusAlarma: null,
       estatusCortaCorriente: null,
       porcentajeBateria: null,
-      estado: null,
+      estatusEncendida: null,
+      estatusMovimiento: null,
       localizacion: null
     });
 
-    await enviarDispositivoActualizado(claveDispositivo)
-
     const dispositivo = await obtenerDispositivo(claveDispositivo);
+
+    const claveAlarmaDesconexion = crypto.randomUUID();
+
+    await agregarAlarma(claveDispositivo, {
+      clave: claveAlarmaDesconexion,
+      descripcion: `Dispositivo sin conexión`,
+      fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+    });
+
+    await enviarDispositivoActualizado(claveDispositivo)
 
     await agregarNotificacion(
       dispositivo.idUsuario,
@@ -203,11 +227,34 @@ export async function desconectar(claveDispositivo: string) {
         descripcion: `Dispositivo '${dispositivo.alias}' sin conexión.`,
         fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
         atendida: null,
-        claveDispositivo: dispositivo.clave
+        claveDispositivo: dispositivo.clave,
+        claveAlarma: claveAlarmaDesconexion,
+        origen: 'conexion'
       }
     );
 
-    await verificarDispositivosSinConexion()
+    await crearEventoSistema(
+      dispositivo.idUsuario,
+      `Alarma dispositivo clave:"${claveDispositivo}" sin conexión generada con la clave de alarma:"${claveAlarmaDesconexion}"`
+    );
+
+    await enviarNotificacionUsuario(dispositivo.idUsuario);
+
+    const suscripciones = await obtenerSuscripciones(dispositivo.idUsuario);
+
+    for (const suscripcion of suscripciones) {
+      await enviarWebPush(
+        suscripcion,
+        'SICVA',
+        `Dispositivo '${dispositivo.alias}' sin conexión.`,
+        {
+          tipo: 'sin-conexion',
+          claveDispositivo: dispositivo.clave,
+          alias: dispositivo.alias
+        },
+        dispositivo.idUsuario
+      );
+    }
 
   } catch (error) {
     console.error(
@@ -225,14 +272,161 @@ export async function onPublicacion(
   payload: Buffer
 ) {
 
+  if (topico.startsWith('respuestas/')) {
+    return;
+  }
+
   try {
 
     const datos = JSON.parse(
       payload.toString("utf8")
     );
 
-    actualizarDatosDispositivo(claveDispositivo, datos)
+
+    await actualizarDatosDispositivo(claveDispositivo, datos)
+
+    const dispositivo = await obtenerDispositivo(claveDispositivo);
+
+    if (datos.estatusAlarma === false) {
+      const alarmasSensor = dispositivo.alarmas?.filter(
+        a => a.descripcion.includes('giroscopio/acelerómetro')
+      ) ?? [];
+
+      for (const alarma of alarmasSensor) {
+        await eliminarAlarma(claveDispositivo, alarma.clave);
+        await eliminarNotificacionPorAlarma(dispositivo.idUsuario, alarma.clave, dispositivo.clave, 'alarma');
+      }
+
+      await actualizarDatosDispositivo(claveDispositivo, {
+        estatusFijarEstacionado: false
+      });
+
+      if (alarmasSensor.length > 0) {
+        await enviarNotificacionUsuario(dispositivo.idUsuario);
+      }
+    }
+
     await enviarDispositivoActualizado(claveDispositivo)
+
+    if (datos.estatusAlarma === true && dispositivo.estatusAlarma === true && dispositivo.estatusFijarEstacionado === true) {
+      const yaExisteSensor = dispositivo.alarmas?.some(a => a.descripcion.includes('giroscopio/acelerómetro'));
+
+      if (!yaExisteSensor) {
+        const claveAlarmaSensor = crypto.randomUUID();
+
+        await agregarAlarma(claveDispositivo, {
+          clave: claveAlarmaSensor,
+          descripcion: 'Movimiento detectado (giroscopio/acelerómetro)',
+          fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+        });
+
+        await agregarNotificacion(
+          dispositivo.idUsuario,
+          {
+            clave: crypto.randomUUID(),
+            descripcion: `Alarma en '${dispositivo.alias}': movimiento detectado (giroscopio/acelerómetro).`,
+            fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+            atendida: null,
+            claveDispositivo: dispositivo.clave,
+            claveAlarma: claveAlarmaSensor,
+            origen: 'alarma'
+          }
+        );
+
+        await crearEventoSistema(
+          dispositivo.idUsuario,
+          `Alarma dispositivo clave:"${claveDispositivo}" movimiento detectado (giroscopio/acelerómetro) generada con la clave de alarma:"${claveAlarmaSensor}"`
+        );
+
+        await enviarNotificacionUsuario(dispositivo.idUsuario);
+        await enviarDispositivoActualizado(claveDispositivo);
+      }
+    }
+
+    if (dispositivo.estatusFijarEstacionado === true && dispositivo.estatusMovimiento === true) {
+      const yaExisteGPS = dispositivo.alarmas?.some(a => a.descripcion.includes('GPS'));
+
+      if (!yaExisteGPS) {
+        const claveAlarmaMovimiento = crypto.randomUUID();
+
+        await agregarAlarma(claveDispositivo, {
+          clave: claveAlarmaMovimiento,
+          descripcion: 'Movimiento detectado (GPS)',
+          fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+        });
+
+        await agregarNotificacion(
+          dispositivo.idUsuario,
+          {
+            clave: crypto.randomUUID(),
+            descripcion: `Alarma en '${dispositivo.alias}': movimiento detectado (GPS).`,
+            fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+            atendida: null,
+            claveDispositivo: dispositivo.clave,
+            claveAlarma: claveAlarmaMovimiento,
+            origen: 'alarma'
+          }
+        );
+
+        await crearEventoSistema(
+          dispositivo.idUsuario,
+          `Alarma dispositivo clave:"${claveDispositivo}" movimiento detectado (GPS) generada con la clave de alarma:"${claveAlarmaMovimiento}"`
+        );
+
+        await enviarNotificacionUsuario(dispositivo.idUsuario);
+        await enviarDispositivoActualizado(claveDispositivo);
+      }
+    }
+
+    if (dispositivo.porcentajeBateria !== null && dispositivo.porcentajeBateria <= 20) {
+      const yaTieneBateriaBaja = dispositivo.alarmas?.some(
+        a => a.descripcion.includes('Batería baja')
+      );
+
+      if (!yaTieneBateriaBaja) {
+        const claveAlarmaBateria = crypto.randomUUID();
+
+        await agregarAlarma(claveDispositivo, {
+          clave: claveAlarmaBateria,
+          descripcion: `Batería baja (${dispositivo.porcentajeBateria}%)`,
+          fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+        });
+
+        await agregarNotificacion(
+          dispositivo.idUsuario,
+          {
+            clave: crypto.randomUUID(),
+            descripcion: `Alarma en '${dispositivo.alias}': batería baja (${dispositivo.porcentajeBateria}%).`,
+            fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+            atendida: null,
+            claveDispositivo: dispositivo.clave,
+            claveAlarma: claveAlarmaBateria,
+            origen: 'alarma'
+          }
+        );
+
+        await crearEventoSistema(
+          dispositivo.idUsuario,
+          `Alarma dispositivo clave:"${claveDispositivo}" batería baja ${dispositivo.porcentajeBateria}% generada con la clave de alarma:"${claveAlarmaBateria}"`
+        );
+
+        await enviarNotificacionUsuario(dispositivo.idUsuario);
+        await enviarDispositivoActualizado(claveDispositivo);
+      }
+    } else if (dispositivo.porcentajeBateria !== null && dispositivo.porcentajeBateria > 20) {
+      const alarmaBateria = dispositivo.alarmas?.find(
+        a => a.descripcion.includes('Batería baja')
+      );
+
+      if (alarmaBateria) {
+        try {
+          await eliminarAlarma(claveDispositivo, alarmaBateria.clave);
+          await eliminarNotificacionPorAlarma(dispositivo.idUsuario, alarmaBateria.clave);
+          await enviarNotificacionUsuario(dispositivo.idUsuario);
+          await enviarDispositivoActualizado(claveDispositivo);
+        } catch { }
+      }
+    }
     // console.log("Dispositivo:", claveDispositivo);
     // console.log("Tópico:", topico);
     // console.log("Datos:", datos);
@@ -253,59 +447,85 @@ export async function onPublicacion(
   } catch (error) {
 
     console.error(
-      "Payload inválido:",
-      payload.toString("utf8")
+      "Error en publicación:",
+      claveDispositivo,
+      error
     );
 
   }
 }
 
 /**
- * Envía una solicitud a un dispositivo MQTT.
+ * Envía una solicitud a un dispositivo MQTT y espera confirmación
+ * en el tópico respuestas/${claveDispositivo}.
+ *
+ * Timeout de 10 segundos.
  */
 export async function enviarSolicitudDispositivo(
   claveDispositivo: string,
   datos: Record<string, any>
-): Promise<void> {
+): Promise<{ exito: boolean; mensaje: string }> {
 
-  const payload = Buffer.from(
-    JSON.stringify(datos)
-  );
+  return new Promise((resolve, reject) => {
 
+    const timeout = setTimeout(() => {
+      aedesInstance.removeListener('publish', listener);
+      reject(new Error('Tiempo de espera agotado. El dispositivo no respondió.'));
+    }, 10_000);
 
-  aedesInstance.publish(
-    {
-      cmd: 'publish',
-      topic: `solicitudes/${claveDispositivo}`,
-      payload,
-      qos: 0,
-      retain: false,
-      dup: false
-    },
-    (error) => {
+    const listener = (packet: any, cliente: any) => {
+      if (!cliente) return;
 
-      if (error) {
+      const topico = packet.topic;
 
-        console.error(
-          '❌ Error enviando solicitud MQTT:',
-          error
-        );
-
+      if (topico !== `respuestas/${claveDispositivo}`) {
         return;
       }
 
+      clearTimeout(timeout);
+      aedesInstance.removeListener('publish', listener);
 
-      console.log(
-        '📤 Solicitud enviada:',
-        {
-          dispositivo: claveDispositivo,
-          datos
+      try {
+        const respuesta = JSON.parse(packet.payload.toString('utf8'));
+        console.log('📥 Respuesta dispositivo:', { dispositivo: claveDispositivo, respuesta });
+        resolve({
+          exito: respuesta.exito === true,
+          mensaje: respuesta.mensaje || ''
+        });
+      } catch {
+        resolve({ exito: false, mensaje: 'Respuesta inválida del dispositivo.' });
+      }
+    };
+
+    aedesInstance.addListener('publish', listener);
+
+    const { clave, ...datosDispositivo } = datos;
+
+    const payload = Buffer.from(
+      JSON.stringify(datosDispositivo)
+    );
+
+    aedesInstance.publish(
+      {
+        cmd: 'publish',
+        topic: `solicitudes/${claveDispositivo}`,
+        payload,
+        qos: 0,
+        retain: false,
+        dup: false
+      },
+      (error) => {
+        if (error) {
+          clearTimeout(timeout);
+          aedesInstance.removeListener('publish', listener);
+          reject(new Error('Error enviando solicitud MQTT.'));
+        } else {
+          console.log('📤 Solicitud enviada:', { dispositivo: claveDispositivo, datos });
         }
-      );
+      }
+    );
 
-    }
-  );
-
+  });
 }
 
 export async function iniciarConexiones() {
@@ -326,16 +546,18 @@ export async function iniciarConexiones() {
       fechaFinalSuscripcion: dispositivo.fechaFinalSuscripcion
         ? dispositivo.fechaFinalSuscripcion.toISOString()
         : null,
-      estado: null,
+      estatusEncendida: null,
+      estatusMovimiento: null,
       porcentajeBateria: null,
-      estatusFijarEstacionado:null
+      estatusFijarEstacionado: null,
+      alarmas: null
     }));
 
     await guardarEstadosDispositivos(estados);
 
-    // setTimeout(async () => {
-    //   await verificarDispositivosSinConexion();
-    // }, 60_000);
+    setTimeout(async () => {
+      await verificarDispositivosSinConexion();
+    }, 60_000);
 
   } catch (error) {
     console.error('❌ Error al iniciar conexiones MQTT:', error);
@@ -350,7 +572,34 @@ async function verificarDispositivosSinConexion(): Promise<void> {
 
     for (const dispositivo of dispositivos) {
 
-      await generarNotificacionSinConexion(dispositivo);
+      const claveAlarmaDesconexion = crypto.randomUUID();
+
+      await agregarAlarma(dispositivo.clave, {
+        clave: claveAlarmaDesconexion,
+        descripcion: `Dispositivo sin conexión`,
+        fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+      });
+
+      await enviarDispositivoActualizado(dispositivo.clave);
+
+      await agregarNotificacion(
+        dispositivo.idUsuario,
+        {
+          clave: crypto.randomUUID(),
+          descripcion: `Dispositivo '${dispositivo.alias}' sin conexión.`,
+          fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+          atendida: null,
+          claveDispositivo: dispositivo.clave,
+          claveAlarma: claveAlarmaDesconexion,
+          origen: 'conexion'
+        }
+      );
+
+      await crearEventoSistema(
+        dispositivo.idUsuario,
+        `Alarma dispositivo clave:"${dispositivo.clave}" sin conexión generada con la clave de alarma:"${claveAlarmaDesconexion}"`
+      );
+
       await enviarNotificacionUsuario(dispositivo.idUsuario)
 
       const suscripciones = await obtenerSuscripciones(dispositivo.idUsuario);
@@ -364,7 +613,8 @@ async function verificarDispositivosSinConexion(): Promise<void> {
             tipo: 'sin-conexion',
             claveDispositivo: dispositivo.clave,
             alias: dispositivo.alias
-          }
+          },
+          dispositivo.idUsuario
         );
 
       }
@@ -378,24 +628,5 @@ async function verificarDispositivosSinConexion(): Promise<void> {
     );
 
   }
-
-}
-/**
- * Genera una notificación indicando que un dispositivo permanece sin conexión.
- */
-export async function generarNotificacionSinConexion(
-  dispositivo: EstadoDispositivoRedis
-): Promise<void> {
-
-  await agregarNotificacion(
-    dispositivo.idUsuario,
-    {
-      clave: crypto.randomUUID(),
-      descripcion: `Dispositivo '${dispositivo.alias}' sin conexión.`,
-      fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-      atendida: null,
-      claveDispositivo: dispositivo.clave
-    }
-  );
 
 }

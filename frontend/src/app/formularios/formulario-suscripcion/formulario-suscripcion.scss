@@ -87,10 +87,18 @@ mat-form-field {
         }
 
         .valor {
-            color: #1976d2;
+            color: #424242;
             font-size: 14px;
             font-weight: 700;
             text-align: right;
         }
     }
+}
+
+
+@media (max-width: 599px) {
+
+  mat-dialog-content form {
+    min-width: 0;
+  }
 }

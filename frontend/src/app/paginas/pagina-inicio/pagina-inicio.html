@@ -1,7 +1,7 @@
 <div class="barra-acciones">
   <mat-form-field appearance="outline" class="buscar-input">
     <mat-label>Buscar dispositivo</mat-label>
-    <input matInput (input)="filtrar($event)" placeholder="Clave, alias o teléfono..." />
+    <input matInput (input)="filtrar($event)" placeholder="Clave, alias..." />
     <mat-icon matPrefix>search</mat-icon>
   </mat-form-field>
   <button mat-raised-button color="primary" (click)="agregarDispositivo()">
@@ -28,17 +28,17 @@
   @if (!cargando() && !error() && dispositivosFiltrados().length > 0) {
   <div class="dispositivos-grid">
     @for (dispositivo of dispositivosFiltrados(); track dispositivo.clave) {
-    <mat-card class="dispositivo-card" [class.alarma-activa]="dispositivo.estatusAlarma"
+    <mat-card class="dispositivo-card" [class.alarma-activa]="dispositivo.alarmas && dispositivo.alarmas.length > 0"
       (dblclick)="editarDispositivo(dispositivo)">
       <!-- Sección superior: conexión + nombre -->
-      <div class="card-encabezado">
+      <div class="card-encabezado" (click)="verAlarmas(dispositivo)">
         <mat-icon class="icono-conexion"
           [style.color]="dispositivo.estatusConexion == true ? '#4caf50' : '#f44336'">circle</mat-icon>
         <span class="card-alias">{{ dispositivo.alias || 'Sin nombre' }}</span>
       </div>
 
       <!-- Sección media: datos -->
-      <div class="card-datos">
+      <div class="card-datos" (click)="verAlarmas(dispositivo)">
 
         <p class="dato-telefono">
           <mat-icon inline>phone</mat-icon>
@@ -74,9 +74,12 @@
 
         <p class="dato-general">
           Estado:
-          <b [style.color]="colorEstado(dispositivo.estado)"
-            [class.fijar-estacionamiento]="dispositivo.estado === 'E' && dispositivo.estatusFijarEstacionado">
-            {{ textoEstado(dispositivo.estado) }}
+          <b [style.color]="colorEncendida(dispositivo.estatusEncendida)">
+            {{ textoEncendida(dispositivo.estatusEncendida) }}
+          </b>
+          -
+          <b [style.color]="colorMovimiento(dispositivo.estatusMovimiento)">
+            {{ textoMovimiento(dispositivo.estatusMovimiento) }}
           </b>
 
           · Batería:
@@ -88,12 +91,15 @@
 
       <div class="card-acciones">
 
+        @if (estaProcesando(dispositivo.clave)) {
+        <mat-spinner diameter="24"></mat-spinner>
+        } @else {
 
         @if (tieneCualidad(dispositivo, 'COC')) {
         <span
           [matTooltip]="(dispositivo.estatusCortaCorriente==false ? 'Activar corta corriente' : 'Desactivar corta corriente')">
 
-          <button mat-icon-button [disabled]="(dispositivo.estatusConexion == true&&dispositivo.estado!='E')?false:true"
+          <button mat-icon-button [disabled]="(dispositivo.estatusConexion == true&&dispositivo.estatusEncendida==true)?false:true"
             [color]="dispositivo.estatusCortaCorriente==false ? 'primary' : 'warn'"
             (click)="intercalarCortaCorrientes(dispositivo)" [class.corta-activo]="dispositivo.estatusCortaCorriente">
             <mat-icon>stream</mat-icon>
@@ -102,34 +108,6 @@
         </span>
         }
 
-
-        @if (dispositivo.estatusAlarma==true) {
-        <span matTooltip="Ver la razón de la alarma activa">
-          <button mat-icon-button color="primary" (click)="verRazonAlarma(dispositivo)">
-            <mat-icon>
-              info
-            </mat-icon>
-          </button>
-        </span>
-        }
-
-        @if (tieneCualidad(dispositivo, 'ALA')) {
-        <span [matTooltip]="
-              dispositivo.estatusAlarma === null
-                  ? 'No hay datos'
-                  : dispositivo.estatusAlarma
-                      ? 'Desactivar alarma'
-                      : 'Activar alarma'
-          ">
-          <button mat-icon-button
-            [disabled]="(dispositivo.estatusConexion == true && dispositivo.estatusAlarma!=null)?false:true"
-            [color]="dispositivo.estatusAlarma==false ? 'primary' : 'warn'" (click)="intercalarAlarma(dispositivo)">
-            <mat-icon>
-              {{ dispositivo.estatusAlarma ? 'notifications_off' : 'notifications_active' }}
-            </mat-icon>
-          </button>
-        </span>
-        }
 
         @if (tieneCualidad(dispositivo, 'LOC')) {
         <span [matTooltip]="
@@ -140,9 +118,9 @@
                       : 'Desactivar alarma de estacionado'
         ">
           <button mat-icon-button color="primary"
-            [disabled]="dispositivo.estatusFijarEstacionado != null && dispositivo.estado == 'E'? false : true"
+            [disabled]="dispositivo.estatusFijarEstacionado != null && dispositivo.estatusEncendida == false? false : true"
             (click)="intercalarFijarEstacionado(dispositivo)"
-            [class.fijar-activo]="dispositivo.estatusFijarEstacionado ==true && dispositivo.estado == 'E'? true : false">
+            [class.fijar-activo]="dispositivo.estatusFijarEstacionado ==true && dispositivo.estatusEncendida == false? true : false">
             <mat-icon>
               {{ dispositivo.estatusFijarEstacionado ? 'stop' : 'play_arrow' }}
             </mat-icon>
@@ -166,7 +144,7 @@
         </span>
         }
 
-
+        }
       </div>
     </mat-card>
     }

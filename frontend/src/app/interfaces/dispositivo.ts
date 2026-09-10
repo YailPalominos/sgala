@@ -19,10 +19,10 @@ export interface Dispositivo {
   fechaFinalSuscripcion: string | null;
   localizacion: Localizacion | null;
   estatusConexion: boolean | null;
-  estadoEncendido: boolean | null;
+  estatusEncendida: boolean | null;
+  estatusMovimiento: boolean | null;
   estatusAlarma: boolean | null;
   estatusCortaCorriente: boolean | null;
-  estado: string | null;
   porcentajeBateria: number | null,
   estatusFijarEstacionado: boolean | null,
   alarmas: Alarma[]| null

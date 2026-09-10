@@ -5,8 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 /**
  * Datos de sesión almacenados en Redis.
  *
- * HASH:
- * sesiones:{claveSesion}
+ * Estructura:
+ * sesiones:{idUsuario} → JSON string con array de sesiones
  *
  * TTL:
  * 86400 segundos (1 día)
@@ -39,25 +39,57 @@ export interface RecuperacionRedis {
 
 
 /**
+ * Obtiene todas las sesiones de un usuario.
+ */
+async function obtenerSesiones(
+    idUsuario: number
+): Promise<SesionRedis[]> {
+
+    const datos = await redis.get(
+        `sesiones:${idUsuario}`
+    );
+
+    if (!datos) {
+        return [];
+    }
+
+    return JSON.parse(datos) as SesionRedis[];
+}
+
+
+/**
+ * Guarda todas las sesiones de un usuario.
+ */
+async function guardarSesiones(
+    idUsuario: number,
+    sesiones: SesionRedis[]
+): Promise<void> {
+
+    if (sesiones.length === 0) {
+        await redis.del(`sesiones:${idUsuario}`);
+        return;
+    }
+
+    await redis.set(
+        `sesiones:${idUsuario}`,
+        JSON.stringify(sesiones)
+    );
+
+    /*
+     * La llave del usuario expira en 1 día.
+     * Se renueva cada vez que se modifica.
+     */
+    await redis.expire(
+        `sesiones:${idUsuario}`,
+        60 * 60 * 24
+    );
+}
+
+
+/**
  * Crea una nueva sesión para un usuario.
  *
- * La sesión tiene una vigencia de 1 día.
- *
- * Estructura:
- *
- * sesiones:sesion:{idUsuario}
- *     ├── claveSesion1
- *     ├── claveSesion2
- *     └── claveSesion3
- *
- * sesiones:{claveSesion}
- *     ├── clave
- *     ├── claveUsuario
- *     ├── idUsuario
- *     ├── alias
- *     ├── direccionCorreoElectronico
- *     ├── telefono
- *     └── claveSocket
+ * La sesión se agrega al array del usuario.
  */
 export async function crearSesion(
     claveUsuario: string,
@@ -65,59 +97,29 @@ export async function crearSesion(
     alias: string,
     idUsuario: number,
     telefono: string
-): Promise<string> {
+): Promise<SesionRedis> {
 
     try {
 
-        const clave =
-            uuidv4();
+        const clave = uuidv4();
 
+        const sesion: SesionRedis = {
+            clave,
+            claveUsuario,
+            idUsuario,
+            alias,
+            direccionCorreoElectronico,
+            telefono,
+            claveSocket: undefined
+        };
 
-        /*
-         * Crear HASH de la sesión.
-         */
-        await redis.hset(
-            `sesiones:${clave}`,
-            {
-                clave,
+        const sesiones = await obtenerSesiones(idUsuario);
 
-                claveUsuario,
+        sesiones.push(sesion);
 
-                direccionCorreoElectronico,
+        await guardarSesiones(idUsuario, sesiones);
 
-                alias,
-
-                claveSocket:
-                    'null',
-
-                idUsuario:
-                    String(idUsuario),
-
-                telefono
-            }
-        );
-
-
-        /*
-         * La sesión dura 1 día.
-         */
-        await redis.expire(
-            `sesiones:${clave}`,
-            60 * 60 * 24
-        );
-
-
-        /*
-         * Registrar la sesión en el índice
-         * del usuario.
-         */
-        await redis.sadd(
-            `sesiones:sesion:${idUsuario}`,
-            clave
-        );
-
-
-        return clave;
+        return sesion;
 
     } catch (error) {
 
@@ -132,92 +134,23 @@ export async function crearSesion(
 
 
 /**
- * Obtiene una sesión de un usuario.
- *
- * Primero verifica que la sesión pertenezca
- * al usuario mediante el índice.
- *
- * @param idUsuario - Id del usuario.
- * @param claveSesion - Clave de la sesión.
+ * Obtiene una sesión por su clave dentro
+ * de las sesiones de un usuario.
  */
 export async function obtenerSesion(
     idUsuario: number,
     claveSesion: string
-): Promise<{
-    idUsuario: number;
-    alias: string;
-} | null> {
+): Promise<SesionRedis | null> {
 
     try {
 
-        /*
-         * Verificar que la sesión pertenezca
-         * al usuario.
-         */
-        const pertenece =
-            await redis.sismember(
-                `sesiones:sesion:${idUsuario}`,
-                claveSesion
-            );
+        const sesiones = await obtenerSesiones(idUsuario);
 
+        const sesion = sesiones.find(
+            s => s.clave === claveSesion
+        );
 
-        if (!pertenece) {
-            return null;
-        }
-
-
-        /*
-         * Obtener la sesión directamente.
-         */
-        const sesion =
-            await redis.hgetall(
-                `sesiones:${claveSesion}`
-            );
-
-
-        /*
-         * La sesión pudo haber expirado.
-         *
-         * Limpiamos la referencia que quedó
-         * en el índice.
-         */
-        if (
-            !sesion ||
-            Object.keys(sesion).length === 0
-        ) {
-
-            await redis.srem(
-                `sesiones:sesion:${idUsuario}`,
-                claveSesion
-            );
-
-            return null;
-        }
-
-
-        if (!sesion.idUsuario) {
-
-            throw new Error(
-                'La sesión no contiene idUsuario.'
-            );
-        }
-
-
-        if (!sesion.alias) {
-
-            throw new Error(
-                'La sesión no contiene alias.'
-            );
-        }
-
-
-        return {
-            idUsuario:
-                Number(sesion.idUsuario),
-
-            alias:
-                sesion.alias
-        };
+        return sesion ?? null;
 
     } catch (error) {
 
@@ -230,13 +163,74 @@ export async function obtenerSesion(
     }
 }
 
+
+/**
+ * Obtiene una sesión buscando por clave
+ * sin conocer el idUsuario.
+ *
+ * Busca en todas las llaves sesiones:*.
+ */
+export async function obtenerSesionPorClave(
+    claveSesion: string
+): Promise<SesionRedis | null> {
+
+    try {
+
+        const claves: string[] = [];
+        let cursor = '0';
+
+        do {
+            const resultado = await redis.scan(
+                cursor,
+                'MATCH',
+                'sesiones:*',
+                'COUNT',
+                500
+            );
+
+            cursor = resultado[0];
+
+            if (Array.isArray(resultado[1])) {
+                claves.push(...resultado[1]);
+            }
+
+        } while (cursor !== '0');
+
+        for (const llaveRedis of claves) {
+
+            const datos = await redis.get(llaveRedis);
+
+            if (!datos) {
+                continue;
+            }
+
+            const sesiones: SesionRedis[] = JSON.parse(datos);
+
+            const sesion = sesiones.find(
+                s => s.clave === claveSesion
+            );
+
+            if (sesion) {
+                return sesion;
+            }
+        }
+
+        return null;
+
+    } catch (error) {
+
+        throw new Error(
+            `Error al obtener la sesión ${claveSesion}: ${error instanceof Error
+                ? error.message
+                : String(error)
+            }`
+        );
+    }
+}
+
+
 /**
  * Elimina una sesión de Redis.
- *
- * Obtiene el idUsuario directamente desde la sesión,
- * por lo que no es necesario recibirlo como parámetro.
- *
- * @param claveSesion - Clave de la sesión.
  */
 export async function eliminarSesion(
     claveSesion: string
@@ -244,36 +238,19 @@ export async function eliminarSesion(
 
     try {
 
-        const llaveSesion =
-            `sesiones:${claveSesion}`;
+        const sesion = await obtenerSesionPorClave(claveSesion);
 
-        const sesion =
-            await redis.hgetall(llaveSesion);
-
-        if (
-            !sesion ||
-            Object.keys(sesion).length === 0
-        ) {
+        if (!sesion) {
             return;
         }
 
-        if (!sesion.idUsuario) {
-            throw new Error(
-                'La sesión no contiene idUsuario.'
-            );
-        }
+        const sesiones = await obtenerSesiones(sesion.idUsuario);
 
-        const idUsuario =
-            Number(sesion.idUsuario);
-
-        await redis.del(
-            llaveSesion
+        const filtradas = sesiones.filter(
+            s => s.clave !== claveSesion
         );
 
-        await redis.srem(
-            `sesiones:sesion:${idUsuario}`,
-            claveSesion
-        );
+        await guardarSesiones(sesion.idUsuario, filtradas);
 
     } catch (error) {
 
@@ -289,10 +266,6 @@ export async function eliminarSesion(
 
 /**
  * Actualiza la clave del socket de una sesión.
- *
- * @param idUsuario - Id del usuario propietario.
- * @param claveSesion - Clave de la sesión.
- * @param claveSocket - Clave del socket.
  */
 export async function actualizarClaveSocket(
     idUsuario: number,
@@ -302,56 +275,21 @@ export async function actualizarClaveSocket(
 
     try {
 
-        /*
-         * Verificar que la sesión pertenezca
-         * al usuario.
-         */
-        const pertenece =
-            await redis.sismember(
-                `sesiones:sesion:${idUsuario}`,
-                claveSesion
-            );
+        const sesiones = await obtenerSesiones(idUsuario);
 
-
-        if (!pertenece) {
-
-            throw new Error(
-                'La sesión no pertenece al usuario.'
-            );
-        }
-
-
-        /*
-         * Verificar que el HASH todavía exista.
-         */
-        const existe =
-            await redis.exists(
-                `sesiones:${claveSesion}`
-            );
-
-
-        if (!existe) {
-
-            /*
-             * Limpiar índice obsoleto.
-             */
-            await redis.srem(
-                `sesiones:sesion:${idUsuario}`,
-                claveSesion
-            );
-
-
-            throw new Error(
-                'La sesión no existe o ha expirado.'
-            );
-        }
-
-
-        await redis.hset(
-            `sesiones:${claveSesion}`,
-            'claveSocket',
-            claveSocket
+        const indice = sesiones.findIndex(
+            s => s.clave === claveSesion
         );
+
+        if (indice === -1) {
+            throw new Error(
+                'La sesión no pertenece al usuario o no existe.'
+            );
+        }
+
+        sesiones[indice].claveSocket = claveSocket;
+
+        await guardarSesiones(idUsuario, sesiones);
 
     } catch (error) {
 
@@ -368,9 +306,6 @@ export async function actualizarClaveSocket(
 /**
  * Obtiene todas las claves de socket activas
  * de las sesiones de un usuario.
- *
- * @param idUsuario - Id del usuario.
- * @returns Lista de claves de socket.
  */
 export async function obtenerSocketsUsuario(
     idUsuario: number
@@ -378,115 +313,17 @@ export async function obtenerSocketsUsuario(
 
     try {
 
-        /*
-         * Obtener las sesiones directamente
-         * desde el índice del usuario.
-         */
-        const clavesSesion =
-            await redis.smembers(
-                `sesiones:sesion:${idUsuario}`
+        const sesiones = await obtenerSesiones(idUsuario);
+
+        return sesiones
+            .map(s => s.claveSocket)
+            .filter(
+                (socket): socket is string =>
+                    socket !== undefined &&
+                    socket !== null &&
+                    socket !== 'null' &&
+                    socket !== ''
             );
-
-
-        if (!clavesSesion) {
-
-            throw new Error(
-                `No se pudo obtener el índice de sesiones del usuario ${idUsuario}.`
-            );
-        }
-
-
-        if (clavesSesion.length === 0) {
-            return [];
-        }
-
-
-        /*
-         * Pipeline para obtener todos los sockets
-         * en una sola operación de red.
-         */
-        const pipeline =
-            redis.pipeline();
-
-
-        for (const claveSesion of clavesSesion) {
-
-            pipeline.hget(
-                `sesiones:${claveSesion}`,
-                'claveSocket'
-            );
-        }
-
-
-        const resultados =
-            await pipeline.exec();
-
-
-        if (resultados === null) {
-
-            throw new Error(
-                `Redis no devolvió resultados para las sesiones del usuario ${idUsuario}.`
-            );
-        }
-
-
-        const sockets: string[] = [];
-
-
-        for (
-            let i = 0;
-            i < resultados.length;
-            i++
-        ) {
-
-            const resultado =
-                resultados[i];
-
-
-            if (
-                !resultado ||
-                resultado.length < 2
-            ) {
-
-                throw new Error(
-                    'Redis devolvió un resultado inválido al obtener una clave de socket.'
-                );
-            }
-
-
-            const claveSocket =
-                resultado[1] as string | null;
-
-
-            /*
-             * Si la sesión expiró mientras
-             * realizábamos la consulta,
-             * limpiamos el índice.
-             */
-            if (claveSocket === null) {
-
-                await redis.srem(
-                    `sesiones:sesion:${idUsuario}`,
-                    clavesSesion[i]
-                );
-
-                continue;
-            }
-
-
-            if (
-                claveSocket &&
-                claveSocket !== 'null'
-            ) {
-
-                sockets.push(
-                    claveSocket
-                );
-            }
-        }
-
-
-        return sockets;
 
     } catch (error) {
 
@@ -503,15 +340,9 @@ export async function obtenerSocketsUsuario(
 /**
  * Crea una llave de recuperación.
  *
- * Vigencia:
- * 2 minutos.
+ * Vigencia: 2 minutos.
  *
- * HASH:
- * llaves:{llave}
- *
- * @param idUsuario - Id del usuario.
- * @param tipo - Tipo de recuperación.
- * @returns Llave generada.
+ * HASH: llaves:{llave}
  */
 export async function crearLlaveRecuperacion(
     idUsuario: number,
@@ -520,32 +351,21 @@ export async function crearLlaveRecuperacion(
 
     try {
 
-        const llave =
-            uuidv4();
-
+        const llave = uuidv4();
 
         await redis.hset(
             `llaves:${llave}`,
             {
-                clave:
-                    llave,
-
+                clave: llave,
                 tipo,
-
-                idUsuario:
-                    String(idUsuario)
+                idUsuario: String(idUsuario)
             }
         );
 
-
-        /*
-         * La llave dura 2 minutos.
-         */
         await redis.expire(
             `llaves:${llave}`,
             120
         );
-
 
         return llave;
 
@@ -562,11 +382,7 @@ export async function crearLlaveRecuperacion(
 
 
 /**
- * Obtiene los datos de una llave
- * de recuperación.
- *
- * @param llave - Llave de recuperación.
- * @returns Datos de la llave o null si expiró.
+ * Obtiene los datos de una llave de recuperación.
  */
 export async function obtenerLlaveRecuperacion(
     llave: string
@@ -574,55 +390,24 @@ export async function obtenerLlaveRecuperacion(
 
     try {
 
-        const datos =
-            await redis.hgetall(
-                `llaves:${llave}`
-            );
+        const datos = await redis.hgetall(
+            `llaves:${llave}`
+        );
 
-
-        if (
-            !datos ||
-            Object.keys(datos).length === 0
-        ) {
-
+        if (!datos || Object.keys(datos).length === 0) {
             return null;
         }
 
-
-        if (!datos.clave) {
-
+        if (!datos.clave || !datos.idUsuario || !datos.tipo) {
             throw new Error(
-                'La llave de recuperación no contiene clave.'
+                'La llave de recuperación tiene datos incompletos.'
             );
         }
-
-
-        if (!datos.idUsuario) {
-
-            throw new Error(
-                'La llave de recuperación no contiene idUsuario.'
-            );
-        }
-
-
-        if (!datos.tipo) {
-
-            throw new Error(
-                'La llave de recuperación no contiene tipo.'
-            );
-        }
-
 
         return {
-
-            clave:
-                datos.clave,
-
-            idUsuario:
-                Number(datos.idUsuario),
-
-            tipo:
-                datos.tipo
+            clave: datos.clave,
+            idUsuario: Number(datos.idUsuario),
+            tipo: datos.tipo
         };
 
     } catch (error) {
@@ -639,8 +424,6 @@ export async function obtenerLlaveRecuperacion(
 
 /**
  * Elimina una llave de recuperación de Redis.
- *
- * @param llave - Llave de recuperación.
  */
 export async function eliminarLlaveRecuperacion(
     llave: string
@@ -648,9 +431,7 @@ export async function eliminarLlaveRecuperacion(
 
     try {
 
-        await redis.del(
-            `llaves:${llave}`
-        );
+        await redis.del(`llaves:${llave}`);
 
     } catch (error) {
 

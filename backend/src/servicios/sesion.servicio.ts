@@ -1,5 +1,4 @@
-import { redis } from '../recursos/redis';
-import { SesionRedis } from '@/repositorios/redis/sesiones.redis';
+import { obtenerSesionPorClave, SesionRedis } from '@/repositorios/redis/sesiones.redis';
 
 
 /**
@@ -13,10 +12,8 @@ export const sesionServicio = {
     /**
      * Obtiene una sesión directamente por su clave.
      *
-     * A diferencia del repositorio (que requiere idUsuario
-     * para verificar pertenencia), este método busca el HASH
-     * directamente, útil para el middleware donde aún no
-     * se conoce el usuario.
+     * Busca en todas las sesiones de todos los usuarios.
+     * Útil para el middleware donde aún no se conoce el usuario.
      *
      * @param claveSesion - Clave UUID de la sesión.
      * @returns Datos de la sesión.
@@ -24,38 +21,14 @@ export const sesionServicio = {
      */
     async obtenerSesion(claveSesion: string): Promise<SesionRedis> {
 
-        const datos = await redis.hgetall(
-            `sesiones:${claveSesion}`
-        );
+        const sesion = await obtenerSesionPorClave(claveSesion);
 
-        if (!datos || Object.keys(datos).length === 0) {
+        if (!sesion) {
             throw new Error(
                 'La sesión no existe o ha expirado.'
             );
         }
 
-        if (!datos.idUsuario) {
-            throw new Error(
-                'La sesión no contiene idUsuario.'
-            );
-        }
-
-        if (!datos.alias) {
-            throw new Error(
-                'La sesión no contiene alias.'
-            );
-        }
-
-        return {
-            clave: datos.clave,
-            claveUsuario: datos.claveUsuario,
-            idUsuario: Number(datos.idUsuario),
-            alias: datos.alias,
-            direccionCorreoElectronico: datos.direccionCorreoElectronico,
-            telefono: datos.telefono,
-            claveSocket: datos.claveSocket !== 'null'
-                ? datos.claveSocket
-                : undefined
-        };
+        return sesion;
     }
 };

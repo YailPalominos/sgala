@@ -47,11 +47,15 @@
 }
 
 ::ng-deep .mat-mdc-tab-label-container {
-    background: rgb(25 118 210);
+    background: #424242;
 }
 
 ::ng-deep .mat-mdc-tab .mdc-tab__text-label {
     color: white !important;
+}
+
+::ng-deep .mat-mdc-tab-indicator .mdc-tab-indicator__content--underline {
+    border-color: white !important;
 }
 
 .valor.modificado {

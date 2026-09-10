@@ -3,12 +3,14 @@ import { io, Socket as sockerCliente } from 'socket.io-client';
 import { BehaviorSubject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Autenticador } from './autenticador';
+import { Notificador } from './notificador';
 
 @Injectable({ providedIn: 'root' })
 export class Socket {
   private socketCliente: sockerCliente | null = null;
   private socketUrl = environment.socketUrl;
   private autenticador = inject(Autenticador);
+  private notificador = inject(Notificador);
   // agrgar notificaicone
   private dispositivosSubject = new BehaviorSubject<any[]>([]);
   public dispositivos$ = this.dispositivosSubject.asObservable();
@@ -18,6 +20,9 @@ export class Socket {
 
   private notificacionesSubject = new BehaviorSubject<any>([]);
   public notificaciones$ = this.notificacionesSubject.asObservable();
+
+  private errorDispositivoSubject = new BehaviorSubject<any>(null);
+  public errorDispositivo$ = this.errorDispositivoSubject.asObservable();
 
   conectar(): void {
 
@@ -84,6 +89,11 @@ export class Socket {
 
     this.socketCliente.on('connect_error', (error) => {
       console.error('❌ Error de conexión Socket:', error.message);
+    });
+
+    this.socketCliente.on('error/dispositivo', (datos: any) => {
+      this.notificador.error(datos?.mensaje || 'Error en la solicitud al dispositivo.');
+      this.errorDispositivoSubject.next(datos);
     });
 
   }

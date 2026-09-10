@@ -126,7 +126,7 @@ export class PanelEventos extends Panel {
           referencia: DialogoComparacion,
           titulo: 'Comparación',
           icono: 'compare_arrows',
-          ancho: '450px',
+          largo: '450px',
           desactivarAutocerrado: true,
           parametros: 'A',
           datos: respuesta.datos

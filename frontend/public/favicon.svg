@@ -1,18 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Fondo gris oscuro redondeado -->
-  <rect width="64" height="64" rx="12" fill="#424242"/>
+  <!-- Fondo transparente -->
+  <rect width="64" height="64" rx="12" fill="none"/>
   
-  <!-- Pin de localización -->
-  <path d="M32 8 C22 8 14 16 14 25 C14 38 32 56 32 56 C32 56 50 38 50 25 C50 16 42 8 32 8 Z" 
-        fill="white" opacity="0.95"/>
+  <!-- Punta inferior (forma de gota/puntiaguda) -->
+  <path d="M14 42 L32 58 L50 42" fill="none" stroke="#e0e0e0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   
-  <!-- Círculo interior del pin -->
-  <circle cx="32" cy="25" r="8" fill="#616161"/>
+  <!-- Mano izquierda -->
+  <path d="M14 42 C14 42 16 36 18 34 C20 32 22 33 22 35 L22 38 C22 38 22 32 24 30 C25 29 26 30 26 32 L26 28"
+        fill="none" stroke="#e0e0e0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   
-  <!-- Señal/onda (indicador de alarma) -->
-  <path d="M20 12 Q16 8 12 12" stroke="#bdbdbd" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M17 9 Q13 5 9 9" stroke="#9e9e9e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Mano derecha -->
+  <path d="M50 42 C50 42 48 36 46 34 C44 32 42 33 42 35 L42 38 C42 38 42 32 40 30 C39 29 38 30 38 32 L38 28"
+        fill="none" stroke="#e0e0e0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   
-  <path d="M44 12 Q48 8 52 12" stroke="#bdbdbd" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M47 9 Q51 5 55 9" stroke="#9e9e9e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Engranaje central -->
+  <circle cx="32" cy="36" r="8" fill="none" stroke="#e0e0e0" stroke-width="2.5"/>
+  <circle cx="32" cy="36" r="3" fill="#616161"/>
+  
+  <!-- Dientes del engranaje -->
+  <path d="M32 26 L32 28 M32 44 L32 46 M22 36 L24 36 M40 36 L42 36 M25 29 L26.5 30.5 M37.5 41.5 L39 43 M39 29 L37.5 30.5 M26.5 41.5 L25 43"
+        stroke="#e0e0e0" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Nodos/conexiones superiores (estilo pins - corona) -->
+  <line x1="12" y1="30" x2="12" y2="24" stroke="#757575" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="12" cy="22" r="2.5" fill="#757575"/>
+  
+  <line x1="18" y1="28" x2="18" y2="19" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="18" cy="17" r="2.8" fill="#9e9e9e"/>
+  
+  <line x1="25" y1="28" x2="25" y2="15" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="25" cy="13" r="3" fill="#9e9e9e"/>
+  
+  <line x1="32" y1="28" x2="32" y2="10" stroke="#bdbdbd" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="32" cy="8" r="3.2" fill="#bdbdbd"/>
+  
+  <line x1="39" y1="28" x2="39" y2="15" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="39" cy="13" r="3" fill="#9e9e9e"/>
+  
+  <line x1="46" y1="28" x2="46" y2="19" stroke="#9e9e9e" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="46" cy="17" r="2.8" fill="#9e9e9e"/>
+  
+  <line x1="52" y1="30" x2="52" y2="24" stroke="#757575" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="52" cy="22" r="2.5" fill="#757575"/>
 </svg>

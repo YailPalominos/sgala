@@ -1,0 +1,29 @@
+<h2 class="titulo">Alarmas - {{ datos?.alias }}</h2>
+
+<div class="contenedor-alarmas">
+
+  @if (alarmas.length === 0) {
+    <p class="sin-alarmas">No hay alarmas activas.</p>
+  }
+
+  @for (alarma of alarmas; track alarma.clave) {
+    <div class="alarma-item">
+      <div class="alarma-info">
+        <span class="alarma-descripcion">{{ alarma.descripcion }}</span>
+        <span class="alarma-clave">{{ alarma.clave }}</span>
+        <span class="alarma-fecha">{{ formatearFecha(alarma.fecha) }}</span>
+      </div>
+      <button mat-icon-button color="warn" (click)="desactivarAlarma(alarma)" matTooltip="Desactivar alarma">
+        <mat-icon>cancel</mat-icon>
+      </button>
+    </div>
+  }
+
+</div>
+
+<div class="acciones">
+  <button mat-raised-button color="primary" (click)="cerrarPanel()">
+    <mat-icon>close</mat-icon>
+    Cerrar
+  </button>
+</div>

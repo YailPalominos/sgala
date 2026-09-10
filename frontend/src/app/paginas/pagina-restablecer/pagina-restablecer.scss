@@ -3,8 +3,6 @@
   justify-content: center;
   align-items: center;
     height: calc(100vh - 60px);
-
-  background: #f5f5f5;
 }
 
 .restablecer-card {
@@ -85,6 +83,32 @@
 
     button {
       width: 250px;
+    }
+  }
+}
+
+
+@media (max-width: 599px) {
+
+  .restablecer-card {
+    max-width: 100%;
+    padding: 0 16px;
+
+    form {
+      mat-form-field {
+        min-width: 0;
+        width: 90%;
+      }
+    }
+
+    .reglas-contrasena {
+      width: 95%;
+    }
+
+    .acciones {
+      button {
+        width: 80%;
+      }
     }
   }
 }

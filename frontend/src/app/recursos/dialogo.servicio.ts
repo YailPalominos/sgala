@@ -20,7 +20,9 @@ export interface ConfiguracionDialogo {
   referencia: ClaseDialogo;
 
   // Datos minimos para el contenedor
+  /** Width - tamaño horizontal del diálogo */
   largo?: string;
+  /** Height - tamaño vertical del diálogo */
   ancho?: string;
   maximoLargo?: string;
   maximoAncho?: string;
@@ -31,7 +33,10 @@ export interface ConfiguracionDialogo {
   parametros?: any;
 
   alFinalizar?: (resultado: any) => void;
-  clase?: string
+  clase?: string;
+
+  /** Si es true, el diálogo se persiste y puede minimizarse. Por defecto: true */
+  recordar?: boolean;
 }
 
 export interface EstadoDialogo {
@@ -61,7 +66,10 @@ export interface EstadoDialogo {
   disableClose?: boolean;
   data?: any,
   alFinalizar?: string,
-  clase?: string
+  clase?: string;
+
+  /** Si es true, el diálogo se persiste y puede minimizarse. */
+  recordar: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -74,6 +82,8 @@ export class DialogoServicio {
 
   private registro = new Map<string, Type<any>>();
   private registroInstancias = inject(RegistroInstancias)
+  private callbacks = new Map<string, (resultado: any) => void>();
+  private referencias = new Map<string, any>();
 
   constructor(
     @Inject(clases)
@@ -111,6 +121,12 @@ export class DialogoServicio {
 
   public eliminar(id: string) {
 
+    const ref = this.referencias.get(id);
+    if (ref) {
+      ref.close();
+      this.referencias.delete(id);
+    }
+
     this._dialogos.update(x =>
       x.filter(d => d.id !== id)
     );
@@ -133,28 +149,31 @@ export class DialogoServicio {
 
   private guardar(): void {
 
-    const datos = this._dialogos().map(d => ({
-      id: d.id,
-      titulo: d.titulo,
-      icono: d.icono,
-      datos: d.datos,
-      filtros: d.filtros,
-      posicionX: d.posicionX,
-      posicionY: d.posicionY,
-      ancho: d.ancho,
-      alto: d.alto,
-      expandido: d.expandido,
-      minimizado: d.minimizado,
-      referencia: d.referencia,
-      width: d.width,
-      height: d.height,
-      maxWidth: d.maxWidth,
-      maxHeight: d.maxHeight,
-      disableClose: d.disableClose,
-      parametros: d.parametros,
-      alFinalizar: d.alFinalizar,
-      clase: d.clase
-    }));
+    const datos = this._dialogos()
+      .filter(d => d.recordar)
+      .map(d => ({
+        id: d.id,
+        titulo: d.titulo,
+        icono: d.icono,
+        datos: d.datos,
+        filtros: d.filtros,
+        posicionX: d.posicionX,
+        posicionY: d.posicionY,
+        ancho: d.ancho,
+        alto: d.alto,
+        expandido: d.expandido,
+        minimizado: d.minimizado,
+        referencia: d.referencia,
+        width: d.width,
+        height: d.height,
+        maxWidth: d.maxWidth,
+        maxHeight: d.maxHeight,
+        disableClose: d.disableClose,
+        parametros: d.parametros,
+        alFinalizar: d.alFinalizar,
+        clase: d.clase,
+        recordar: d.recordar
+      }));
 
     localStorage.setItem(
       this.claveStorage,
@@ -202,9 +221,20 @@ export class DialogoServicio {
       minimizado: false,
       // Referencias para abri 
       referencia: nombrePanel,
+      width: configuracionDialogo.largo,
+      height: configuracionDialogo.ancho ?? (esPanel ? '80vh' : undefined),
+      maxWidth: configuracionDialogo.maximoLargo,
+      maxHeight: configuracionDialogo.maximoAncho,
+      disableClose: configuracionDialogo.desactivarAutocerrado,
       alFinalizar: configuracionDialogo.alFinalizar?.name,
-      clase: configuracionDialogo.clase
+      clase: configuracionDialogo.clase,
+      recordar: configuracionDialogo.recordar ?? true
     };
+
+    if (configuracionDialogo.alFinalizar) {
+      this.callbacks.set(id, configuracionDialogo.alFinalizar);
+    }
+
     this._dialogos.update(lista => [
       ...lista,
       dialogo
@@ -268,15 +298,23 @@ export class DialogoServicio {
             minimizado: dialogo.minimizado,
             componente,
             datos: dialogo.datos,
-            filtros: dialogo.filtros
+            filtros: dialogo.filtros,
+            recordar: dialogo.recordar
           }
         }
       );
+
+    this.referencias.set(id, referencia);
 
 
     referencia.afterClosed()
       .subscribe((resultado) => {
         if (resultado?.resultado === 'M') {
+
+          if (!dialogo.recordar) {
+            this.eliminar(dialogo.id);
+            return;
+          }
 
           this.actualizarEstadoContenedor(
             dialogo.id,
@@ -289,7 +327,11 @@ export class DialogoServicio {
         }
 
         if (resultado?.resultado === 'C') {
-          if (dialogo.clase && dialogo.alFinalizar) {
+          const callback = this.callbacks.get(dialogo.id);
+
+          if (callback) {
+            callback(resultado?.resultadoDialogo);
+          } else if (dialogo.clase && dialogo.alFinalizar) {
             const instancia = this.obtenerInstancia(dialogo.clase);
 
             if (instancia && dialogo.alFinalizar) {
@@ -302,6 +344,8 @@ export class DialogoServicio {
           }
         }
 
+        this.callbacks.delete(dialogo.id);
+        this.referencias.delete(dialogo.id);
         this.eliminar(dialogo.id);
       });
   }

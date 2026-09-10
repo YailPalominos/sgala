@@ -27,8 +27,11 @@
         @for (notificacion of notificacionesOrdenadas; track notificacion.clave) {
 
         <div class="notificacion">
-            <mat-icon>{{notificacion.icono}}</mat-icon>
-            <h2>{{ notificacion.descripcion }}</h2>
+            <mat-icon>{{obtenerIconoNotificacion(notificacion.origen)}}</mat-icon>
+            <div class="notificacion-contenido">
+                <h2>{{ notificacion.descripcion }}</h2>
+                <span class="notificacion-fecha">{{ notificacion.fecha }}</span>
+            </div>
             <div class="estado" [class.nueva]="notificacion.atendida === null"
                 [class.atendida]="notificacion.atendida === true" [class.desatendida]="notificacion.atendida === false">
             </div>
@@ -80,6 +83,7 @@
 @if(autenticado){
 <div class="contenedor-dialogos">
     @for(dialogo of dialogoServicio.dialogos(); track dialogo.id) {
+    @if(dialogo.recordar) {
     <div class="chip-dialogo">
 
         <button [disabled]="!estaMinimizado(dialogo.id)" mat-icon-button class="chip-boton" matTooltip="Restaurar"
@@ -108,6 +112,7 @@
         </mat-menu>
 
     </div>
+    }
     }
 </div>
 }

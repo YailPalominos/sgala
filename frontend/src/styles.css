@@ -1,5 +1,17 @@
 @use '@angular/material' as mat;
 
+:root {
+  --mat-sys-primary: #424242;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #616161;
+  --mat-sys-on-primary-container: #ffffff;
+  --mdc-filled-button-container-color: #424242;
+  --mdc-filled-button-label-text-color: #ffffff;
+  --mdc-protected-button-label-text-color: #424242;
+  --mat-fab-foreground-color: #ffffff;
+  --mat-fab-container-color: #424242;
+}
+
 html,
 body {
   height: 100%;
@@ -31,15 +43,65 @@ body {
   z-index: 10000 !important;
 }
 
+.cdk-global-scrollblock {
+  overflow: hidden !important;
+}
+
+html.cdk-global-scrollblock {
+  overflow: hidden !important;
+  position: static !important;
+}
+
 
 .cdk-overlay-pane:has(.mat-mdc-dialog-container) {
   min-width: 550px !important;
 }
 
+@media (max-width: 599px) {
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container) {
+    min-width: 95vw !important;
+    max-width: 95vw !important;
+  }
+
+  .dialogo-contenedor {
+    .resize {
+      display: none;
+    }
+
+    .barra-dialogo {
+      padding: 6px 8px;
+      padding-bottom: 10px;
+
+      h1 {
+        font-size: 16px;
+        max-width: calc(100% - 180px);
+      }
+
+      button {
+        height: 26px;
+        width: 26px;
+
+        .mat-icon {
+          font-size: 16px;
+          width: 14px;
+          height: 14px;
+        }
+      }
+
+      .btn-minimizar,
+      .btn-expandir {
+        display: none;
+      }
+    }
+  }
+}
+
 .dialogo-contenedor {
-  display: block;
+  display: flex;
+  flex-direction: column;
   position: relative;
   height: 100%;
+  overflow: hidden;
 
   .resize {
     position: absolute;
@@ -117,9 +179,8 @@ body {
   .barra-dialogo {
     position: relative;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
-    gap: 12px;
     padding: 10px;
     padding-bottom: 15px;
     background: linear-gradient(to right,
@@ -133,10 +194,23 @@ body {
       cursor: grabbing;
     }
 
+    .barra-izquierda,
+    .barra-derecha {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
 
     button {
       height: 30px;
       width: 30px;
+
+      &:disabled {
+        background-color: #bdbdbd !important;
+        color: #757575 !important;
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
 
       .mat-icon {
         width: 15px;
@@ -159,7 +233,7 @@ body {
       margin: 0;
       padding: 0;
 
-      max-width: calc(100% - 150px);
+      max-width: calc(100% - 250px);
 
       font-size: 20px;
       line-height: 1;
@@ -226,16 +300,35 @@ body {
 }
 
 .panel-contenedor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   height: 100%;
-  margin-bottom: 20px;
-  margin-left: 10px;
-  margin-right: 10px;
+  min-height: 0;
+  margin: 0 10px 10px 10px;
+  overflow: hidden;
 }
 
 .mdc-dialog__surface {
   border: 2px solid #585858 !important;
   border-radius: 12px !important;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25) !important;
+  overflow: hidden !important;
+}
+
+.mat-mdc-dialog-container .mdc-dialog__content {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* El componente dinámico inyectado dentro del contenedor */
+.dialogo-contenedor> :not(.barra-dialogo):not(.resize) {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .mat-mdc-menu-panel {
@@ -245,13 +338,13 @@ body {
 }
 
 .titulo {
-  height: 20px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 20px !important;
+  margin-top: 10px !important;
   padding: 0 !important;
-  font-size: 20px !important;
+  font-size: 18px !important;
 }
 
 form {
@@ -262,6 +355,59 @@ form {
   height: 100%;
 }
 
+.acciones-formulario {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 16px;
+
+  > div {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+.acciones-1 > div {
+  width: 100%;
+}
+
+.acciones-3 > div {
+  flex: 1;
+  min-width: 33.3%;
+}
+
 .mat-mdc-dialog-content {
   padding: 0 !important;
+}
+
+.mat-mdc-dialog-actions {
+  min-height: 55px;
+  height: 55px;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-top: 1px solid #e0e0e0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 599px) {
+  form {
+    padding: 12px 12px;
+    gap: 12px;
+  }
+
+  .titulo {
+    font-size: 15px !important;
+  }
+
+  .acciones-formulario {
+    margin-top: 8px;
+  }
+}
+
+.mat-mdc-menu-panel {
+  background: white !important;
 }

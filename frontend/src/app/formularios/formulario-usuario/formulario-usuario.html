@@ -4,14 +4,20 @@
 
 <mat-dialog-content>
 
-    <form [formGroup]="formulario" (ngSubmit)="preparar()" id=formulario>
+    <form [formGroup]="formulario" (ngSubmit)="preparar()">
 
-        <p style="margin: 10px;text-align: center;width: 100%;">
-            {{
-            parametros.accion === 'R'
-            ? 'Completa la información para crear un nuevo usuario.'
-            : 'Edita la información del usuario.'
-            }}
+        <p style="text-align: center;width: 100%;">
+            @if (parametros == 'R') {
+            Completa la información para crear un nuevo usuario.
+            } @else {
+            Edita la información del usuario.
+            @if (datos?.claveUsuario) {
+            <br>
+            <span style="font-size: 12px; color: #757575; font-family: monospace;">
+                Clave: {{ datos.claveUsuario }}
+            </span>
+            }
+            }
         </p>
 
         <mat-form-field appearance="outline">
@@ -62,7 +68,7 @@
 
         <mat-form-field appearance="outline">
             <mat-label>Teléfono</mat-label>
-            <input matInput formControlName="telefono" autocomplete="off" />
+            <input matInput formControlName="telefono" autocomplete="off" mask="0000000000" />
             <mat-icon matPrefix>phone</mat-icon>
 
             @if (formulario.controls.telefono.hasError('required')) {
@@ -79,38 +85,37 @@
 
         </mat-form-field>
 
+        @if (parametros == 'A') {
+        <div class="toggle-notificaciones" matTooltip="Notificaciones en segundo plano.">
+            <mat-slide-toggle [checked]="suscripcionActiva" (change)="intercalarNotificaciones($event.checked)"
+                color="primary">
+                (desactivar o activar) Notificaciones
+            </mat-slide-toggle>
+        </div>
+        }
+
+        <div class="acciones-formulario acciones-3">
+
+            @if (parametros == 'A') {
+            <div>
+                <button mat-raised-button type="button" style="background-color:#0059b6; color:white"
+                    (click)="restablecer()" matTooltip="Cambiar contraseña">
+                    <mat-icon>lock_reset</mat-icon>
+                    Restablecer
+                </button>
+            </div>
+            }
+
+            <div>
+                <button mat-raised-button color="primary" type="submit">
+                    <mat-icon>
+                        {{ parametros == 'R' ? 'add' : 'edit' }}
+                    </mat-icon>
+                    {{ parametros == 'R' ? 'Crear' : 'Actualizar' }}
+                </button>
+            </div>
+        </div>
+
     </form>
 
 </mat-dialog-content>
-
-<mat-dialog-actions align="center">
-
-    <button mat-raised-button color="primary" type="button" style="background-color:#e0f002; color:rgb(7, 7, 7)"
-        (click)="suscripcionActiva ? eliminarSuscripcion() : crearSuscripcion()"
-        matTooltip="Configuración de notificaciones en segundo plano ">
-        <mat-icon>
-            {{ suscripcionActiva ? 'notifications_off' : 'notifications' }}
-        </mat-icon>
-        {{ suscripcionActiva ? 'Notificaciones' : 'Notificaciones' }}
-    </button>
-
-    @if (parametros == 'A') {
-    <button mat-raised-button color="primary" type="button" style="background-color:#0059b6; color:white"
-        (click)="restablecer()" matTooltip="Cambiar contraseña">
-        <mat-icon>lock_reset</mat-icon>
-        Restablecer
-    </button>
-    }
-<!-- 
-    <button mat-raised-button color="warn" mat-dialog-close>
-        <mat-icon>close</mat-icon>
-        Cancelar
-    </button> -->
-
-    <button mat-raised-button color="primary" type="submit" form="formulario">
-        <mat-icon>
-            {{ parametros == 'R' ? 'add' : 'edit' }}
-        </mat-icon>
-        {{ parametros == 'R' ? 'Crear' : 'Actualizar' }}
-    </button>
-</mat-dialog-actions>

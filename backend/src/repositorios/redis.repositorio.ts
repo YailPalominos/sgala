@@ -1,9 +1,10 @@
-import { actualizarClaveSocket, obtenerSocketsUsuario } from './redis/sesiones.redis';
+import { actualizarClaveSocket, obtenerSocketsUsuario, obtenerSesionPorClave } from './redis/sesiones.redis';
 import {
     obtenerDispositivo,
     obtenerDispositivosUsuario,
     actualizarDatosDispositivo,
-    agregarAlarma
+    agregarAlarma,
+    eliminarAlarma
 } from './redis/dispositivo.redis';
 import { obtenerNotificaciones, cambiarAtencionNotificacion } from './redis/notificaciones.redis';
 import { actualizarPrecios, obtenerPrecios } from './redis/datos.redis';
@@ -18,30 +19,23 @@ export const redisRepositorio = {
     /**
      * Actualiza la clave del socket de una sesión.
      *
-     * Wrapper que obtiene el idUsuario directamente
-     * desde la sesión almacenada en Redis.
+     * Obtiene el idUsuario buscando la sesión por clave.
      */
     async actualizarClaveSocket(
         claveSesion: string,
         claveSocket: string
     ): Promise<void> {
 
-        const { redis } = await import('../recursos/redis');
+        const sesion = await obtenerSesionPorClave(claveSesion);
 
-        const datos = await redis.hgetall(
-            `sesiones:${claveSesion}`
-        );
-
-        if (!datos || Object.keys(datos).length === 0) {
+        if (!sesion) {
             throw new Error(
                 'La sesión no existe o ha expirado.'
             );
         }
 
-        const idUsuario = Number(datos.idUsuario);
-
         await actualizarClaveSocket(
-            idUsuario,
+            sesion.idUsuario,
             claveSesion,
             claveSocket
         );
@@ -52,6 +46,8 @@ export const redisRepositorio = {
     obtenerNotificaciones,
 
     agregarAlarma,
+
+    eliminarAlarma,
 
     actualizarDatosDispositivo,
 

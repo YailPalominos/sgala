@@ -7,6 +7,8 @@ import crypto from 'crypto';
 import dayjs from 'dayjs';
 
 import { enviarSolicitudDispositivo } from './broker';
+import { agregarNotificacion, eliminarNotificacionPorAlarma } from './repositorios/redis/notificaciones.redis';
+import { crearEventoSistema } from './repositorios/base-datos/evento.repositorio';
 
 /** Instancia global del servidor Socket.io, accesible por otros módulos */
 export let ioInstance: Server;
@@ -70,36 +72,91 @@ async function manejarConexion(socket: Socket): Promise<void> {
 
     socket.on('solicitud/dispositivo', async (datos) => {
       try {
-        await enviarSolicitudDispositivo(
+        const respuesta = await enviarSolicitudDispositivo(
           datos.clave,
           datos
         );
 
+        if (!respuesta.exito) {
+          socket.emit('error/dispositivo', {
+            mensaje: respuesta.mensaje || 'El dispositivo rechazó la solicitud.'
+          });
+          return;
+        }
+
         if ('estatusAlarma' in datos) {
           if (datos.estatusAlarma == true) {
+            const claveAlarmaUsuario = crypto.randomUUID();
+
             await redisRepositorio.agregarAlarma(
               datos.clave,
               {
-                clave: crypto.randomUUID(),
+                clave: claveAlarmaUsuario,
                 descripcion: 'Alarma generada por usuario',
                 fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
               }
             );
+
+            const dispositivo = await redisRepositorio.obtenerDispositivo(datos.clave);
+
+            await agregarNotificacion(
+              dispositivo.idUsuario,
+              {
+                clave: crypto.randomUUID(),
+                descripcion: `Alarma activada en '${dispositivo.alias}' por usuario.`,
+                fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+                atendida: null,
+                claveDispositivo: dispositivo.clave,
+                claveAlarma: claveAlarmaUsuario,
+                origen: 'alarma'
+              }
+            );
+
+            await crearEventoSistema(
+              dispositivo.idUsuario,
+              `Alarma dispositivo clave:"${datos.clave}" activada por usuario con la clave de alarma:"${claveAlarmaUsuario}"`
+            );
+
+            await enviarNotificacionUsuario(dispositivo.idUsuario);
           }
         }
-
-        await redisRepositorio.actualizarDatosDispositivo(
-          datos.clave,
-          datos
-        );
-        await enviarDispositivoActualizado(
-          datos.clave
-        );
 
       } catch (error) {
         socket.emit('error/dispositivo',
           {
             mensaje: error instanceof Error ? error.message : 'Error al procesar la solicitud del dispositivo.'
+          }
+        );
+      }
+    });
+
+    socket.on('solicitud/alarma', async (datos) => {
+      try {
+
+        await redisRepositorio.eliminarAlarma(
+          datos.claveDispositivo,
+          datos.claveAlarma
+        );
+
+        await eliminarNotificacionPorAlarma(
+          id,
+          datos.claveAlarma,
+          datos.claveDispositivo,
+          datos.descripcion?.includes('sin conexión') ? 'conexion' : 'alarma'
+        );
+
+        await crearEventoSistema(
+          id,
+          `Alarma dispositivo clave:"${datos.claveDispositivo}" ${datos.descripcion || ''} desactivada con la clave de alarma:"${datos.claveAlarma}"`
+        );
+
+        await enviarDispositivoActualizado(datos.claveDispositivo);
+        await enviarNotificacionUsuario(id);
+
+      } catch (error) {
+        socket.emit('error/dispositivo',
+          {
+            mensaje: error instanceof Error ? error.message : 'Error al procesar la alarma.'
           }
         );
       }

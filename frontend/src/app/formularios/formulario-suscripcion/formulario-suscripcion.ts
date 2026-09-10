@@ -1,13 +1,11 @@
-import { Component, inject, ViewChild, ChangeDetectorRef } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Component, inject } from '@angular/core';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatStepperModule, MatStepper } from '@angular/material/stepper';
 import { MatSelectModule } from '@angular/material/select';
-import { distinctUntilChanged, filter, map } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { Dispositivo } from '../../interfaces/dispositivo';
 import { Notificador } from '../../recursos/notificador';
@@ -16,8 +14,9 @@ import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo
 import { ServicioSuscripciones } from '../../servicios/servicio-suscripciones';
 import { Formulario } from '../../recursos/dialogo.formulario';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
+
 @Component({
-  selector: 'app-agregar-dispositivo-dialog',
+  selector: 'app-formulario-suscripcion',
   standalone: true,
   imports: [
     ReactiveFormsModule,
@@ -26,127 +25,66 @@ import { DialogoServicio } from '../../recursos/dialogo.servicio';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatStepperModule,
     MatSelectModule,
     MatCardModule
   ],
   templateUrl: './formulario-suscripcion.html',
   styleUrls: ['./formulario-suscripcion.scss']
 })
-
 export class FormularioSuscripcion extends Formulario {
 
-  private servicioSuscricpiones = inject(ServicioSuscripciones);
+  private servicioSuscripciones = inject(ServicioSuscripciones);
   private socket = inject(Socket);
-  private cdr = inject(ChangeDetectorRef);
-  private dialogoServicio = inject(DialogoServicio)
-  private notificador = inject(Notificador)
-
-  @ViewChild('stepper') stepper!: MatStepper;
-
-  public dispositivos: Dispositivo[] = [];
-
-  tiposSuscripcionFiltrados: any[] = [];
-  preciosPorTipo: Map<string, any> = new Map();
-  nombresAtributos: { [key: string]: string } = {
-    'LOC': 'Localización',
-    'COC': 'Corta corrientes',
-    'ALA': 'Alarma sensor'
-  };
-
+  private dialogoServicio = inject(DialogoServicio);
+  private notificador = inject(Notificador);
   private _formBuilder = inject(FormBuilder);
 
-  formulario = this._formBuilder.group({
-    claveDispositivo: ['', Validators.required],
-  });
+  public dispositivos: Dispositivo[] = [];
+  public tiposSuscripcionFiltrados: any[] = [];
+  public resumenSuscripcion: any = null;
 
-  formulario1 = this._formBuilder.group({
+  formulario: FormGroup = this._formBuilder.group({
     claveDispositivo: ['', Validators.required],
-  });
-  formulario2 = this._formBuilder.group({
     tipoSuscripcion: ['', Validators.required],
   });
 
   ngOnInit(): void {
 
-    // Suscribirse a dispositivos desde el socket
     this.socket.dispositivos$
       .subscribe(dispositivos => {
         this.dispositivos = dispositivos;
       });
 
+    this.formulario.get('claveDispositivo')!.valueChanges
+      .subscribe(clave => {
+        if (clave) {
+          this.obtenerSuscripciones(clave);
+          this.formulario.get('tipoSuscripcion')!.reset();
+          this.resumenSuscripcion = null;
+        }
+      });
 
-    this.formulario1.statusChanges.pipe(
-      map(status => status === 'VALID'),
-      distinctUntilChanged(),
-      filter(valid => valid)
-    ).subscribe(() => {
-      this.avanzarStepper();
-    });
-
-    this.formulario1.valueChanges.subscribe(() => {
-      if (this.formulario1.valid) {
-        this.obtenerSuscripciones();
-      }
-    });
-
-    this.formulario2.statusChanges.pipe(
-      map(status => status === 'VALID'),
-      distinctUntilChanged(),
-      filter(valid => valid)
-    ).subscribe(() => {
-      this.avanzarStepper();
-    });
-
-    this.formulario2.valueChanges.subscribe(() => {
-      if (this.formulario2.valid) {
-        this.obtenerResumenSuscripcion();
-      }
-    });
-
-
+    this.formulario.get('tipoSuscripcion')!.valueChanges
+      .subscribe(tipo => {
+        if (tipo && this.formulario.get('claveDispositivo')!.valid) {
+          this.obtenerResumenSuscripcion();
+        }
+      });
   }
 
-  private avanzarStepper(): void {
-    // Forzar detección de cambios para que Angular actualice el estado
-    this.cdr.detectChanges();
-
-    // Esperar a que el stepper esté completamente inicializado
-    setTimeout(() => {
-      if (this.stepper) {
-        this.stepper.next();
-      }
-    }, 50);
-  }
-
-  public obtenerSuscripciones(): void {
-    const claveDispositivo = this.formulario1.value.claveDispositivo;
-    if (!claveDispositivo) {
-      throw new Error('La clave del dispositivo es requerida.');
-    }
-
-    this.servicioSuscricpiones.obtenerSuscripcionesDispositivo(claveDispositivo).subscribe({
+  private obtenerSuscripciones(claveDispositivo: string): void {
+    this.servicioSuscripciones.obtenerSuscripcionesDispositivo(claveDispositivo).subscribe({
       next: (respuesta: any) => {
-        this.tiposSuscripcionFiltrados = respuesta.datos
+        this.tiposSuscripcionFiltrados = respuesta.datos;
       }
     });
   }
 
-  resumenSuscripcion: any = null;
+  private obtenerResumenSuscripcion(): void {
+    const claveDispositivo = this.formulario.value.claveDispositivo;
+    const tipoSuscripcion = this.formulario.value.tipoSuscripcion;
 
-  public obtenerResumenSuscripcion(): void {
-    const claveDispositivo = this.formulario1.value.claveDispositivo;
-    if (!claveDispositivo) {
-      throw new Error('La clave del dispositivo es requerida.');
-    }
-
-    const tipoSuscripcion = this.formulario2.value.tipoSuscripcion;
-
-    if (!tipoSuscripcion) {
-      throw new Error('La clave del dispositivo es requerida.');
-    }
-
-    this.servicioSuscricpiones.obtenerResumenSuscripcion(claveDispositivo, tipoSuscripcion).subscribe({
+    this.servicioSuscripciones.obtenerResumenSuscripcion(claveDispositivo, tipoSuscripcion).subscribe({
       next: (respuesta: any) => {
         const inicio = new Date(respuesta.datos.fechaInicial);
         const fin = new Date(respuesta.datos.fechaFinal);
@@ -165,7 +103,7 @@ export class FormularioSuscripcion extends Formulario {
           periodo: `${formato.format(inicio)} - ${formato.format(fin)} (${dias} días)`,
           detalles: respuesta.datos.detalles,
           total: respuesta.datos.total,
-          tipoSuscripcion: respuesta.datos.tipoSuscripcion,
+          tipo: respuesta.datos.tipoSuscripcion,
           tipoSuscripcionTexto: respuesta.datos.tipoSuscripcion === 'G'
             ? 'Gratis'
             : respuesta.datos.tipoSuscripcion === 'S'
@@ -180,60 +118,40 @@ export class FormularioSuscripcion extends Formulario {
 
   public preparar(): void {
 
-    if (this.formulario1.invalid) {
-      this.formulario1.markAllAsTouched();
-      throw new Error(
-        'Debe seleccionar un dispositivo antes de continuar.'
-      );
+    if (this.formulario.invalid) {
+      this.formulario.markAllAsTouched();
+      return;
     }
 
-    if (this.formulario2.invalid) {
-      this.formulario2.markAllAsTouched();
-      throw new Error(
-        'Debe seleccionar el tipo de suscripción antes de continuar.'
-      );
-    }
-
-    const datos1 = this.formulario1.getRawValue();
-    const datos2 = this.formulario2.getRawValue();
-
-    const claveDispositivo = datos1.claveDispositivo;
-    const tipoSuscripcion = datos2.tipoSuscripcion;
-
-    const datos = {
-      claveDispositivo,
-      tipoSuscripcion
-    };
+    const datos = this.formulario.getRawValue();
 
     this.dialogoServicio.abrir({
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      ancho: '450px',
+      largo: '450px',
       desactivarAutocerrado: true,
       parametros: {
-        titulo: 'Crear nueva suscripcion',
-        mensaje: '¿Está seguro de crear la nueva suscripción?.',
+        titulo: 'Crear nueva suscripción',
+        mensaje: '¿Está seguro de crear la nueva suscripción?',
       },
-      alFinalizar: this.finalizarConfirmacion,
-      clase: this.constructor.name,
+      alFinalizar: this.finalizarConfirmacion.bind(this),
       datos
     });
   }
 
   public finalizarConfirmacion(respuesta: any): void {
-    if (respuesta?.resultado == true) {
-      this.crear(respuesta.datos)
+    if (respuesta?.resultado === true) {
+      this.crear(respuesta.datos);
     }
   }
 
-  private crear(datos: any) {
-    this.servicioSuscricpiones.crear(datos).subscribe({
+  private crear(datos: any): void {
+    this.servicioSuscripciones.crear(datos).subscribe({
       next: () => {
-        this.notificador.exitoso("La suscripción se ha creado exitosamente.")
-        this.cerrar(true)
+        this.notificador.exitoso('La suscripción se ha creado exitosamente.');
+        this.cerrar(true);
       }
-    })
+    });
   }
-
 }

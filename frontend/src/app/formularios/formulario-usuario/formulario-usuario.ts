@@ -6,6 +6,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltip } from "@angular/material/tooltip";
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { NgxMaskDirective } from 'ngx-mask';
 import { Router } from '@angular/router';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
 import { Autenticador } from '../../recursos/autenticador';
@@ -25,9 +27,30 @@ import { PushServicio } from '../../recursos/push';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatTooltip
+    MatTooltip,
+    MatSlideToggleModule,
+    NgxMaskDirective
   ],
   templateUrl: './formulario-usuario.html',
+  styles: [`
+    .dato-clave {
+      text-align: center;
+      font-size: 12px;
+      color: #757575;
+      font-family: monospace;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .toggle-notificaciones {
+      display: flex;
+      justify-content: center;
+      padding: 8px 0;
+    }
+  `]
 })
 export class FormularioUsuario extends Formulario {
 
@@ -58,6 +81,10 @@ export class FormularioUsuario extends Formulario {
       throw new Error('El formulario contiene datos inválidos.');
     }
 
+    if (!this.hayCambios()) {
+      throw new Error('No se realizaron cambios.');
+    }
+
     const datos = this.formulario.getRawValue();
 
     const esActualizar = this.parametros == 'A' ? true : false;
@@ -66,7 +93,6 @@ export class FormularioUsuario extends Formulario {
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      ancho: '450px',
       desactivarAutocerrado: true,
       parametros: {
         titulo: esActualizar ? 'Actualizar usuario' : 'Crear usuario',
@@ -76,16 +102,13 @@ export class FormularioUsuario extends Formulario {
         esActualizar: esActualizar
       },
       datos: datos,
-      alFinalizar: this.finalizarConfirmacion,
-      clase: this.constructor.name
+      alFinalizar: this.finalizarConfirmacion.bind(this)
     });
   }
 
   async ngOnInit() {
     this.suscripcionActiva = await this.pushServicio.verificarSuscripcion();
   }
-
-
 
   public finalizarConfirmacion(respuesta: any): void {
     if (respuesta?.resultado == true) {
@@ -120,14 +143,13 @@ export class FormularioUsuario extends Formulario {
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      ancho: '450px',
+      largo: '500px',
       desactivarAutocerrado: true,
       parametros: {
         titulo: 'Cambiar la contraseña',
         mensaje: '¿Estas seguro de cambiar la contraseña?',
       },
-      alFinalizar: this.finalizarRestablecer,
-      clase: this.constructor.name
+      alFinalizar: this.finalizarRestablecer.bind(this)
     });
   }
 
@@ -154,8 +176,19 @@ export class FormularioUsuario extends Formulario {
 
   async crearSuscripcion(): Promise<void> {
     await this.pushServicio.crearSuscripcion();
+    this.suscripcionActiva = true;
   }
+
   async eliminarSuscripcion(): Promise<void> {
     await this.pushServicio.eliminarSuscripcion();
+    this.suscripcionActiva = false;
+  }
+
+  async intercalarNotificaciones(activar: boolean): Promise<void> {
+    if (activar) {
+      await this.crearSuscripcion();
+    } else {
+      await this.eliminarSuscripcion();
+    }
   }
 }

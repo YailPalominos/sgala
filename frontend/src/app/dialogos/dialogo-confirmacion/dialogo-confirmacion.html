@@ -1,20 +1,23 @@
-<h2 mat-dialog-title class="centrado">
-    {{ parametros.titulo || 'Confirmar' }}
+<h2 class="titulo">
+    {{ parametros.titulo }}
 </h2>
+<div
+    style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; gap: 16px;">
 
-<mat-dialog-content class="centrado">
-    {{ parametros.mensaje || '¿Está seguro de realizar esta acción?' }}
-</mat-dialog-content>
+    <p style="margin: 0; font-size: 15px; color: #424242; white-space: pre-line;">
+        {{ parametros.mensaje || '¿Está seguro de realizar esta acción?' }}
+    </p>
 
-<mat-dialog-actions align="center">
+    <div style="display: flex; gap: 12px; margin-top: 8px;">
+        <button mat-raised-button (click)="responder(false)">
+            <mat-icon>close</mat-icon>
+            {{ parametros.textoNo || 'No' }}
+        </button>
 
-<button mat-raised-button (click)="responder(false)">
-    <mat-icon>close</mat-icon>
-    {{ parametros.textoNo || 'No' }}
-</button>
+        <button mat-raised-button color="primary" (click)="responder(true)">
+            <mat-icon>check</mat-icon>
+            {{ parametros.textoSi || 'Sí' }}
+        </button>
+    </div>
 
-<button mat-raised-button color="primary" (click)="responder(true)">
-    <mat-icon>check</mat-icon>
-    {{ parametros.textoSi || 'Sí' }}
-</button>
-</mat-dialog-actions>
+</div>

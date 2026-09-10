@@ -1,4 +1,4 @@
-import { Directive } from '@angular/core';
+import { Directive, signal } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { Dialogo } from './dialogo.base';
 
@@ -8,6 +8,9 @@ export abstract class Formulario extends Dialogo {
     // Debe ser implementado por la clase hija
     public abstract formulario: FormGroup;
 
+    private estadoInicial: any = null;
+    public hayCambios = signal(false);
+
     constructor() {
         super();
         queueMicrotask(() => {
@@ -15,6 +18,7 @@ export abstract class Formulario extends Dialogo {
                 this.actualizarDialogo({
                     datos: this.formulario.getRawValue()
                 });
+                this.verificarCambios();
             });
         });
     }
@@ -32,7 +36,21 @@ export abstract class Formulario extends Dialogo {
             );
             this.formulario.markAllAsTouched();
         }
+
+        // Guardar snapshot después de cargar los datos
+        queueMicrotask(() => {
+            this.estadoInicial = JSON.stringify(
+                this.formulario.getRawValue()
+            );
+            this.hayCambios.set(false);
+        });
     }
 
+    private verificarCambios(): void {
+        const estadoActual = JSON.stringify(
+            this.formulario.getRawValue()
+        );
+        this.hayCambios.set(estadoActual !== this.estadoInicial);
+    }
 
 }

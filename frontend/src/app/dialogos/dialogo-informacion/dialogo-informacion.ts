@@ -41,10 +41,7 @@ export interface ConfirmacionData {
 })
 export class DialogoInformacion extends Dialogo {
   public responder(respuesta: boolean): void {
-    this.cerrar({
-      resultado: null,
-      respuesta: respuesta
-    })
+    this.cerrar(respuesta)
   }
 
 }

@@ -1,7 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -33,7 +32,6 @@ export class PaginaAcceder {
   private autenticador = inject(Autenticador);
   private usuarioServicio = inject(ServicioUsuario);
   private router = inject(Router);
-  private dialog = inject(MatDialog);
   private notificador = inject(Notificador);
   private dialogoServicio = inject(DialogoServicio)
 
@@ -78,13 +76,12 @@ export class PaginaAcceder {
       referencia: DialogoValidacion,
       titulo: 'Validar',
       icono: 'check_circle',
-      ancho: '450px',
+      largo: '450px',
       desactivarAutocerrado: true,
       datos: {
         tipo: 'U'
       },
-      alFinalizar: this.finalizarRegistrarUsuario,
-      clase: this.constructor.name
+      alFinalizar: this.finalizarRegistrarUsuario.bind(this)
     });
   }
 
@@ -96,7 +93,7 @@ export class PaginaAcceder {
       referencia: FormularioUsuario,
       titulo: 'Usuario',
       icono: 'person',
-      ancho: '450px',
+      largo: '450px',
       desactivarAutocerrado: true,
       parametros: 'C',
       datos: { clave: respuesta }
@@ -104,7 +101,14 @@ export class PaginaAcceder {
   }
 
   abrirRecuperacion(): void {
-    this.dialog.open(DialogoRecuperacion, { width: '420px' });
+    this.dialogoServicio.abrir({
+      referencia: DialogoRecuperacion,
+      titulo: 'Recuperar contraseña',
+      icono: 'lock_reset',
+      largo: '420px',
+      desactivarAutocerrado: true,
+      recordar: false
+    });
   }
 
   abrirInformacion(): void {
@@ -112,6 +116,13 @@ export class PaginaAcceder {
   }
 
   abrirAyuda(): void {
-    this.dialog.open(DialogoAyuda, { width: '480px' });
+    this.dialogoServicio.abrir({
+      referencia: DialogoAyuda,
+      titulo: 'Ayuda o contacto',
+      icono: 'help',
+      largo: '480px',
+      desactivarAutocerrado: true,
+      recordar: false
+    });
   }
 }

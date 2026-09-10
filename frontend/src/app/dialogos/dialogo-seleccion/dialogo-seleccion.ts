@@ -1,9 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { Dialogo } from '../../recursos/dialogo.base';
 
 export interface OpcionSeleccion {
   clave: string;
@@ -42,18 +43,21 @@ export interface SeleccionData {
     }
   `]
 })
-export class DialogoSeleccion {
+export class DialogoSeleccion extends Dialogo {
 
-  private dialogRef = inject(MatDialogRef<DialogoSeleccion>);
-  protected data = inject<SeleccionData>(MAT_DIALOG_DATA);
+  seleccion: string | null = null;
 
-  seleccion: string | null = this.data.seleccionInicial ?? null;
+  override cargar(): void {
+    if (this.parametros?.seleccionInicial) {
+      this.seleccion = this.parametros.seleccionInicial;
+    }
+  }
 
   aceptar(): void {
-    this.dialogRef.close(this.seleccion);
+    this.cerrar(this.seleccion);
   }
 
   cancelar(): void {
-    this.dialogRef.close(null);
+    this.cerrar(null);
   }
 }

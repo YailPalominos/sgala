@@ -21,7 +21,7 @@ import { PanelEventos } from './paneles/panel-eventos/panel-eventos.componente';
 
 export interface Notificacion {
   clave: string,
-  icono: string,
+  origen: string,
   descripcion: string,
   fecha: string,
   atendida: boolean
@@ -74,14 +74,13 @@ export class AppComponent {
     this.socket.notificaciones$
       .subscribe(notificaciones => {
         this.notificaciones = notificaciones;
+        this.totalNotificacionesPendientes = notificaciones.filter(
+          (n: any) => n.atendida === null || n.atendida === false
+        ).length;
       });
   }
 
-  get totalNotificacionesPendientes(): number {
-    return this.notificaciones.filter(
-      n => n.atendida === null || n.atendida === false
-    ).length;
-  }
+  public totalNotificacionesPendientes = 0;
 
   get notificacionesOrdenadas(): Notificacion[] {
     return [...this.notificaciones].sort((a, b) => {
@@ -110,35 +109,45 @@ export class AppComponent {
     );
   }
 
+  public obtenerIconoNotificacion(origen: string): string {
+    switch (origen) {
+      case 'conexion': return 'cable';
+      case 'alarma': return 'warning';
+      case 'suscripcion': return 'hourglass_top';
+      case 'sistema': return 'info';
+      default: return 'notifications';
+    }
+  }
+
   public actualizarUsuario(): void {
     this.dialogoServicio.abrir({
       referencia: FormularioUsuario,
       titulo: 'Usuario',
       icono: 'person',
-      ancho: '450px',
+      largo: '450px',
       desactivarAutocerrado: true,
       parametros: 'A',
       datos: this.sesion,
-      alFinalizar: this.finalizarActualizarUsuario,
-      clase: this.constructor.name
+      alFinalizar: this.finalizarActualizarUsuario.bind(this)
     });
   }
 
   private finalizarActualizarUsuario(respuesta: any) {
-    console.log('>>>>',respuesta)
-    // this.cargador.mostrar()
-    // setTimeout(() => {
-    //   this.notificador.advertencia("Debes iniciar sesión nuevamente.")
-    // }, 2000);
-    // setTimeout(() => {
-    //   this.cargador.ocultar()
-    //   this.servicioUsuario.cerrarSesion().subscribe({
-    //     next: () => {
-    //       this.autenticador.eliminarSesion()
-    //       this.socket.desconectar();
-    //     }
-    //   });
-    // }, 5000);
+    if (respuesta?.resultado == true) {
+      this.cargador.mostrar()
+      setTimeout(() => {
+        this.notificador.advertencia("Debes iniciar sesión nuevamente.")
+      }, 2000);
+      setTimeout(() => {
+        this.cargador.ocultar()
+        this.servicioUsuario.cerrarSesion().subscribe({
+          next: () => {
+            this.autenticador.eliminarSesion()
+            this.socket.desconectar();
+          }
+        });
+      }, 5000);
+    }
   }
 
   public cerrarSesion(): void {
@@ -146,7 +155,7 @@ export class AppComponent {
       next: () => {
         this.autenticacionServicio.eliminarSesion();
         this.socket.desconectar();
-        this.router.navigate(['/iniciar-sesion']);
+        this.router.navigate(['/acceder']);
       },
       error: (error) => {
         throw new Error(error)
@@ -160,7 +169,7 @@ export class AppComponent {
       referencia: PanelSuscripciones,
       titulo: 'Suscripciones',
       icono: 'hourglass_top',
-      ancho: '900px',
+      largo: '900px',
       desactivarAutocerrado: true,
     });
   }
@@ -170,7 +179,7 @@ export class AppComponent {
       referencia: PanelEventos,
       titulo: 'Eventos',
       icono: 'event',
-      ancho: '900px',
+      largo: '900px',
       desactivarAutocerrado: true,
     });
   }
@@ -180,18 +189,18 @@ export class AppComponent {
       referencia: PanelLocalizaciones,
       titulo: 'Localizaciones',
       icono: 'map_search',
-      ancho: '900px',
+      largo: '900px',
       desactivarAutocerrado: true,
     });
   }
 
   //#endregion
 
+  //#region Ventanas
+
   public restaurar(idDialogo: string): void {
     this.dialogoServicio.abrirDialogo(idDialogo)
   }
-
-  //#region Ventanas
 
   public editar(dialogo: any, evento: FocusEvent): void {
 

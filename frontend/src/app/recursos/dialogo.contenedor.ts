@@ -4,10 +4,9 @@ import { MatButtonModule } from "@angular/material/button";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatIconModule } from "@angular/material/icon";
 import { MatTooltipModule } from "@angular/material/tooltip";
+import { MatMenuModule } from "@angular/material/menu";
 import { Dialogo } from "./dialogo.base";
 import { DialogoServicio } from "./dialogo.servicio";
-import { Panel } from "./dialogo.panel";
-import { Formulario } from "./dialogo.formulario";
 
 export interface EstadoDialogo {
   datos?: any;
@@ -21,7 +20,8 @@ export interface EstadoDialogo {
     CommonModule,
     MatButtonModule,
     MatIconModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatMenuModule
   ],
   template: `
 <div class="dialogo-contenedor">
@@ -31,66 +31,69 @@ export interface EstadoDialogo {
     (mousedown)="iniciarArrastre($event)"
     [class.moviendo]="moviendo"
   >
-<!-- 
-     <button
-      mat-icon-button
-      class="btn-reiniciar"
-      matTooltip="Reiniciar"
-      (click)="reiniciar()">
-      <mat-icon>restart_alt</mat-icon>
-    </button>
 
-    <button
-      mat-icon-button
-      class="btn-intercalar-fijar"
-      matTooltip="Fijar o desfijar"
-      (click)="intercalarFijar()">
-
-      @if (fijado==true) {
-        <mat-icon>keep</mat-icon>
-      } @else {
-        <mat-icon>keep_off</mat-icon>
-      }
-
-    </button> -->
+    <div class="barra-izquierda">
+    </div>
 
     <h1>
       {{ data.titulo }}
     </h1>
 
+    <div class="barra-derecha">
+      <button
+        mat-icon-button
+        class="btn-intercalar-fijar"
+        matTooltip="{{ fijado ? 'Desfijar' : 'Fijar' }}"
+        (click)="intercalarFijar()">
+        <mat-icon>{{ fijado ? 'circle' : 'radio_button_unchecked' }}</mat-icon>
+      </button>
 
-    <button
-      mat-icon-button
-      class="btn-minimizar"
-      matTooltip="Minimizar"
-      (click)="minimizar()">
-      <mat-icon>remove</mat-icon>
-    </button>
+      <button
+        mat-icon-button
+        class="btn-minimizar"
+        matTooltip="Minimizar"
+        (click)="minimizar()"
+        [style.display]="data.recordar === false ? 'none' : ''"
+        [disabled]="fijado">
+        <mat-icon>remove</mat-icon>
+      </button>
 
+      <button
+        mat-icon-button
+        class="btn-expandir"
+        matTooltip="Expandir"
+        (click)="expandirContraer()"
+        [disabled]="fijado">
+        <mat-icon>
+          {{ expandido ? 'fullscreen_exit' : 'fullscreen' }}
+        </mat-icon>
+      </button>
 
-    <button
-      mat-icon-button
-      class="btn-expandir"
-      matTooltip="Expandir"
-      (click)="expandirContraer()">
-      <mat-icon>
-        {{ expandido ? 'fullscreen_exit' : 'fullscreen' }}
-      </mat-icon>
-    </button>
+      <button
+        mat-icon-button
+        class="btn-cerrar"
+        matTooltip="Cerrar"
+        [matMenuTriggerFor]="menuCerrar"
+        [disabled]="fijado">
+        <mat-icon>close</mat-icon>
+      </button>
 
-
-    <button
-      mat-icon-button
-      class="btn-cerrar"
-      matTooltip="Salir"
-      (click)="eliminar()">
-      <mat-icon>close</mat-icon>
-    </button>
+      <mat-menu #menuCerrar="matMenu">
+        <button mat-menu-item (click)="eliminar()">
+          <mat-icon>check</mat-icon>
+          <span>Sí</span>
+        </button>
+        <button mat-menu-item>
+          <mat-icon>close</mat-icon>
+          <span>No</span>
+        </button>
+      </mat-menu>
+    </div>
 
   </div>
 
-  <ng-container  #contenedor ></ng-container>
-<!-- 
+  <ng-container #contenedor></ng-container>
+
   <div
     class="resize resize-top"
     (mousedown)="iniciarResize($event, 'top')">
@@ -129,10 +132,9 @@ export interface EstadoDialogo {
   <div
     class="resize resize-bottom-left"
     (mousedown)="iniciarResize($event, 'bottom-left')">
-  </div>  -->
-
-
   </div>
+
+</div>
 `
 })
 export class DialogoContenedorComponent {
@@ -199,7 +201,7 @@ export class DialogoContenedorComponent {
       });
 
     this.componenteRef.instance.cerrarDialogo$.subscribe(resultado => {
-      this.resultadoDialogo = resultado.respuesta;
+      this.resultadoDialogo = resultado;
       this.cerrar()
     });
 
@@ -326,11 +328,23 @@ export class DialogoContenedorComponent {
   }
 
   public reiniciar(): void {
+    this.expandido = false;
 
+    this.dialogoReferencia.updateSize(
+      this.data.width ?? '850px',
+      this.data.height ?? 'auto'
+    );
+
+    this.dialogoReferencia.updatePosition({
+      top: undefined,
+      left: undefined
+    });
+
+    this.actualizarEstadoContenedor();
   }
 
   public intercalarFijar(): void {
-    this.fijado = !this.fijado
+    this.fijado = !this.fijado;
   }
 
 
@@ -379,6 +393,10 @@ export class DialogoContenedorComponent {
   ): void {
 
     if (this.expandido) {
+      return;
+    }
+
+    if (this.fijado) {
       return;
     }
 
@@ -526,6 +544,10 @@ export class DialogoContenedorComponent {
       return;
     }
 
+    if (this.fijado) {
+      return;
+    }
+
     evento.preventDefault();
 
     this.moviendo = true;
@@ -577,14 +599,39 @@ export class DialogoContenedorComponent {
     const diferenciaY =
       evento.clientY - this.inicioY;
 
+    let nuevaX = this.posicionInicialX + diferenciaX;
+    let nuevaY = this.posicionInicialY + diferenciaY;
+
+    const anchoVentana = window.innerWidth;
+    const altoVentana = window.innerHeight;
+
+    // No permitir que se salga por arriba
+    if (nuevaY < 0) {
+      nuevaY = 0;
+    }
+
+    // No permitir que se salga por abajo (dejar al menos 40px visibles)
+    if (nuevaY > altoVentana - 40) {
+      nuevaY = altoVentana - 40;
+    }
+
+    // No permitir que se salga por la izquierda (dejar al menos 100px visibles)
+    if (nuevaX < -((this.anchoInicial || 400) - 100)) {
+      nuevaX = -((this.anchoInicial || 400) - 100);
+    }
+
+    // No permitir que se salga por la derecha (dejar al menos 100px visibles)
+    if (nuevaX > anchoVentana - 100) {
+      nuevaX = anchoVentana - 100;
+    }
 
     this.dialogoReferencia.updatePosition({
 
       left:
-        `${this.posicionInicialX + diferenciaX}px`,
+        `${nuevaX}px`,
 
       top:
-        `${this.posicionInicialY + diferenciaY}px`
+        `${nuevaY}px`
 
     });
 

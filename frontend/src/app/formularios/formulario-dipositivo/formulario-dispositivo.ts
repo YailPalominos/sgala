@@ -5,6 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { NgxMaskDirective } from 'ngx-mask';
 import { Notificador } from '../../recursos/notificador';
 import { ServicioDispositivo } from '../../servicios/servicio-dispositivo';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
@@ -22,8 +23,22 @@ import { DialogoServicio } from '../../recursos/dialogo.servicio';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    NgxMaskDirective
   ],
   templateUrl: './formulario-dispositivo.html',
+  styles: [`
+    .dato-clave {
+      text-align: center;
+      font-size: 12px;
+      color: #757575;
+      font-family: monospace;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+  `]
 })
 export class FormularioDispositivo extends Formulario {
 
@@ -52,6 +67,10 @@ export class FormularioDispositivo extends Formulario {
       throw new Error('El formulario contiene datos inválidos.');
     }
 
+    if (!this.hayCambios()) {
+      throw new Error('No se realizaron cambios.');
+    }
+
     const datos = this.formulario.getRawValue();
     const esActualizar = this.parametros == 'A';
 
@@ -59,7 +78,7 @@ export class FormularioDispositivo extends Formulario {
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      ancho: '450px',
+      largo: '450px',
       desactivarAutocerrado: true,
       parametros: {
         titulo: esActualizar ? 'Actualizar dispositivo' : 'Crear dispositivo',
@@ -71,8 +90,7 @@ export class FormularioDispositivo extends Formulario {
         esActualizar: esActualizar
       },
       datos: datos,
-      alFinalizar: this.finalizarConfirmacion,
-      clase: this.constructor.name
+      alFinalizar: this.finalizarConfirmacion.bind(this)
     });
   }
 

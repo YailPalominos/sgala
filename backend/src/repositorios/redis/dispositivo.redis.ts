@@ -1,4 +1,3 @@
-
 import { redis } from '../../recursos/redis';
 
 export interface Alarma {
@@ -32,8 +31,11 @@ export interface EstadoDispositivoRedis {
 
     porcentajeBateria: number | null;
 
-    /** 'E' estacionada, 'M' en movimiento, 'P' prendida. */
-    estado: 'E' | 'M' | 'P' | null;
+    /** Indica si el dispositivo está encendido. */
+    estatusEncendida: boolean | null;
+
+    /** Indica si el dispositivo está en movimiento. */
+    estatusMovimiento: boolean | null;
 
     estatusFijarEstacionado: boolean | null;
 
@@ -42,107 +44,55 @@ export interface EstadoDispositivoRedis {
 
 
 /**
- * Convierte un HASH de Redis a EstadoDispositivoRedis.
+ * Obtiene todos los dispositivos de un usuario.
+ *
+ * Estructura:
+ * dispositivos:{idUsuario} → JSON string con array de dispositivos
  */
-function convertirDispositivo(
-    datos: Record<string, string>
-): EstadoDispositivoRedis {
+export async function obtenerDispositivosUsuario(
+    idUsuario: number
+): Promise<EstadoDispositivoRedis[]> {
 
-    if (!datos.clave) {
+    try {
+
+        const datos = await redis.get(
+            `dispositivos:${idUsuario}`
+        );
+
+        if (!datos) {
+            return [];
+        }
+
+        return JSON.parse(datos) as EstadoDispositivoRedis[];
+
+    } catch (error) {
+
         throw new Error(
-            'El dispositivo no contiene una clave válida.'
+            `Error al obtener los dispositivos del usuario ${idUsuario}: ${error instanceof Error
+                ? error.message
+                : String(error)
+            }`
         );
     }
-
-    if (!datos.idUsuario) {
-        throw new Error(
-            `El dispositivo ${datos.clave} no contiene idUsuario.`
-        );
-    }
-
-    return {
-        clave: datos.clave,
-
-        idUsuario: Number(datos.idUsuario),
-
-        alias: datos.alias ?? '',
-
-        cualidades: datos.cualidades ?? '',
-
-        telefono: datos.telefono ?? '',
-
-        estatusConexion:
-            !datos.estatusConexion ||
-                datos.estatusConexion === 'null'
-                ? null
-                : datos.estatusConexion === 'true',
-
-        localizacion:
-            !datos.localizacion ||
-                datos.localizacion === 'null'
-                ? null
-                : JSON.parse(datos.localizacion),
-
-        estatusAlarma:
-            !datos.estatusAlarma ||
-                datos.estatusAlarma === 'null'
-                ? null
-                : datos.estatusAlarma === 'true',
-
-        estatusCortaCorriente:
-            !datos.estatusCortaCorriente ||
-                datos.estatusCortaCorriente === 'null'
-                ? null
-                : datos.estatusCortaCorriente === 'true',
-
-        fechaFinalSuscripcion:
-            !datos.fechaFinalSuscripcion ||
-                datos.fechaFinalSuscripcion === 'null'
-                ? null
-                : datos.fechaFinalSuscripcion,
-
-        porcentajeBateria:
-            !datos.porcentajeBateria ||
-                datos.porcentajeBateria === 'null'
-                ? null
-                : Number(datos.porcentajeBateria),
-
-        estado:
-            !datos.estado ||
-                datos.estado === 'null'
-                ? null
-                : datos.estado as 'E' | 'M' | 'P',
-
-        estatusFijarEstacionado:
-            !datos.estatusFijarEstacionado ||
-                datos.estatusFijarEstacionado === 'null'
-                ? null
-                : datos.estatusFijarEstacionado === 'true',
-
-        alarmas:
-            !datos.alarmas ||
-                datos.alarmas === 'null'
-                ? null
-                : JSON.parse(datos.alarmas)
-    };
 }
 
 
 /**
- * Obtiene todas las claves de dispositivos utilizando SCAN.
+ * Obtiene un dispositivo específico por su clave.
  *
- * No utiliza KEYS para evitar bloquear Redis.
+ * Busca en todos los usuarios hasta encontrarlo.
+ * Si se conoce el idUsuario, usar obtenerDispositivoDeUsuario.
  */
-async function obtenerClavesDispositivos(): Promise<string[]> {
+export async function obtenerDispositivo(
+    clave: string
+): Promise<EstadoDispositivoRedis> {
 
     try {
 
         const claves: string[] = [];
-
         let cursor = '0';
 
         do {
-
             const resultado = await redis.scan(
                 cursor,
                 'MATCH',
@@ -150,12 +100,6 @@ async function obtenerClavesDispositivos(): Promise<string[]> {
                 'COUNT',
                 500
             );
-
-            if (!resultado || resultado.length < 2) {
-                throw new Error(
-                    'Redis no devolvió un resultado válido al buscar dispositivos.'
-                );
-            }
 
             cursor = resultado[0];
 
@@ -165,234 +109,28 @@ async function obtenerClavesDispositivos(): Promise<string[]> {
 
         } while (cursor !== '0');
 
-        return claves.filter(
-            clave =>
-                !clave.startsWith(
-                    'dispositivos:dispositivo:'
-                )
-        );
 
-    } catch (error) {
+        for (const llaveRedis of claves) {
 
-        throw new Error(
-            `Error al obtener las claves de dispositivos: ${error instanceof Error
-                ? error.message
-                : String(error)
-            }`
-        );
-    }
-}
+            const datos = await redis.get(llaveRedis);
 
-
-/**
- * Reemplaza el estado de todos los dispositivos en Redis.
- *
- * Elimina los estados anteriores y guarda los nuevos.
- *
- * También reconstruye los índices:
- *
- * dispositivos:dispositivo:{idUsuario}
- *
- * Los valores null se almacenan como "null".
- */
-export async function guardarEstadosDispositivos(
-    dispositivos: EstadoDispositivoRedis[]
-): Promise<void> {
-
-    try {
-
-        const clavesActuales: string[] = [];
-
-        let cursor = '0';
-
-        do {
-
-            const resultado = await redis.scan(
-                cursor,
-                'MATCH',
-                'dispositivos:*',
-                'COUNT',
-                500
-            );
-
-            if (!resultado || resultado.length < 2) {
-                throw new Error(
-                    'Redis no devolvió un resultado válido al obtener los dispositivos actuales.'
-                );
+            if (!datos) {
+                continue;
             }
 
-            cursor = resultado[0];
+            const dispositivos: EstadoDispositivoRedis[] =
+                JSON.parse(datos);
 
-            if (Array.isArray(resultado[1])) {
-                clavesActuales.push(...resultado[1]);
+            const dispositivo = dispositivos.find(
+                d => d.clave.toUpperCase() === clave.toUpperCase()
+            );
+
+            if (dispositivo) {
+                return dispositivo;
             }
-
-        } while (cursor !== '0');
-
-
-        /*
-         * Eliminar dispositivos e índices anteriores.
-         */
-        if (clavesActuales.length > 0) {
-
-            await redis.del(
-                ...clavesActuales
-            );
         }
 
-
-        /*
-         * No hay dispositivos nuevos.
-         */
-        if (dispositivos.length === 0) {
-            return;
-        }
-
-
-        /*
-         * Pipeline para guardar los dispositivos
-         * y sus índices.
-         */
-        const pipeline =
-            redis.pipeline();
-
-
-        for (const dispositivo of dispositivos) {
-
-            const claveRedis =
-                `dispositivos:${dispositivo.clave}`;
-
-
-            /*
-             * Guardar HASH del dispositivo.
-             */
-            pipeline.hset(
-                claveRedis,
-                {
-                    clave:
-                        dispositivo.clave,
-
-                    idUsuario:
-                        String(dispositivo.idUsuario),
-
-                    alias:
-                        dispositivo.alias,
-
-                    cualidades:
-                        dispositivo.cualidades,
-
-                    telefono:
-                        dispositivo.telefono,
-
-                    estatusConexion:
-                        String(
-                            dispositivo.estatusConexion ?? null
-                        ),
-
-                    localizacion:
-                        JSON.stringify(
-                            dispositivo.localizacion ?? null
-                        ),
-
-                    estatusAlarma:
-                        String(
-                            dispositivo.estatusAlarma ?? null
-                        ),
-
-                    estatusCortaCorriente:
-                        String(
-                            dispositivo.estatusCortaCorriente ?? null
-                        ),
-
-                    fechaFinalSuscripcion:
-                        String(
-                            dispositivo.fechaFinalSuscripcion ?? null
-                        ),
-
-                    porcentajeBateria:
-                        String(
-                            dispositivo.porcentajeBateria ?? null
-                        ),
-
-                    estado:
-                        String(
-                            dispositivo.estado ?? null
-                        ),
-
-                    estatusFijarEstacionado:
-                        String(
-                            dispositivo.estatusFijarEstacionado ?? null
-                        ),
-
-                    alarmas:
-                        JSON.stringify(
-                            dispositivo.alarmas ?? null
-                        )
-                }
-            );
-
-
-            /*
-             * Índice por usuario.
-             */
-            pipeline.sadd(
-                `dispositivos:dispositivo:${dispositivo.idUsuario}`,
-                dispositivo.clave
-            );
-        }
-
-
-        const resultados =
-            await pipeline.exec();
-
-
-        if (resultados === null) {
-            throw new Error(
-                'Redis no devolvió resultados al guardar los dispositivos.'
-            );
-        }
-
-    } catch (error) {
-
-        throw new Error(
-            `Error al guardar los estados de los dispositivos: ${error instanceof Error
-                ? error.message
-                : String(error)
-            }`
-        );
-    }
-}
-
-
-/**
- * Obtiene el estado completo de un dispositivo.
- *
- * @param clave - Clave del dispositivo.
- */
-export async function obtenerDispositivo(
-    clave: string
-): Promise<EstadoDispositivoRedis> {
-
-    try {
-
-        const datos =
-            await redis.hgetall(
-                `dispositivos:${clave}`
-            );
-
-
-        if (
-            !datos ||
-            Object.keys(datos).length === 0
-        ) {
-
-            throw new Error(
-                'Dispositivo no encontrado.'
-            );
-        }
-
-
-        return convertirDispositivo(datos);
+        throw new Error('Dispositivo no encontrado.');
 
     } catch (error) {
 
@@ -407,10 +145,107 @@ export async function obtenerDispositivo(
 
 
 /**
- * Agrega una alarma al dispositivo.
+ * Obtiene un dispositivo de un usuario específico.
+ */
+export async function obtenerDispositivoDeUsuario(
+    idUsuario: number,
+    clave: string
+): Promise<EstadoDispositivoRedis | null> {
+
+    const dispositivos = await obtenerDispositivosUsuario(idUsuario);
+
+    return dispositivos.find(d => d.clave === clave) ?? null;
+}
+
+
+/**
+ * Guarda todos los dispositivos en Redis.
  *
- * @param clave - Clave del dispositivo.
- * @param alarma - Información de la alarma.
+ * Agrupa por idUsuario y guarda cada grupo
+ * en su llave correspondiente.
+ *
+ * Elimina las llaves anteriores primero.
+ */
+export async function guardarEstadosDispositivos(
+    dispositivos: EstadoDispositivoRedis[]
+): Promise<void> {
+
+    try {
+
+        /*
+         * Eliminar todas las llaves de dispositivos actuales.
+         */
+        const clavesActuales: string[] = [];
+        let cursor = '0';
+
+        do {
+            const resultado = await redis.scan(
+                cursor,
+                'MATCH',
+                'dispositivos:*',
+                'COUNT',
+                500
+            );
+
+            cursor = resultado[0];
+
+            if (Array.isArray(resultado[1])) {
+                clavesActuales.push(...resultado[1]);
+            }
+
+        } while (cursor !== '0');
+
+        if (clavesActuales.length > 0) {
+            await redis.del(...clavesActuales);
+        }
+
+        if (dispositivos.length === 0) {
+            return;
+        }
+
+
+        /*
+         * Agrupar dispositivos por idUsuario.
+         */
+        const porUsuario = new Map<number, EstadoDispositivoRedis[]>();
+
+        for (const dispositivo of dispositivos) {
+
+            const lista = porUsuario.get(dispositivo.idUsuario) ?? [];
+            lista.push(dispositivo);
+            porUsuario.set(dispositivo.idUsuario, lista);
+        }
+
+
+        /*
+         * Guardar cada grupo en su llave.
+         */
+        const pipeline = redis.pipeline();
+
+        for (const [idUsuario, listaDispositivos] of porUsuario) {
+
+            pipeline.set(
+                `dispositivos:${idUsuario}`,
+                JSON.stringify(listaDispositivos)
+            );
+        }
+
+        await pipeline.exec();
+
+    } catch (error) {
+
+        throw new Error(
+            `Error al guardar los estados de los dispositivos: ${error instanceof Error
+                ? error.message
+                : String(error)
+            }`
+        );
+    }
+}
+
+
+/**
+ * Agrega una alarma a un dispositivo.
  */
 export async function agregarAlarma(
     clave: string,
@@ -419,35 +254,36 @@ export async function agregarAlarma(
 
     try {
 
-        const llave =
-            `dispositivos:${clave}`;
+        const dispositivo = await obtenerDispositivo(clave);
 
+        const llaveRedis = `dispositivos:${dispositivo.idUsuario}`;
 
-        const existe =
-            await redis.exists(llave);
+        const datos = await redis.get(llaveRedis);
 
-
-        if (!existe) {
-
-            throw new Error(
-                'Dispositivo no encontrado.'
-            );
+        if (!datos) {
+            throw new Error('Dispositivo no encontrado.');
         }
 
+        const dispositivos: EstadoDispositivoRedis[] =
+            JSON.parse(datos);
 
-        const datos =
-            await redis.hget(
-                llave,
-                'alarmas'
-            );
+        const indice = dispositivos.findIndex(
+            d => d.clave.toUpperCase() === clave.toUpperCase()
+        );
 
+        if (indice === -1) {
+            throw new Error('Dispositivo no encontrado.');
+        }
 
-        const alarmas: Alarma[] =
-            !datos ||
-                datos === 'null'
-                ? []
-                : JSON.parse(datos);
+        const alarmas = dispositivos[indice].alarmas ?? [];
 
+        const yaExiste = alarmas.some(
+            a => a.descripcion === alarma.descripcion
+        );
+
+        if (yaExiste) {
+            return;
+        }
 
         alarmas.push({
             clave: alarma.clave,
@@ -455,11 +291,11 @@ export async function agregarAlarma(
             fecha: alarma.fecha
         });
 
+        dispositivos[indice].alarmas = alarmas;
 
-        await redis.hset(
-            llave,
-            'alarmas',
-            JSON.stringify(alarmas)
+        await redis.set(
+            llaveRedis,
+            JSON.stringify(dispositivos)
         );
 
     } catch (error) {
@@ -475,97 +311,178 @@ export async function agregarAlarma(
 
 
 /**
+ * Elimina una alarma específica de un dispositivo por su clave.
+ */
+export async function eliminarAlarma(
+    claveDispositivo: string,
+    claveAlarma: string
+): Promise<void> {
+
+    try {
+
+        const dispositivo = await obtenerDispositivo(claveDispositivo);
+
+        const llaveRedis = `dispositivos:${dispositivo.idUsuario}`;
+
+        const datos = await redis.get(llaveRedis);
+
+        if (!datos) {
+            throw new Error('Dispositivo no encontrado.');
+        }
+
+        const dispositivos: EstadoDispositivoRedis[] =
+            JSON.parse(datos);
+
+        const indice = dispositivos.findIndex(
+            d => d.clave.toUpperCase() === claveDispositivo.toUpperCase()
+        );
+
+        if (indice === -1) {
+            throw new Error('Dispositivo no encontrado.');
+        }
+
+        const alarmas = dispositivos[indice].alarmas ?? [];
+
+        const indiceAlarma = alarmas.findIndex(
+            a => a.clave === claveAlarma
+        );
+
+        if (indiceAlarma === -1) {
+            throw new Error('Alarma no encontrada.');
+        }
+
+        alarmas.splice(indiceAlarma, 1);
+
+        dispositivos[indice].alarmas = alarmas.length > 0 ? alarmas : null;
+
+        await redis.set(
+            llaveRedis,
+            JSON.stringify(dispositivos)
+        );
+
+    } catch (error) {
+
+        throw new Error(
+            `Error al eliminar la alarma del dispositivo ${claveDispositivo}: ${error instanceof Error
+                ? error.message
+                : String(error)
+            }`
+        );
+    }
+}
+
+
+/**
+ * Elimina todas las alarmas de desconexión de un dispositivo.
+ * Retorna las claves de las alarmas eliminadas.
+ */
+export async function eliminarAlarmasDesconexion(
+    claveDispositivo: string
+): Promise<string[]> {
+
+    try {
+
+        const dispositivo = await obtenerDispositivo(claveDispositivo);
+
+        const llaveRedis = `dispositivos:${dispositivo.idUsuario}`;
+
+        const datos = await redis.get(llaveRedis);
+
+        if (!datos) {
+            return [];
+        }
+
+        const dispositivos: EstadoDispositivoRedis[] =
+            JSON.parse(datos);
+
+        const indice = dispositivos.findIndex(
+            d => d.clave.toUpperCase() === claveDispositivo.toUpperCase()
+        );
+
+        if (indice === -1) {
+            return [];
+        }
+
+        const alarmas = dispositivos[indice].alarmas ?? [];
+
+        const alarmasDesconexion = alarmas.filter(
+            a => a.descripcion.includes('sin conexión')
+        );
+
+        const clavesEliminadas = alarmasDesconexion.map(a => a.clave);
+
+        dispositivos[indice].alarmas = alarmas.filter(
+            a => !a.descripcion.includes('sin conexión')
+        );
+
+        if (dispositivos[indice].alarmas!.length === 0) {
+            dispositivos[indice].alarmas = null;
+        }
+
+        await redis.set(
+            llaveRedis,
+            JSON.stringify(dispositivos)
+        );
+
+        return clavesEliminadas;
+
+    } catch (error) {
+        return [];
+    }
+}
+
+
+/**
  * Obtiene todos los dispositivos sin conexión.
  *
- * Se consideran sin conexión:
- *
- * null
- * false
+ * Se consideran sin conexión: null o false.
  */
 export async function obtenerDispositivosSinConexion():
     Promise<EstadoDispositivoRedis[]> {
 
     try {
 
-        const claves =
-            await obtenerClavesDispositivos();
+        const claves: string[] = [];
+        let cursor = '0';
 
-
-        if (claves.length === 0) {
-            return [];
-        }
-
-
-        const pipeline =
-            redis.pipeline();
-
-
-        for (const clave of claves) {
-
-            pipeline.hgetall(clave);
-        }
-
-
-        const resultados =
-            await pipeline.exec();
-
-
-        if (resultados === null) {
-
-            throw new Error(
-                'Redis no devolvió resultados al consultar los dispositivos.'
+        do {
+            const resultado = await redis.scan(
+                cursor,
+                'MATCH',
+                'dispositivos:*',
+                'COUNT',
+                500
             );
-        }
 
+            cursor = resultado[0];
 
-        const dispositivos:
-            EstadoDispositivoRedis[] = [];
-
-
-        for (const resultado of resultados) {
-
-            if (
-                !resultado ||
-                resultado.length < 2
-            ) {
-
-                throw new Error(
-                    'Redis devolvió un resultado inválido al consultar un dispositivo.'
-                );
+            if (Array.isArray(resultado[1])) {
+                claves.push(...resultado[1]);
             }
 
+        } while (cursor !== '0');
 
-            const datos =
-                resultado[1] as Record<string, string>;
+        const sinConexion: EstadoDispositivoRedis[] = [];
 
+        for (const llaveRedis of claves) {
 
-            if (
-                !datos ||
-                Object.keys(datos).length === 0
-            ) {
+            const datos = await redis.get(llaveRedis);
 
-                throw new Error(
-                    'No se encontraron datos de un dispositivo.'
-                );
+            if (!datos) {
+                continue;
             }
 
+            const dispositivos: EstadoDispositivoRedis[] =
+                JSON.parse(datos);
 
-            const dispositivo =
-                convertirDispositivo(datos);
-
-
-            if (
-                dispositivo.estatusConexion !== true
-            ) {
-
-                dispositivos.push(
-                    dispositivo
-                );
+            for (const dispositivo of dispositivos) {
+                if (dispositivo.estatusConexion !== true) {
+                    sinConexion.push(dispositivo);
+                }
             }
         }
 
-
-        return dispositivos;
+        return sinConexion;
 
     } catch (error) {
 
@@ -580,122 +497,7 @@ export async function obtenerDispositivosSinConexion():
 
 
 /**
- * Obtiene todos los dispositivos asociados
- * a un usuario.
- *
- * Utiliza el índice:
- *
- * dispositivos:dispositivo:{idUsuario}
- *
- * y después obtiene directamente cada HASH.
- */
-export async function obtenerDispositivosUsuario(
-    idUsuario: number
-): Promise<EstadoDispositivoRedis[]> {
-
-    try {
-
-        const claves =
-            await redis.smembers(
-                `dispositivos:dispositivo:${idUsuario}`
-            );
-
-
-        if (!claves) {
-
-            throw new Error(
-                `No se pudo obtener el índice de dispositivos del usuario ${idUsuario}.`
-            );
-        }
-
-
-        if (claves.length === 0) {
-            return [];
-        }
-
-
-        const pipeline =
-            redis.pipeline();
-
-
-        for (const clave of claves) {
-
-            pipeline.hgetall(
-                `dispositivos:${clave}`
-            );
-        }
-
-
-        const resultados =
-            await pipeline.exec();
-
-
-        if (resultados === null) {
-
-            throw new Error(
-                `Redis no devolvió resultados para los dispositivos del usuario ${idUsuario}.`
-            );
-        }
-
-
-        const dispositivos:
-            EstadoDispositivoRedis[] = [];
-
-
-        for (const resultado of resultados) {
-
-            if (
-                !resultado ||
-                resultado.length < 2
-            ) {
-
-                throw new Error(
-                    'Redis devolvió un resultado inválido al consultar un dispositivo.'
-                );
-            }
-
-
-            const datos =
-                resultado[1] as Record<string, string>;
-
-
-            if (
-                !datos ||
-                Object.keys(datos).length === 0
-            ) {
-
-                throw new Error(
-                    'Un dispositivo registrado en el índice no existe en Redis.'
-                );
-            }
-
-
-            dispositivos.push(
-                convertirDispositivo(datos)
-            );
-        }
-
-
-        return dispositivos;
-
-    } catch (error) {
-
-        throw new Error(
-            `Error al obtener los dispositivos del usuario ${idUsuario}: ${error instanceof Error
-                ? error.message
-                : String(error)
-            }`
-        );
-    }
-}
-
-
-/**
- * Actualiza únicamente el estado de conexión
- * de un dispositivo.
- *
- * @param clave - Clave del dispositivo.
- * @param estatusConexion - Estado de conexión.
+ * Actualiza el estado de conexión de un dispositivo.
  */
 export async function actualizarEstatusConexion(
     clave: string,
@@ -704,26 +506,32 @@ export async function actualizarEstatusConexion(
 
     try {
 
-        const llave =
-            `dispositivos:${clave.toUpperCase()}`;
+        const dispositivo = await obtenerDispositivo(clave.toUpperCase());
 
+        const llaveRedis = `dispositivos:${dispositivo.idUsuario}`;
 
-        const existe =
-            await redis.exists(llave);
+        const datos = await redis.get(llaveRedis);
 
-
-        if (!existe) {
-
-            throw new Error(
-                'Dispositivo no encontrado.'
-            );
+        if (!datos) {
+            throw new Error('Dispositivo no encontrado.');
         }
 
+        const dispositivos: EstadoDispositivoRedis[] =
+            JSON.parse(datos);
 
-        await redis.hset(
-            llave,
-            'estatusConexion',
-            String(estatusConexion)
+        const indice = dispositivos.findIndex(
+            d => d.clave === clave.toUpperCase()
+        );
+
+        if (indice === -1) {
+            throw new Error('Dispositivo no encontrado.');
+        }
+
+        dispositivos[indice].estatusConexion = estatusConexion;
+
+        await redis.set(
+            llaveRedis,
+            JSON.stringify(dispositivos)
         );
 
     } catch (error) {
@@ -739,14 +547,10 @@ export async function actualizarEstatusConexion(
 
 
 /**
- * Actualiza únicamente los datos enviados
- * de un dispositivo.
+ * Actualiza los datos de un dispositivo.
  *
- * undefined:
- * No modifica el campo.
- *
- * null:
- * Almacena la cadena "null".
+ * Solo modifica los campos presentes en `datos`.
+ * null almacena null, undefined no modifica.
  */
 export async function actualizarDatosDispositivo(
     claveDispositivo: string,
@@ -755,25 +559,26 @@ export async function actualizarDatosDispositivo(
 
     try {
 
-        const llave =
-            `dispositivos:${claveDispositivo}`;
+        const dispositivo = await obtenerDispositivo(claveDispositivo);
 
+        const llaveRedis = `dispositivos:${dispositivo.idUsuario}`;
 
-        const existe =
-            await redis.exists(llave);
+        const contenido = await redis.get(llaveRedis);
 
-
-        if (!existe) {
-
-            throw new Error(
-                'Dispositivo no encontrado.'
-            );
+        if (!contenido) {
+            throw new Error('Dispositivo no encontrado.');
         }
 
+        const dispositivos: EstadoDispositivoRedis[] =
+            JSON.parse(contenido);
 
-        const actualizacion:
-            Record<string, string> = {};
+        const indice = dispositivos.findIndex(
+            d => d.clave.toUpperCase() === claveDispositivo.toUpperCase()
+        );
 
+        if (indice === -1) {
+            throw new Error('Dispositivo no encontrado.');
+        }
 
         const campos = [
             'alias',
@@ -782,11 +587,11 @@ export async function actualizarDatosDispositivo(
             'estatusCortaCorriente',
             'fechaFinalSuscripcion',
             'porcentajeBateria',
-            'estado',
+            'estatusEncendida',
+            'estatusMovimiento',
             'localizacion',
             'estatusFijarEstacionado'
         ] as const;
-
 
         for (const campo of campos) {
 
@@ -794,45 +599,12 @@ export async function actualizarDatosDispositivo(
                 continue;
             }
 
-
-            const valor =
-                datos[campo];
-
-
-            if (valor === null) {
-
-                actualizacion[campo] =
-                    'null';
-
-                continue;
-            }
-
-
-            if (campo === 'localizacion') {
-
-                actualizacion[campo] =
-                    JSON.stringify(valor);
-
-                continue;
-            }
-
-
-            actualizacion[campo] =
-                String(valor);
+            (dispositivos[indice] as any)[campo] = datos[campo];
         }
 
-
-        if (
-            Object.keys(actualizacion).length === 0
-        ) {
-
-            return;
-        }
-
-
-        await redis.hset(
-            llave,
-            actualizacion
+        await redis.set(
+            llaveRedis,
+            JSON.stringify(dispositivos)
         );
 
     } catch (error) {
