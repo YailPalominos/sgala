@@ -27,6 +27,7 @@ import { DialogoComparacion } from './dialogos/dilogo-comparacion/dialogo-compar
 import { DialogoSeleccion } from './dialogos/dialogo-seleccion/dialogo-seleccion';
 import { DialogoAyuda } from './dialogos/dialogo-ayuda/dialogo-ayuda';
 import { DialogoAlarmas } from './dialogos/dialogo-alarmas/dialogo-alarmas';
+import { DialogoAsistente } from './dialogos/dialogo-asistente/dialogo-asistente';
 
 export const clases = new InjectionToken<Type<any>[]>('clases');
 
@@ -65,7 +66,8 @@ export const appConfig: ApplicationConfig = {
         DialogoComparacion,
         DialogoSeleccion,
         DialogoAyuda,
-        DialogoAlarmas
+        DialogoAlarmas,
+        DialogoAsistente
       ]
     },
     provideServiceWorker('ngsw-worker.js', {

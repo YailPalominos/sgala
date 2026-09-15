@@ -1,0 +1,59 @@
+<mat-dialog-content>
+
+  <div class="chat-contenido">
+
+    @for (mensaje of mensajes; track mensaje.fecha) {
+
+    <div class="mensaje" [class.mensaje-agente]="mensaje.usuario === 'A'"
+      [class.mensaje-usuario]="mensaje.usuario === 'U'">
+
+      <div class="mensaje-contenido">
+        {{ mensaje.contenido }}
+      </div>
+
+      <div class="mensaje-fecha">
+        {{ mensaje.fecha }}
+      </div>
+
+      @if (mensaje.opciones?.length) {
+
+      <div class="mensaje-opciones">
+
+        @for (opcion of mensaje.opciones; track opcion.id) {
+
+        <button mat-stroked-button class="opcion-chat" (click)="seleccionarOpcion(opcion.clave)">
+
+          <span>
+            {{ opcion.contenido }}
+          </span>
+
+        </button>
+
+        }
+
+      </div>
+
+      }
+
+    </div>
+
+    }
+
+
+  </div>
+
+</mat-dialog-content>
+
+<mat-dialog-actions class="chat-acciones">
+
+  <input type="text" placeholder="Escribe tu mensaje..." class="chat-input" [(ngModel)]="mensaje" maxlength="150"
+    (keyup.enter)="enviarMensaje()">
+
+  <button mat-icon-button color="primary" aria-label="Enviar mensaje" (click)="enviarMensaje()">
+
+    <mat-icon>send</mat-icon>
+
+  </button>
+
+
+</mat-dialog-actions>
