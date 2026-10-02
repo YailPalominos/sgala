@@ -6,7 +6,7 @@
     }
 </h2>
 <mat-dialog-content>
-    <form [formGroup]="formulario" (ngSubmit)="preparar()">
+    <form id="formDispositivo" [formGroup]="formulario" (ngSubmit)="preparar()">
 
         <p style="text-align: center;width: 100%;">
             @if (parametros.accion === 'R') {
@@ -20,7 +20,7 @@
             }
         </p>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" class="c100 m50 g50">
             <mat-label>Alias</mat-label>
             <input matInput formControlName="alias" />
             <mat-icon matPrefix>label</mat-icon>
@@ -45,7 +45,7 @@
 
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" class="c100 m50 g50">
             <mat-label>Teléfono</mat-label>
             <input matInput formControlName="telefono" type="tel" mask="0000000000" />
             <mat-icon matPrefix>phone</mat-icon>
@@ -64,16 +64,28 @@
 
         </mat-form-field>
 
-        <div class="acciones-formulario acciones-1">
-            <div>
-                <button mat-raised-button color="primary" type="submit">
-                    <mat-icon>
-                        {{ parametros.accion === 'R' ? 'add' : 'edit' }}
-                    </mat-icon>
-                    {{ parametros.accion === 'R' ? 'Crear' : 'Actualizar' }}
-                </button>
-            </div>
-        </div>
-
     </form>
 </mat-dialog-content>
+
+<mat-dialog-actions>
+
+    <div class="c100 m50 g50">
+        <button mat-raised-button color="accent" type="button" (click)="conectar()">
+            <mat-icon>
+                bluetooth
+            </mat-icon>
+            Conectar
+        </button>
+    </div>
+
+    <div class="c100 m50 g50">
+        <button mat-raised-button color="primary" type="submit" form="formDispositivo"
+            [class.boton-inactivo]="!puedeEnviar()">
+            <mat-icon>
+                {{ parametros.accion === 'R' ? 'add' : 'edit' }}
+            </mat-icon>
+            {{ parametros.accion === 'R' ? 'Crear' : 'Actualizar' }}
+        </button>
+    </div>
+
+</mat-dialog-actions>

@@ -1,0 +1,69 @@
+<h2 class="titulo">
+    {{ parametros.titulo }}
+</h2>
+
+<mat-dialog-content style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center;">
+
+    <span style="font-size: 18px; text-align: center; margin: 10px;"> {{ parametros.cuerpo }}</span>
+
+    <mat-form-field appearance="outline">
+
+        <mat-label>
+            PIN
+        </mat-label>
+
+        <input matInput type="password" [formControl]="entrada" autocomplete="new-password" mask="000000"
+            [dropSpecialCharacters]="true" />
+
+        <mat-icon matPrefix>
+            lock
+        </mat-icon>
+
+        @if (entrada.hasError('required')) {
+        <mat-error>
+            El PIN es requerido
+        </mat-error>
+        }
+
+    </mat-form-field>
+
+
+    <mat-form-field appearance="outline">
+
+        <mat-label>
+            Confirmar PIN
+        </mat-label>
+
+        <input matInput type="password" [formControl]="entradaConfirmar" autocomplete="new-password" mask="000000"
+            [dropSpecialCharacters]="true" />
+
+        <mat-icon matPrefix>
+            lock
+        </mat-icon>
+
+        @if (entradaConfirmar.hasError('required')) {
+        <mat-error>
+            Debes confirmar el PIN
+        </mat-error>
+        }
+
+        @if (entradaConfirmar.hasError('noCoincide')) {
+        <mat-error>
+            Los PIN no coinciden
+        </mat-error>
+        }
+
+    </mat-form-field>
+
+
+
+</mat-dialog-content>
+<mat-dialog-actions align="center">
+    <button mat-raised-button color="primary" (click)="responder()"
+        [disabled]="entrada.invalid || entradaConfirmar.invalid">
+
+        <mat-icon>check</mat-icon>
+        Listo
+
+    </button>
+</mat-dialog-actions>

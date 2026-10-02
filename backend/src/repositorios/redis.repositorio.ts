@@ -1,4 +1,4 @@
-import { actualizarClaveSocket, obtenerSocketsUsuario, obtenerSesionPorClave } from './redis/sesiones.redis';
+import { actualizarClaveSocket, obtenerSocketsUsuario, obtenerSesionPorClave, limpiarClaveSocket } from './redis/sesiones.redis';
 import {
     obtenerDispositivo,
     obtenerDispositivosUsuario,
@@ -42,22 +42,14 @@ export const redisRepositorio = {
     },
 
     obtenerDispositivosUsuario,
-
     obtenerNotificaciones,
-
     agregarAlarma,
-
     eliminarAlarma,
-
     actualizarDatosDispositivo,
-
     cambiarAtencionNotificacion,
-
     obtenerDispositivo,
-
     obtenerSocketsUsuario,
-
+    limpiarClaveSocket,
     obtenerPrecios,
-
     actualizarPrecios
 };

@@ -50,8 +50,25 @@ export class PushServicio {
 
             if (!registro) {
 
-                registro =
-                    await navigator.serviceWorker.register('/sw.js');
+                try {
+
+                    registro =
+                        await navigator.serviceWorker.register('/sw.js');
+
+                } catch (errorRegistro: any) {
+
+                    if (errorRegistro?.name === 'SecurityError') {
+
+                        this.notificador.error(
+                            "Las notificaciones requieren un certificado SSL válido. " +
+                            "Acepte el certificado del sitio o acceda mediante un dominio seguro."
+                        );
+
+                        return;
+                    }
+
+                    throw errorRegistro;
+                }
 
             }
 
@@ -111,22 +128,26 @@ export class PushServicio {
     async verificarSuscripcion(): Promise<boolean> {
 
         if (!('serviceWorker' in navigator)) {
-            this.notificador.advertencia(
-                "El navegador no soporta el servicio de notificaciones en segundo plano."
-            );
             return false;
         }
 
+        try {
 
-        const registro =
-            await navigator.serviceWorker.ready;
+            const registro =
+                await navigator.serviceWorker.getRegistration('/');
 
+            if (!registro) {
+                return false;
+            }
 
-        const suscripcion =
-            await registro.pushManager.getSubscription();
+            const suscripcion =
+                await registro.pushManager.getSubscription();
 
+            return suscripcion !== null;
 
-        return suscripcion !== null;
+        } catch {
+            return false;
+        }
     }
 
 

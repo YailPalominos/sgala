@@ -1,6 +1,6 @@
-import sql from 'mssql';
+import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
-import { pool } from '../../recursos/base-datos';
+import { prisma } from '../../recursos/prisma';
 import { obtenerSesion } from '@/interceptores/solicitud';
 
 export interface Evento {
@@ -13,36 +13,15 @@ export interface Evento {
 
 export async function crear(descripcion: string): Promise<void> {
 
-    const sesion = obtenerSesion()
+    const sesion = obtenerSesion();
 
-    await pool.request()
-        .input(
-            'descripcion',
-            sql.VarChar(1000),
-            descripcion.trim()
-        )
-        .input(
-            'fecha',
-            sql.DateTime,
-            dayjs().toDate()
-        )
-        .input(
-            'idUsuario',
-            sql.Int,
-            sesion?.idUsuario ?? null
-        )
-        .query(`
-            INSERT INTO eventos (
-                descripcion,
-                fecha,
-                id_usuario
-            )
-            VALUES (
-                @descripcion,
-                @fecha,
-                @idUsuario
-            )
-        `);
+    await prisma.eventos.create({
+        data: {
+            descripcion: descripcion.trim(),
+            fecha: dayjs().toDate(),
+            id_usuario: sesion?.idUsuario ?? null
+        }
+    });
 }
 
 
@@ -51,34 +30,13 @@ export async function crear(descripcion: string): Promise<void> {
  */
 export async function crearEventoSistema(idUsuario: number, descripcion: string): Promise<void> {
 
-    await pool.request()
-        .input(
-            'descripcion',
-            sql.VarChar(1000),
-            descripcion.trim()
-        )
-        .input(
-            'fecha',
-            sql.DateTime,
-            dayjs().toDate()
-        )
-        .input(
-            'idUsuario',
-            sql.Int,
-            idUsuario
-        )
-        .query(`
-            INSERT INTO eventos (
-                descripcion,
-                fecha,
-                id_usuario
-            )
-            VALUES (
-                @descripcion,
-                @fecha,
-                @idUsuario
-            )
-        `);
+    await prisma.eventos.create({
+        data: {
+            descripcion: descripcion.trim(),
+            fecha: dayjs().toDate(),
+            id_usuario: idUsuario
+        }
+    });
 }
 
 /**
@@ -91,94 +49,47 @@ export async function obtenerLista(
     filtros: any
 ): Promise<Evento[]> {
 
-    const request = pool.request()
-        .input('idUsuario', sql.Int, idUsuario);
-
-    let condiciones = `
-        WHERE e.id_usuario = @idUsuario
-    `;
+    const condiciones: Prisma.Sql[] = [
+        Prisma.sql`e.id_usuario = ${idUsuario}`
+    ];
 
     if (filtros.fechaInicial) {
-        condiciones += `
-            AND CAST(e.fecha AS DATE) >= @fechaInicial
-        `;
-
-        request.input(
-            'fechaInicial',
-            sql.Date,
-            filtros.fechaInicial
-        );
+        condiciones.push(Prisma.sql`CAST(e.fecha AS DATE) >= ${filtros.fechaInicial}`);
     }
 
     if (filtros.fechaFinal) {
-        condiciones += `
-            AND CAST(e.fecha AS DATE) <= @fechaFinal
-        `;
-
-        request.input(
-            'fechaFinal',
-            sql.Date,
-            filtros.fechaFinal
-        );
+        condiciones.push(Prisma.sql`CAST(e.fecha AS DATE) <= ${filtros.fechaFinal}`);
     }
 
     if (filtros.horaInicial) {
-        condiciones += `
-            AND CAST(e.fecha AS TIME) >= @horaInicial
-        `;
-
-        request.input(
-            'horaInicial',
-            sql.Time,
-            filtros.horaInicial
-        );
+        condiciones.push(Prisma.sql`CAST(e.fecha AS TIME) >= ${filtros.horaInicial}`);
     }
 
     if (filtros.horaFinal) {
-        condiciones += `
-            AND CAST(e.fecha AS TIME) <= @horaFinal
-        `;
-
-        request.input(
-            'horaFinal',
-            sql.Time,
-            filtros.horaFinal
-        );
+        condiciones.push(Prisma.sql`CAST(e.fecha AS TIME) <= ${filtros.horaFinal}`);
     }
 
     if (filtros.descripcion) {
-        condiciones += `
-            AND e.descripcion LIKE @descripcion
-        `;
-
-        request.input(
-            'descripcion',
-            sql.VarChar(1000),
-            `%${filtros.descripcion}%`
-        );
+        condiciones.push(Prisma.sql`e.descripcion LIKE ${'%' + filtros.descripcion + '%'}`);
     }
 
-    const consulta = await request.query(`
-    SELECT
-        ROW_NUMBER() OVER (
-            ORDER BY e.fecha DESC, e.id
-        ) AS id,
+    const where = Prisma.join(condiciones, ' AND ');
 
-        e.descripcion,
-        e.fecha,
-
-        h.id AS id_elemento,
-        h.tipo
-
-    FROM eventos e
-
-    LEFT JOIN historial_registros h
-        ON h.id_evento = e.id
-
-    ${condiciones}
-
-    ORDER BY e.fecha DESC, e.id;
-`);
+    const registros = await prisma.$queryRaw<Evento[]>`
+        SELECT
+            ROW_NUMBER() OVER (
+                ORDER BY e.fecha DESC, e.id
+            ) AS id,
+            e.descripcion,
+            e.fecha,
+            h.id AS id_elemento,
+            h.tipo
+        FROM eventos e
+        LEFT JOIN historial_registros h
+            ON h.id_evento = e.id
+        WHERE ${where}
+        ORDER BY e.fecha DESC, e.id;
+    `;
 
     function formatearValor(valor: unknown): string {
 
@@ -218,7 +129,8 @@ export async function obtenerLista(
             ']'
         }`
     );
-    return consulta.recordset;
+
+    return registros;
 }
 
 export interface DatosElemento {
@@ -241,69 +153,49 @@ export async function obtenerDatosElemento(
     idElemento: number
 ): Promise<DatosElemento | null> {
 
-    const consulta = await pool.request()
-        .input(
-            'idElemento',
-            sql.Int,
-            idElemento
-        )
-        .query(`
-            SELECT
-                actual.tabla,
+    const registros = await prisma.$queryRaw<any[]>`
+        SELECT
+            actual.tabla,
+            actual.tipo AS tipoConsultado,
+            actual.fecha AS fechaConsultado,
+            actual.datos AS datosConsultados,
+            usuario.alias AS aliasUsuario,
+            anterior.tipo AS tipoAnterior,
+            anterior.fecha AS fechaAnterior,
+            anterior.datos AS datosAnteriores,
+            anterior.alias_usuario AS aliasUsuarioAnterior
+        FROM historial_registros actual
+        INNER JOIN eventos evento
+            ON evento.id = actual.id_evento
+        LEFT JOIN usuarios usuario
+            ON usuario.id = evento.id_usuario
+        OUTER APPLY (
+            SELECT TOP 1
+                h.tipo,
+                h.fecha,
+                h.datos,
+                u.alias AS alias_usuario
+            FROM historial_registros h
+            INNER JOIN eventos e
+                ON e.id = h.id_evento
+            LEFT JOIN usuarios u
+                ON u.id = e.id_usuario
+            WHERE
+                h.tabla = actual.tabla
+                AND h.id_registro = actual.id_registro
+                AND h.id < actual.id
+            ORDER BY h.id DESC
+        ) anterior
+        WHERE actual.id = ${idElemento};
+    `;
 
-                actual.tipo AS tipo_consultado,
-                actual.fecha AS fecha_consultado,
-                actual.datos AS datos_consultados,
-
-                usuario.alias AS alias_usuario,
-
-                anterior.tipo AS tipo_anterior,
-                anterior.fecha AS fecha_anterior,
-                anterior.datos AS datos_anteriores,
-                anterior.alias_usuario AS alias_usuario_anterior
-
-            FROM historial_registros actual
-
-            INNER JOIN eventos evento
-                ON evento.id = actual.id_evento
-
-            LEFT JOIN usuarios usuario
-                ON usuario.id = evento.id_usuario
-
-            OUTER APPLY (
-                SELECT TOP 1
-                    h.tipo,
-                    h.fecha,
-                    h.datos,
-                    u.alias AS alias_usuario
-
-                FROM historial_registros h
-
-                INNER JOIN eventos e
-                    ON e.id = h.id_evento
-
-                LEFT JOIN usuarios u
-                    ON u.id = e.id_usuario
-
-                WHERE
-                    h.tabla = actual.tabla
-                    AND h.id_registro = actual.id_registro
-                    AND h.id < actual.id
-
-                ORDER BY h.id DESC
-
-            ) anterior
-
-            WHERE actual.id = @idElemento;
-        `);
-
-    if (consulta.recordset.length === 0) {
+    if (registros.length === 0) {
         throw new Error(
             `No se encontraron los datos del elemento con el Id:${idElemento}`
         );
     }
 
-    const registro = consulta.recordset[0];
+    const registro = registros[0];
 
     function filtrarDatos(datosJson: string | null): unknown {
 

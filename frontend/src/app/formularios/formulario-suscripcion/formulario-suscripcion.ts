@@ -129,7 +129,7 @@ export class FormularioSuscripcion extends Formulario {
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      largo: '450px',
+      largo: 'l25%,m45%,c100%',
       desactivarAutocerrado: true,
       parametros: {
         titulo: 'Crear nueva suscripción',

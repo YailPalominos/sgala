@@ -1,6 +1,6 @@
 @if(autenticado){
 <mat-toolbar class="toolbar-inicio">
-    <img src="logo.svg" alt="SGALA" class="logo" />
+    <img [src]="temaServicio.rutaImagen('logo.svg')" alt="SGALA" class="logo" />
     <span style="flex: 1;"></span>
 
 
@@ -70,9 +70,22 @@
     </button>
 
     <h2 style="font-size: 18px;">{{sesion.alias}}</h2>
-    <button mat-icon-button matTooltip="Cerrar sesión" (click)="cerrarSesion()" style="margin-left: 30px;">
+    <button mat-icon-button matTooltip="Cerrar sesión" [matMenuTriggerFor]="menuCerrarSesion"
+        style="margin-left: 30px;">
         <mat-icon>logout</mat-icon>
     </button>
+
+    <mat-menu #menuCerrarSesion="matMenu">
+        <div class="menu-cerrar-sesion-titulo">¿Cerrar sesión?</div>
+        <button mat-menu-item (click)="cerrarSesion()">
+            <mat-icon>check</mat-icon>
+            <span>Sí, cerrar sesión</span>
+        </button>
+        <button mat-menu-item>
+            <mat-icon>close</mat-icon>
+            <span>Cancelar</span>
+        </button>
+    </mat-menu>
 </mat-toolbar>
 }
 

@@ -1,10 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormGroup, FormControl, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogoAyuda } from '../../dialogos/dialogo-ayuda/dialogo-ayuda';
 import { environment } from '../../../environments/environment';
 import { DialogoValidacion } from '../../dialogos/dilogo-validacion/dialogo-validacion';
@@ -14,6 +16,8 @@ import { Autenticador } from '../../recursos/autenticador';
 import { ServicioUsuario } from '../../servicios/servicio-usuario';
 import { Notificador } from '../../recursos/notificador';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
+import { TemaServicio } from '../../recursos/tema.servicio';
+import { DialogoAgente } from '../../dialogos/dialogo-agente/dialogo-agente';
 
 @Component({
   selector: 'app-login',
@@ -24,6 +28,8 @@ import { DialogoServicio } from '../../recursos/dialogo.servicio';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatCardModule,
+    MatTooltipModule,
   ],
   templateUrl: './pagina-acceder.html',
   styleUrl: './pagina-acceder.scss',
@@ -32,8 +38,10 @@ export class PaginaAcceder {
   private autenticador = inject(Autenticador);
   private usuarioServicio = inject(ServicioUsuario);
   private router = inject(Router);
+  private rutaActiva = inject(ActivatedRoute);
   private notificador = inject(Notificador);
   private dialogoServicio = inject(DialogoServicio)
+  public temaServicio = inject(TemaServicio)
 
   public formulario = new FormGroup({
     identificador: new FormControl('', [Validators.required]),
@@ -42,9 +50,15 @@ export class PaginaAcceder {
 
   ocultarContrasena = signal(true);
   version = environment.version;
+  esAdministrador = signal(false);
 
   ngOnInit(): void {
     this.autenticador.eliminarSesion()
+    this.dialogoServicio.eliminarTodos()
+
+    this.esAdministrador.set(
+      this.rutaActiva.snapshot.queryParamMap.get('tipo') === 'admin'
+    );
   }
 
   enviar(): void {
@@ -76,11 +90,10 @@ export class PaginaAcceder {
       referencia: DialogoValidacion,
       titulo: 'Validar',
       icono: 'check_circle',
-      largo: '450px',
+      largo: 'l30%,m50%,c100%',
       desactivarAutocerrado: true,
-      datos: {
-        tipo: 'U'
-      },
+      parametros: 'U',
+      recordar: false,
       alFinalizar: this.finalizarRegistrarUsuario.bind(this)
     });
   }
@@ -93,9 +106,10 @@ export class PaginaAcceder {
       referencia: FormularioUsuario,
       titulo: 'Usuario',
       icono: 'person',
-      largo: '450px',
+      largo: 'l35%,m55%,c100%',
       desactivarAutocerrado: true,
       parametros: 'C',
+      recordar: false,
       datos: { clave: respuesta }
     });
   }
@@ -105,7 +119,7 @@ export class PaginaAcceder {
       referencia: DialogoRecuperacion,
       titulo: 'Recuperar contraseña',
       icono: 'lock_reset',
-      largo: '420px',
+      largo: 'l30%,m50%,c100%',
       desactivarAutocerrado: true,
       recordar: false
     });
@@ -120,7 +134,18 @@ export class PaginaAcceder {
       referencia: DialogoAyuda,
       titulo: 'Ayuda o contacto',
       icono: 'help',
-      largo: '480px',
+      largo: 'l35%,m55%,c100%',
+      desactivarAutocerrado: true,
+      recordar: false
+    });
+  }
+
+  abrirAgente(): void {
+    this.dialogoServicio.abrir({
+      referencia: DialogoAgente,
+      titulo: 'Agente',
+      icono: 'support_agent',
+      largo: 'l30%,m50%,c100%',
       desactivarAutocerrado: true,
       recordar: false
     });

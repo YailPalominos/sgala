@@ -53,4 +53,12 @@ export abstract class Formulario extends Dialogo {
         this.hayCambios.set(estadoActual !== this.estadoInicial);
     }
 
+    /**
+     * Indica si el formulario puede enviarse:
+     * debe ser válido y tener cambios reales respecto al estado inicial.
+     */
+    public puedeEnviar(): boolean {
+        return this.formulario.valid && this.hayCambios();
+    }
+
 }

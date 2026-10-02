@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { Router } from '@angular/router';
 import { MatBadgeModule } from '@angular/material/badge';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
-import { DialogoAsistente } from '../../dialogos/dialogo-asistente/dialogo-asistente';
+import { DialogoAgente } from '../../dialogos/dialogo-agente/dialogo-agente';
 import { MatTooltip } from '@angular/material/tooltip';
 @Component({
   selector: 'app-informacion',
@@ -37,12 +37,12 @@ export class PaginaInformacion {
     this.router.navigate(['/iniciar-sesion']);
   }
 
-  abrirAsistente(): void {
+  abrirAgente(): void {
     this.dialogoServicio.abrir({
-      referencia: DialogoAsistente,
-      titulo: 'Asistente',
+      referencia: DialogoAgente,
+      titulo: 'Agente',
       icono: 'support_agent',
-      largo: '500px',
+      largo: 'l30%,m50%,c100%',
       desactivarAutocerrado: true,
     });
   }

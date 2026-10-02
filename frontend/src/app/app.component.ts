@@ -1,5 +1,6 @@
-import { Component, inject, Type } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { Component, inject, Type, ChangeDetectorRef } from '@angular/core';
+import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { CargadorComponent } from './componentes/cargador/cargador.component';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,6 +15,8 @@ import { ServicioUsuario } from './servicios/servicio-usuario';
 import { Cargador } from './recursos/cargador';
 import { Autenticador, Sesion } from './recursos/autenticador';
 import { Notificador } from './recursos/notificador';
+import { TemaServicio } from './recursos/tema.servicio';
+import { DialogoConfirmacion } from './dialogos/dialogo-confirmacion/dialogo-confirmacion';
 import { PanelSuscripciones } from './paneles/panel-suscripciones/panel-suscripciones.componente';
 import { PanelLocalizaciones } from './paneles/panel-localizaciones/panel-localizaciones.componente';
 import { MatBadgeModule } from '@angular/material/badge';
@@ -39,6 +42,7 @@ export class AppComponent {
   private socket = inject(Socket);
   private autenticacionServicio = inject(Autenticador);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   public autenticado = false;
   public dialogoServicio = inject(DialogoServicio)
@@ -49,12 +53,17 @@ export class AppComponent {
 
   public servicioUsuario = inject(ServicioUsuario)
   public autenticador = inject(Autenticador)
+  public temaServicio = inject(TemaServicio)
 
   public notificaciones: any[] = []
+
+  private sugerenciaTemaMostrada = false;
 
   //#region  Usuario
 
   ngOnInit() {
+
+    this.temaServicio.inicializar();
 
     this.autenticacionServicio.autenticado$
       .subscribe(valor => {
@@ -68,6 +77,18 @@ export class AppComponent {
         } else {
           this.socket.desconectar();
         }
+        this.cdr.detectChanges();
+      });
+
+    // Sugerir el tema del mes al llegar a la pantalla principal (una vez).
+    this.router.events
+      .pipe(filter(evento => evento instanceof NavigationEnd))
+      .subscribe((evento) => {
+        const url = (evento as NavigationEnd).urlAfterRedirects;
+        if (url.startsWith('/inicio') && !this.sugerenciaTemaMostrada) {
+          this.sugerenciaTemaMostrada = true;
+          setTimeout(() => this.sugerirTemaDelMes(), 400);
+        }
       });
 
 
@@ -77,7 +98,46 @@ export class AppComponent {
         this.totalNotificacionesPendientes = notificaciones.filter(
           (n: any) => n.atendida === null || n.atendida === false
         ).length;
+        this.cdr.detectChanges();
       });
+  }
+
+  /**
+   * Si el mes actual tiene un tema sugerido y el usuario no ha respondido
+   * aún este mes, abre un diálogo de confirmación para aplicarlo.
+   */
+  private sugerirTemaDelMes(): void {
+    const sugerido = this.temaServicio.obtenerTemaSugeridoDelMes();
+
+    if (!sugerido) {
+      return;
+    }
+
+    this.dialogoServicio.abrir({
+      referencia: DialogoConfirmacion,
+      titulo: 'Tema del mes',
+      icono: 'palette',
+      largo: 'l25%,m45%,c100%',
+      desactivarAutocerrado: true,
+      recordar: false,
+      parametros: {
+        titulo: 'Tema del mes',
+        mensaje: `¿Desea cambiar al tema "${sugerido.nombre}" para este mes?`,
+        textoSi: 'Sí, cambiar',
+        textoNo: 'No, gracias'
+      },
+      datos: { clave: sugerido.clave },
+      alFinalizar: this.finalizarSugerenciaTema.bind(this)
+    });
+  }
+
+  private finalizarSugerenciaTema(respuesta: any): void {
+    // El usuario respondió (sí o no): no volver a preguntar este mes.
+    this.temaServicio.marcarSugerenciaRespondida();
+
+    if (respuesta?.resultado === true) {
+      this.temaServicio.aplicar(respuesta.datos.clave);
+    }
   }
 
   public totalNotificacionesPendientes = 0;
@@ -124,7 +184,7 @@ export class AppComponent {
       referencia: FormularioUsuario,
       titulo: 'Usuario',
       icono: 'person',
-      largo: '450px',
+      largo: 'l35%,m55%,c100%',
       desactivarAutocerrado: true,
       parametros: 'A',
       datos: this.sesion,
@@ -142,6 +202,7 @@ export class AppComponent {
         this.cargador.ocultar()
         this.servicioUsuario.cerrarSesion().subscribe({
           next: () => {
+            this.dialogoServicio.eliminarTodos();
             this.autenticador.eliminarSesion()
             this.socket.desconectar();
           }
@@ -153,6 +214,7 @@ export class AppComponent {
   public cerrarSesion(): void {
     this.servicioUsuario.cerrarSesion().subscribe({
       next: () => {
+        this.dialogoServicio.eliminarTodos();
         this.autenticacionServicio.eliminarSesion();
         this.socket.desconectar();
         this.router.navigate(['/acceder']);
@@ -169,7 +231,7 @@ export class AppComponent {
       referencia: PanelSuscripciones,
       titulo: 'Suscripciones',
       icono: 'hourglass_top',
-      largo: '900px',
+      largo: 'l70%,m90%,c100%',
       desactivarAutocerrado: true,
     });
   }
@@ -179,7 +241,7 @@ export class AppComponent {
       referencia: PanelEventos,
       titulo: 'Eventos',
       icono: 'event',
-      largo: '900px',
+      largo: 'l70%,m90%,c100%',
       desactivarAutocerrado: true,
     });
   }
@@ -189,7 +251,7 @@ export class AppComponent {
       referencia: PanelLocalizaciones,
       titulo: 'Localizaciones',
       icono: 'map_search',
-      largo: '900px',
+      largo: 'l70%,m90%,c100%',
       desactivarAutocerrado: true,
     });
   }

@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model usuarios {
+  id                           Int            @id(map: "PK__usuarios__3213E83F31EBBDCC") @default(autoincrement())
+  alias                        String         @unique(map: "UQ__usuarios__8C585C04F2583E3B") @db.VarChar(50)
+  direccion_correo_electronico String         @unique(map: "UQ__usuarios__2A586E0B1409469B") @db.VarChar(100)
+  contrasena                   String         @db.VarChar(255)
+  estatus                      Boolean        @default(true)
+  telefono                     String?        @db.VarChar(20)
+  id_pre_usuario               Int?
+  dispositivos                 dispositivos[]
+  eventos                      eventos[]
+}
+
+model pre_dispositivos {
+  id          Int           @id(map: "PK__pre_disp__3213E83F1990F4B0") @default(autoincrement())
+  clave       String        @unique(map: "UQ__pre_disp__7F427931E045D14A") @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  estatus     Boolean       @default(true)
+  cualidades  String?       @db.VarChar(25)
+  tipo        String        @db.Char(1)
+  dispositivo dispositivos?
+}
+
+model dispositivos {
+  id                 Int              @id(map: "PK__disposit__3213E83F07CEB377") @default(autoincrement())
+  id_usuario         Int
+  id_pre_dispositivo Int              @unique(map: "UQ__disposit__C61CC62E6E7C5AEC")
+  telefono           String?          @db.VarChar(20)
+  alias              String           @db.VarChar(100)
+  pre_dispositivo    pre_dispositivos @relation(fields: [id_pre_dispositivo], references: [id], onUpdate: NoAction, map: "FK__dispositi__id_pr__440B1D61")
+  usuario            usuarios         @relation(fields: [id_usuario], references: [id], onUpdate: NoAction, map: "FK__dispositi__id_us__4316F928")
+  localizaciones     localizaciones[]
+}
+
+model localizaciones {
+  id             Int          @id(map: "PK__localiza__3213E83FE51E442F") @default(autoincrement())
+  id_dispositivo Int
+  latitud        Decimal      @db.Decimal(10, 7)
+  longitud       Decimal      @db.Decimal(10, 7)
+  altitud        Decimal      @db.Decimal(8, 2)
+  dispositivo    dispositivos @relation(fields: [id_dispositivo], references: [id], onUpdate: NoAction, map: "FK__localizac__id_di__46E78A0C")
+
+  @@index([id_dispositivo], map: "ix_localizaciones_dispositivo")
+}
+
+model eventos {
+  id          Int       @id(map: "PK__eventos__3213E83F72D59DC3") @default(autoincrement())
+  fecha       DateTime  @default(now()) @db.DateTime
+  descripcion String    @db.VarChar(500)
+  id_usuario  Int?
+  usuario     usuarios? @relation(fields: [id_usuario], references: [id], onDelete: Cascade, map: "FK__eventos__id_usua__52593CB8")
+
+  @@index([id_usuario], map: "ix_eventos_id_usuario")
+}
+
+model solicitudes {
+  id             Int     @id(map: "PK__solicitu__3213E83F181FEC69") @default(autoincrement())
+  descripcion    String  @db.VarChar(1000)
+  medio_contacto String? @db.VarChar(50)
+  estatus        Boolean @default(true)
+}
+
+model historial_registros {
+  id          Int      @id(map: "PK__actualiz__3213E83FE09B1DED") @default(autoincrement())
+  tabla       String   @db.VarChar(100)
+  fecha       DateTime @db.DateTime
+  id_registro Int
+  datos       String   @db.NVarChar(Max)
+  tipo        String   @db.Char(1)
+  id_evento   Int?
+
+  @@index([fecha], map: "ix_actualizaciones_fecha")
+  @@index([id_registro], map: "ix_actualizaciones_id_registro")
+  @@index([tabla], map: "ix_actualizaciones_tabla")
+}
+
+model pre_usuarios {
+  id    Int    @id(map: "PK__pre_usua__3213E83FE69AF128") @default(autoincrement())
+  clave String @db.UniqueIdentifier
+}
+
+model suscripciones {
+  id             Int      @id(map: "PK__suscripc__3213E83FF5B5CF0C") @default(autoincrement())
+  id_dispositivo Int
+  clave          String?  @db.UniqueIdentifier
+  fecha_inicial  DateTime @db.DateTime
+  fecha_final    DateTime @db.DateTime
+  tipo           String   @db.Char(100)
+}

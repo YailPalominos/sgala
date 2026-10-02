@@ -28,8 +28,7 @@
   @if (!cargando() && !error() && dispositivosFiltrados().length > 0) {
   <div class="dispositivos-grid">
     @for (dispositivo of dispositivosFiltrados(); track dispositivo.clave) {
-    <mat-card class="dispositivo-card" [class.alarma-activa]="dispositivo.alarmas && dispositivo.alarmas.length > 0"
-      (dblclick)="editarDispositivo(dispositivo)">
+    <mat-card class="dispositivo-card" [class.alarma-activa]="dispositivo.alarmas && dispositivo.alarmas.length > 0">
       <!-- Sección superior: conexión + nombre -->
       <div class="card-encabezado" (click)="verAlarmas(dispositivo)">
         <mat-icon class="icono-conexion"
@@ -41,8 +40,11 @@
       <div class="card-datos" (click)="verAlarmas(dispositivo)">
 
         <p class="dato-telefono">
-          <mat-icon inline>phone</mat-icon>
-          {{ dispositivo.telefono }}
+          <!-- <mat-icon inline>phone</mat-icon>
+          {{ dispositivo.telefono }} -->
+
+          <mat-icon inline>{{ iconoTipo(dispositivo.tipo) }}</mat-icon>
+          {{ dispositivo.tipoTexto }}
         </p>
 
         <p class="dato-sucripcion">
@@ -73,6 +75,8 @@
         </p>
 
         <p class="dato-general">
+
+          @if(dispositivo.tipo=='D'){
           Estado:
           <b [style.color]="colorEncendida(dispositivo.estatusEncendida)">
             {{ textoEncendida(dispositivo.estatusEncendida) }}
@@ -81,11 +85,29 @@
           <b [style.color]="colorMovimiento(dispositivo.estatusMovimiento)">
             {{ textoMovimiento(dispositivo.estatusMovimiento) }}
           </b>
+          }
 
+          @if(dispositivo.tipo=='I'){
+          Estado:
+          <b [style.color]="colorInterruptorActivado(dispositivo.estatus)">
+            {{ textoInterruptorEncendido(dispositivo.estatus) }}
+          </b>
+          }
+
+          @if(dispositivo.tipo=='D'){
           · Batería:
           <b [style.color]="colorBateria(dispositivo.porcentajeBateria)">
             {{ dispositivo.porcentajeBateria ?? '-' }}%
           </b>
+          }
+
+          @if(dispositivo.tipo=='G'){
+          Almacenamiento:
+          <b [style.color]="colorBateria(51)">
+            {{ 51 ?? '-' }}%
+          </b>
+          {{ '103 U GB de 200 T GB 73 GB'}}
+          }
         </p>
       </div>
 
@@ -95,11 +117,18 @@
         <mat-spinner diameter="24"></mat-spinner>
         } @else {
 
+        <span matTooltip="Editar dispositivo">
+          <button mat-icon-button color="primary" (click)="editarDispositivo(dispositivo)">
+            <mat-icon>edit</mat-icon>
+          </button>
+        </span>
+
         @if (tieneCualidad(dispositivo, 'COC')) {
         <span
           [matTooltip]="(dispositivo.estatusCortaCorriente==false ? 'Activar corta corriente' : 'Desactivar corta corriente')">
 
-          <button mat-icon-button [disabled]="(dispositivo.estatusConexion == true&&dispositivo.estatusEncendida==true)?false:true"
+          <button mat-icon-button
+            [disabled]="(dispositivo.estatusConexion == true&&dispositivo.estatusEncendida==true)?false:true"
             [color]="dispositivo.estatusCortaCorriente==false ? 'primary' : 'warn'"
             (click)="intercalarCortaCorrientes(dispositivo)" [class.corta-activo]="dispositivo.estatusCortaCorriente">
             <mat-icon>stream</mat-icon>
@@ -107,7 +136,6 @@
 
         </span>
         }
-
 
         @if (tieneCualidad(dispositivo, 'LOC')) {
         <span [matTooltip]="
@@ -141,6 +169,50 @@
             (click)="verLocalizacion(dispositivo)">
             <mat-icon>map</mat-icon>
           </button>
+        </span>
+        }
+
+
+
+        @if (tieneCualidad(dispositivo, 'CAM')) {
+        <span
+          [matTooltip]="(dispositivo.estatusCortaCorriente==false ? 'Activar corta corriente' : 'Desactivar corta corriente')">
+
+          <button mat-icon-button
+            [disabled]="(dispositivo.estatusConexion == true&&dispositivo.estatusEncendida==true)?false:true"
+            [color]="dispositivo.estatusCortaCorriente==false ? 'primary' : 'warn'"
+            (click)="intercalarCortaCorrientes(dispositivo)" [class.corta-activo]="dispositivo.estatusCortaCorriente">
+            <mat-icon>dashboard</mat-icon>
+          </button>
+
+        </span>
+        }
+
+        @if (tieneCualidad(dispositivo, 'ALA')) {
+        <span
+          [matTooltip]="(dispositivo.estatusCortaCorriente==false ? 'Activar corta corriente' : 'Desactivar corta corriente')">
+
+          <button mat-icon-button
+            [disabled]="(dispositivo.estatusConexion == true&&dispositivo.estatusEncendida==true)?false:true"
+            [color]="dispositivo.estatusCortaCorriente==false ? 'primary' : 'warn'"
+            (click)="intercalarCortaCorrientes(dispositivo)" [class.corta-activo]="dispositivo.estatusCortaCorriente">
+            <mat-icon>play_arrow</mat-icon>
+          </button>
+
+        </span>
+        }
+
+
+
+
+        @if (dispositivo.tipo== 'I') {
+        <span [matTooltip]="(dispositivo.estatus==false ? 'Activar interruptor' : 'Desactivar interruptor')">
+
+          <button mat-icon-button [disabled]="(dispositivo.estatusConexion==true)?false:true"
+            [color]="dispositivo.estatus==false ? 'primary' : 'warn'" (click)="intercalarActivacion(dispositivo)">
+            <mat-icon>play_arrow</mat-icon>
+          </button>
+
         </span>
         }
 

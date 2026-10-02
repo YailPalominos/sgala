@@ -1,0 +1,35 @@
+<h2 class="titulo">
+    {{ parametros.titulo??'-' }}
+</h2>
+<mat-dialog-content style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center;">
+
+    <p style="margin: 0; font-size: 15px; color: #424242; white-space: pre-line;">
+        {{ parametros.cuerpo??'-' }}
+    </p>
+
+    @if(parametros.entrada.tipo=='contraseña'){
+
+    <mat-form-field style="width: 80%;" appearance="outline">
+        <mat-label>
+            {{ parametros.entrada.etiqueta }}
+        </mat-label>
+
+        <input matInput [type]="estaOculto ? 'password' : 'text'" [formControl]="entrada"
+            [mask]="parametros.entrada.masacara" [dropSpecialCharacters]="true" autocomplete="off" />
+
+        <button mat-icon-button matSuffix type="button" (click)="estaOculto = !estaOculto">
+            <mat-icon>
+                {{ estaOculto ? 'visibility_off' : 'visibility' }}
+            </mat-icon>
+        </button>
+
+    </mat-form-field>
+    }
+
+</mat-dialog-content>
+<mat-dialog-actions align="center">
+    <button mat-raised-button color="primary" (click)="responder()" [disabled]="entrada.invalid">
+        <mat-icon>check</mat-icon>
+        Listo
+    </button>
+</mat-dialog-actions>

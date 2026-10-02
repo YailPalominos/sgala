@@ -1,0 +1,42 @@
+<svg width="350" height="350" viewBox="0 0 350 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Alas: gris claro en las puntas, negro al centro -->
+    <linearGradient id="gradAlas" x1="0.5" y1="1" x2="0.5" y2="0">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="35%" stop-color="#1a1a1a"/>
+      <stop offset="65%" stop-color="#e8590c"/>
+      <stop offset="100%" stop-color="#f76707"/>
+    </linearGradient>
+    <!-- Círculo: gris oscuro con brillo -->
+    <radialGradient id="gradCirculo" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0%" stop-color="#f76707"/>
+      <stop offset="55%" stop-color="#e8590c"/>
+      <stop offset="100%" stop-color="#1a1a1a"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Círculo superior (sol / esfera) -->
+  <circle cx="175" cy="62" r="54" fill="url(#gradCirculo)"/>
+
+  <!-- Ala / mano izquierda -->
+  <path d="M175 338
+           C144 338 107 322 78 290
+           C46 256 26 210 20 166
+           C38 194 66 214 98 224
+           C73 192 61 152 64 114
+           C84 154 118 184 158 196
+           C145 224 145 256 155 288
+           C160 308 167 324 175 338 Z"
+        fill="url(#gradAlas)"/>
+
+  <!-- Ala / mano derecha -->
+  <path d="M175 338
+           C206 338 243 322 272 290
+           C304 256 324 210 330 166
+           C312 194 284 214 252 224
+           C277 192 289 152 286 114
+           C266 154 232 184 192 196
+           C205 224 205 256 195 288
+           C190 308 183 324 175 338 Z"
+        fill="url(#gradAlas)"/>
+</svg>

@@ -15,6 +15,12 @@ import { Cargador } from '../../recursos/cargador';
           <div class="texto">
             Cargando <span class="puntos"></span>
           </div>
+
+          @if (cargador.mensaje()) {
+            <div class="mensaje-error">
+              {{ cargador.mensaje() }}
+            </div>
+          }
         </div>
       </div>
     }
@@ -45,6 +51,14 @@ import { Cargador } from '../../recursos/cargador';
       font-size: 18px;
       font-weight: 500;
       color: #333;
+    }
+
+    .mensaje-error {
+      font-size: 16px;
+      font-weight: 600;
+      color: #d32f2f;
+      text-align: center;
+      max-width: 280px;
     }
 
     .puntos::after {

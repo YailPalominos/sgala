@@ -7,7 +7,7 @@ import { dispositivoRouter } from './rutas/dispositivo.ruta';
 import { solicitudRouter } from './rutas/solicitud.ruta';
 import { suscripcionesRoute } from './rutas/suscripciones.ruta';
 import { eventoRouter } from './rutas/eventos.ruta';
-import { iniciar as iniciarBaseDatos } from './recursos/base-datos';
+import { iniciarPrisma } from './recursos/prisma';
 import { redis } from './recursos/redis';
 import { iniciarBrokerMqtt } from './broker';
 import { iniciarServidorSocketio } from './socket';
@@ -21,11 +21,7 @@ const puerto = entorno.PUERTO_API
 
 const app = express();
 
-
-const permitidos = [
-  'http://localhost:4200',
-  'http://10.1.33.246:4200'
-];
+const permitidos = ['https://10.1.33.98:4200'];
 
 app.use(cors({
   origin(origin, callback) {
@@ -92,8 +88,8 @@ app.use(manejadorErrores);
  * el broker MQTT con sus manejadores de eventos y el servidor Socket.io.
  */
 async function iniciar(): Promise<void> {
-  // a. Conectar a SQL Server
-  await iniciarBaseDatos();
+  // a. Conectar a SQL Server (Prisma)
+  await iniciarPrisma();
 
   // b. Conectar a Redis
   await redis.connect();

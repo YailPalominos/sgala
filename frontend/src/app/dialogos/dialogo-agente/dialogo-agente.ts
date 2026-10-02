@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { Dialogo } from '../../recursos/dialogo.base';
 import { MatIconModule } from '@angular/material/icon';
-import { ServicioAsistente } from '../../servicios/servicio-asistente';
+import { ServicioAgente } from '../../servicios/servicio-agente';
 import { Subject, takeUntil } from 'rxjs';
 
 
@@ -21,7 +21,7 @@ interface MensajeChat {
 
 
 @Component({
-  selector: 'app-seleccion-dialog',
+  selector: 'app-agente-dialog',
   standalone: true,
   imports: [
     FormsModule,
@@ -31,12 +31,12 @@ interface MensajeChat {
     MatSelectModule,
     MatIconModule
   ],
-  templateUrl: './dialogo-asistente.html',
-  styleUrl: './dialogo-asistente.scss',
+  templateUrl: './dialogo-agente.html',
+  styleUrl: './dialogo-agente.scss',
 })
-export class DialogoAsistente extends Dialogo {
+export class DialogoAgente extends Dialogo {
 
-  servicioAsistente = inject(ServicioAsistente);
+  servicioAgente = inject(ServicioAgente);
 
   private destruir$ = new Subject<void>();
 
@@ -44,7 +44,7 @@ export class DialogoAsistente extends Dialogo {
   mensaje: string = ''
 
   override cargar(): void {
-    this.servicioAsistente
+    this.servicioAgente
       .obtenerRespuestas()
       .pipe(
         takeUntil(this.destruir$)
@@ -56,7 +56,7 @@ export class DialogoAsistente extends Dialogo {
 
 
   seleccionarOpcion(clave: string) {
-    this.servicioAsistente.enviarMensaje(clave);
+    this.servicioAgente.enviarMensaje(clave);
 
     this.mensajes.push({
       fecha: new Date().toLocaleString('sv-SE'),
@@ -69,19 +69,23 @@ export class DialogoAsistente extends Dialogo {
 
   enviarMensaje(): void {
 
-    if (!this.mensaje) {
+    const texto = this.mensaje?.trim();
+
+    if (!texto) {
       return;
     }
 
     this.mensajes.push({
       fecha: new Date().toLocaleString('sv-SE'),
       usuario: 'U',
-      contenido: this.mensaje,
+      contenido: texto,
       tipo: 'L',
       opciones: undefined
     });
 
-    this.servicioAsistente.enviarMensaje(this.mensaje);
+    this.servicioAgente.enviarMensaje(texto);
+
+    this.mensaje = '';
 
   }
 
@@ -89,7 +93,7 @@ export class DialogoAsistente extends Dialogo {
   // ngOnDestroy(): void {
   //   this.destruir$.next();
   //   this.destruir$.complete();
-  //   this.servicioAsistente.desconectar();
+  //   this.servicioAgente.desconectar();
   // }
 
 }

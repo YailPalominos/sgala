@@ -1,25 +1,157 @@
 @use '@angular/material' as mat;
 
 :root {
-  --mat-sys-primary: #424242;
+  --mat-sys-primary: var(--tema-primary, #424242);
   --mat-sys-on-primary: #ffffff;
-  --mat-sys-primary-container: #616161;
+  --mat-sys-primary-container: var(--tema-acento, #616161);
   --mat-sys-on-primary-container: #ffffff;
-  --mdc-filled-button-container-color: #424242;
+  --mdc-filled-button-container-color: var(--tema-primary, #424242);
   --mdc-filled-button-label-text-color: #ffffff;
-  --mdc-protected-button-label-text-color: #424242;
+  --mdc-protected-button-label-text-color: var(--tema-primary, #424242);
   --mat-fab-foreground-color: #ffffff;
-  --mat-fab-container-color: #424242;
+  --mat-fab-container-color: var(--tema-primary, #424242);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TEMAS — variables de color.
+   Tema institucional (IN): paleta de grises (por defecto en :root).
+   Cada tema aplica su clase en el <body> y sobrescribe las variables.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --tema-primary: #4a4a4a;
+  --tema-secondary: #273036;
+  --tema-acento: #6b7a82;
+  --tema-ruta: 'IN';
+}
+
+/* Año Nuevo — dorado/negro festivo */
+.tema-AN {
+  --tema-primary: #c9a227;
+  --tema-secondary: #1a1a1a;
+  --tema-acento: #e6c35c;
+  --tema-fondo: url('/AN/gris_fondo.svg');
+}
+
+/* Día del Amor — rojos/rosas */
+.tema-DA {
+  --tema-primary: #d6336c;
+  --tema-secondary: #a61e4d;
+  --tema-acento: #f06595;
+  --tema-fondo: url('/DA/gris_fondo.svg');
+}
+
+/* Día del Niño — colores vivos */
+.tema-DN {
+  --tema-primary: #2f9e44;
+  --tema-secondary: #1864ab;
+  --tema-acento: #fcc419;
+  --tema-fondo: url('/DN/gris_fondo.svg');
+}
+
+/* Día de las Madres — rosa suave */
+.tema-DM {
+  --tema-primary: #e64980;
+  --tema-secondary: #c2255c;
+  --tema-acento: #faa2c1;
+  --tema-fondo: url('/DM/gris_fondo.svg');
+}
+
+/* Día del Orgullo — arcoíris */
+.tema-DO {
+  --tema-primary: #e40303;
+  --tema-secondary: #750787;
+  --tema-acento: #ff8c00;
+  --tema-fondo: url('/DO/gris_fondo.svg');
+}
+
+/* Vacaciones de Verano — turquesa/sol */
+.tema-VV {
+  --tema-primary: #0ca678;
+  --tema-secondary: #099268;
+  --tema-acento: #fcc419;
+  --tema-fondo: url('/VV/gris_fondo.svg');
+}
+
+/* Regreso a Clases — azul/amarillo */
+.tema-RC {
+  --tema-primary: #1971c2;
+  --tema-secondary: #1864ab;
+  --tema-acento: #f59f00;
+  --tema-fondo: url('/RC/gris_fondo.svg');
+}
+
+/* Independencia de México — verde/blanco/rojo */
+.tema-IM {
+  --tema-primary: #2b8a3e;
+  --tema-secondary: #c92a2a;
+  --tema-acento: #40c057;
+  --tema-fondo: url('/IM/gris_fondo.svg');
+}
+
+/* Halloween — naranja/negro */
+.tema-HW {
+  --tema-primary: #e8590c;
+  --tema-secondary: #1a1a1a;
+  --tema-acento: #f76707;
+  --tema-fondo: url('/HW/gris_fondo.svg');
+}
+
+/* Día de Muertos — morado/naranja */
+.tema-DU {
+  --tema-primary: #9c36b5;
+  --tema-secondary: #e8590c;
+  --tema-acento: #cc5de8;
+  --tema-fondo: url('/DU/gris_fondo.svg');
+}
+
+/* Navidad — rojo/verde */
+.tema-NV {
+  --tema-primary: #c92a2a;
+  --tema-secondary: #2b8a3e;
+  --tema-acento: #e03131;
+  --tema-fondo: url('/NV/gris_fondo.svg');
+}
+
+/* Nochebuena — rojo oscuro/dorado */
+.tema-NB {
+  --tema-primary: #a61e1e;
+  --tema-secondary: #5c3b00;
+  --tema-acento: #d4a72c;
+  --tema-fondo: url('/NB/gris_fondo.svg');
 }
 
 html,
 body {
   height: 100%;
+  min-width: 320px;
 }
 
 body {
   margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
+  font-family: "Noto Sans", "Helvetica Neue", sans-serif;
+}
+
+body,
+button,
+input,
+select,
+textarea,
+.mat-typography,
+.mdc-button,
+.mat-mdc-button,
+.mat-mdc-form-field,
+.mat-mdc-card,
+.mat-mdc-dialog-container,
+.mat-mdc-menu-content,
+h1, h2, h3, h4, h5, h6, p, span, div, label, a {
+  font-family: "Noto Sans", "Helvetica Neue", sans-serif;
+}
+
+.material-icons,
+mat-icon,
+.mat-icon {
+  font-family: 'Material Icons' !important;
 }
 
 .mat-mdc-text-field-wrapper .mat-mdc-floating-label {
@@ -54,7 +186,7 @@ html.cdk-global-scrollblock {
 
 
 .cdk-overlay-pane:has(.mat-mdc-dialog-container) {
-  min-width: 550px !important;
+  min-width: 320px !important;
 }
 
 @media (max-width: 599px) {
@@ -185,8 +317,8 @@ html.cdk-global-scrollblock {
     padding-bottom: 15px;
     background: linear-gradient(to right,
         transparent,
-        #272727 15%,
-        #272727 85%,
+        var(--tema-primary, #272727) 15%,
+        var(--tema-primary, #272727) 85%,
         transparent) bottom / 80% 5px no-repeat;
 
 
@@ -310,7 +442,7 @@ html.cdk-global-scrollblock {
 }
 
 .mdc-dialog__surface {
-  border: 2px solid #585858 !important;
+  border: 2px solid var(--tema-secondary, #585858) !important;
   border-radius: 12px !important;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25) !important;
   overflow: hidden !important;
@@ -329,6 +461,21 @@ html.cdk-global-scrollblock {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* El contenido crece y hace scroll; las acciones quedan pegadas abajo */
+.dialogo-contenedor mat-dialog-content,
+.dialogo-contenedor .mat-mdc-dialog-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.dialogo-contenedor mat-dialog-actions,
+.dialogo-contenedor .mat-mdc-dialog-actions {
+  flex: 0 0 auto;
 }
 
 .mat-mdc-menu-panel {
@@ -339,6 +486,7 @@ html.cdk-global-scrollblock {
 
 .titulo {
   height: 30px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -349,48 +497,113 @@ html.cdk-global-scrollblock {
 
 form {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 16px;
   padding: 20px 40px;
-  height: 100%;
+  box-sizing: border-box;
+
+  /* El form es el contenedor de referencia para las clases responsivas */
+  container-type: inline-size;
+  container-name: formulario;
 }
 
-.acciones-formulario {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 16px;
-
-  > div {
-    display: flex;
-    justify-content: center;
-  }
-}
-
-.acciones-1 > div {
+/* Cada mat-form-field ocupa el 100% por defecto (una columna) */
+form > mat-form-field {
   width: 100%;
 }
 
-.acciones-3 > div {
-  flex: 1;
-  min-width: 33.3%;
+/* Elementos que no son campos ocupan todo el ancho (texto, toggles, etc.) */
+form > p,
+form > mat-slide-toggle,
+form > .toggle-notificaciones,
+form > mat-card,
+form > div:not([class*="c"]):not([class*="m"]):not([class*="g"]) {
+  width: 100%;
+}
+
+/*
+ * Clases de ancho responsivo basadas en el ANCHO DEL CONTENEDOR (form),
+ * no de la ventana. Usan container queries.
+ *
+ * c = contenedor chico   (< 400px)
+ * m = contenedor mediano (400px - 699px)
+ * g = contenedor grande  (>= 700px)
+ *
+ * El número es el porcentaje de ancho. Se descuenta el gap.
+ */
+
+/* La barra de acciones también es un contenedor de referencia, para que
+   los botones usen las mismas clases responsivas que los campos. */
+.mat-mdc-dialog-actions {
+  container-type: inline-size;
+  container-name: formulario;
+}
+
+/* Valores por defecto (sin container query): 100% */
+form > .c100, form > .c50, form > .c33,
+form > .m100, form > .m50, form > .m33,
+form > .g100, form > .g50, form > .g33,
+.mat-mdc-dialog-actions > .c100, .mat-mdc-dialog-actions > .c50, .mat-mdc-dialog-actions > .c33,
+.mat-mdc-dialog-actions > .m100, .mat-mdc-dialog-actions > .m50, .mat-mdc-dialog-actions > .m33,
+.mat-mdc-dialog-actions > .g100, .mat-mdc-dialog-actions > .g50, .mat-mdc-dialog-actions > .g33 {
+  width: 100%;
+}
+
+/* Contenedor chico */
+@container formulario (max-width: 399px) {
+  form > .c100, .mat-mdc-dialog-actions > .c100 { width: 100% !important; }
+  form > .c50,  .mat-mdc-dialog-actions > .c50  { width: calc(50% - 8px) !important; }
+  form > .c33,  .mat-mdc-dialog-actions > .c33  { width: calc(33.333% - 11px) !important; }
+}
+
+/* Contenedor mediano */
+@container formulario (min-width: 400px) and (max-width: 699px) {
+  form > .m100, .mat-mdc-dialog-actions > .m100 { width: 100% !important; }
+  form > .m50,  .mat-mdc-dialog-actions > .m50  { width: calc(50% - 8px) !important; }
+  form > .m33,  .mat-mdc-dialog-actions > .m33  { width: calc(33.333% - 11px) !important; }
+}
+
+/* Contenedor grande */
+@container formulario (min-width: 700px) {
+  form > .g100, .mat-mdc-dialog-actions > .g100 { width: 100% !important; }
+  form > .g50,  .mat-mdc-dialog-actions > .g50  { width: calc(50% - 8px) !important; }
+  form > .g33,  .mat-mdc-dialog-actions > .g33  { width: calc(33.333% - 11px) !important; }
+}
+
+/* El wrapper interno de Material llena todo el ancho del mat-form-field */
+form > mat-form-field .mat-mdc-text-field-wrapper,
+form > mat-form-field .mat-mdc-form-field-infix {
+  width: auto;
 }
 
 .mat-mdc-dialog-content {
   padding: 0 !important;
 }
 
+/* Barra de acciones de los formularios en diálogos */
 .mat-mdc-dialog-actions {
   min-height: 55px;
-  height: 55px;
-  padding: 0 16px !important;
+  padding: 8px 16px !important;
   margin: 0 !important;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
   flex-shrink: 0;
   border-top: 1px solid #e0e0e0;
   box-sizing: border-box;
+}
+
+.mat-mdc-dialog-actions > div {
+  display: flex;
+  justify-content: center;
+}
+
+.mat-mdc-dialog-actions > div button,
+.mat-mdc-dialog-actions > button {
+  width: 100%;
 }
 
 @media (max-width: 599px) {
@@ -402,12 +615,24 @@ form {
   .titulo {
     font-size: 15px !important;
   }
-
-  .acciones-formulario {
-    margin-top: 8px;
-  }
 }
 
 .mat-mdc-menu-panel {
   background: white !important;
+}
+
+.menu-cerrar-sesion-titulo {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #424242;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+/* Botón de formulario que parece inactivo pero sigue clickable */
+button.boton-inactivo {
+  background-color: #bdbdbd !important;
+  color: #757575 !important;
+  box-shadow: none !important;
 }

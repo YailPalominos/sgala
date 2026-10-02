@@ -1,0 +1,44 @@
+# Orquestación de los servicios de aplicación de SGALA:
+# frontend (Angular + Nginx), backend (Node + Prisma) y agente (Python).
+#
+# Las dependencias de infraestructura (SQL Server y Redis) tienen sus
+# propios compose en ./sql y ./redis. Levántalas antes o únelas con
+# `docker compose -f docker-compose.yml -f sql/docker-compose.yml ...`.
+
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: sgala-backend
+    env_file:
+      - ./backend/.env
+    environment:
+      TZ: "America/Mexico_City"
+    ports:
+      - "3000:3000"   # API
+      - "4060:4060"   # Broker MQTT
+      - "4061:4061"   # Socket.io
+    restart: unless-stopped
+
+  agente:
+    build:
+      context: ./agente
+    container_name: sgala-agente
+    environment:
+      TZ: "America/Mexico_City"
+    ports:
+      - "4700:4700"   # Socket del agente
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: sgala-frontend
+    environment:
+      TZ: "America/Mexico_City"
+    ports:
+      - "4200:80"     # Nginx sirve la app
+    depends_on:
+      - backend
+      - agente
+    restart: unless-stopped

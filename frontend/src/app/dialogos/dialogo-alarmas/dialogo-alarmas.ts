@@ -111,7 +111,7 @@ export class DialogoAlarmas extends Dialogo {
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      largo: '450px',
+      largo: 'l25%,m45%,c100%',
       desactivarAutocerrado: true,
       parametros: {
         titulo: 'Desactivar alarma',

@@ -3,7 +3,7 @@
 </h2>
 <mat-dialog-content>
 
-    <form [formGroup]="formulario" (ngSubmit)="preparar()">
+    <form id="formSuscripcion" [formGroup]="formulario" (ngSubmit)="preparar()">
 
         <mat-form-field appearance="outline">
             <mat-label>Seleccione el dispositivo</mat-label>
@@ -79,15 +79,16 @@
 
         }
 
-        <div class="acciones-formulario acciones-1">
-            <div>
-                <button mat-raised-button color="primary" type="submit" [disabled]="formulario.invalid">
-                    <mat-icon>add</mat-icon>
-                    Crear
-                </button>
-            </div>
-        </div>
-
     </form>
 
 </mat-dialog-content>
+
+<mat-dialog-actions>
+    <div class="c100 m100 g100">
+        <button mat-raised-button color="primary" type="submit" form="formSuscripcion"
+            [class.boton-inactivo]="formulario.invalid">
+            <mat-icon>add</mat-icon>
+            Crear
+        </button>
+    </div>
+</mat-dialog-actions>

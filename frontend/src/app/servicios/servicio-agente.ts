@@ -7,7 +7,7 @@ interface OpcionChat {
   contenido: string;
 }
 
-export interface RespuestaAsistente {
+export interface RespuestaAgente {
   tipo: string;
   fecha: string;
   usuario: 'A' | 'U';
@@ -18,11 +18,11 @@ export interface RespuestaAsistente {
 @Injectable({
   providedIn: 'root'
 })
-export class ServicioAsistente {
+export class ServicioAgente {
 
   private socket: Socket;
 
-  private respuestaSubject = new Subject<RespuestaAsistente>();
+  private respuestaSubject = new Subject<RespuestaAgente>();
 
   constructor() {
 
@@ -34,7 +34,7 @@ export class ServicioAsistente {
 
     this.socket.on('connect', () => {
       console.log(
-        '🔌 Conectado al asistente:',
+        '🔌 Conectado al agente:',
         this.socket.id
       );
     });
@@ -42,21 +42,21 @@ export class ServicioAsistente {
 
     this.socket.on('disconnect', () => {
       console.log(
-        '🔌 Desconectado del asistente'
+        '🔌 Desconectado del agente'
       );
     });
 
 
     this.socket.on(
       'respuesta',
-      (data: RespuestaAsistente) => {
+      (data: RespuestaAgente) => {
         this.respuestaSubject.next(data);
       }
     );
 
   }
 
-  obtenerRespuestas(): Observable<RespuestaAsistente> {
+  obtenerRespuestas(): Observable<RespuestaAgente> {
     return this.respuestaSubject.asObservable();
   }
 

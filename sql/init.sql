@@ -26,7 +26,11 @@ GO
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'pre_dispositivos') AND type = 'U')
 CREATE TABLE pre_dispositivos (
   id INT IDENTITY(1,1) PRIMARY KEY,
-  clave UNIQUEIDENTIFIER UNIQUE NOT NULL DEFAULT NEWID()
+  clave UNIQUEIDENTIFIER UNIQUE NOT NULL DEFAULT NEWID(),
+  estatus BIT NOT NULL DEFAULT 1,
+  cualidades VARCHAR(100) NULL,
+  -- Tipos válidos: 'I' Interruptor, 'T' Timbre, 'C' Camara, 'D' Dispositivo
+  tipo CHAR(1) NULL
 );
 GO
 

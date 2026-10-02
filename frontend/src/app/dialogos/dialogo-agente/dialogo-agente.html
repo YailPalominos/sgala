@@ -49,7 +49,8 @@
   <input type="text" placeholder="Escribe tu mensaje..." class="chat-input" [(ngModel)]="mensaje" maxlength="150"
     (keyup.enter)="enviarMensaje()">
 
-  <button mat-icon-button color="primary" aria-label="Enviar mensaje" (click)="enviarMensaje()">
+  <button mat-icon-button color="primary" aria-label="Enviar mensaje" (click)="enviarMensaje()"
+    [disabled]="!mensaje || !mensaje.trim()">
 
     <mat-icon>send</mat-icon>
 

@@ -1,0 +1,110 @@
+<mat-dialog-content>
+
+  @if (estaConectado==false) {
+
+  <div style="
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 30px;
+      ">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span style="font-size: 15px; text-align: center;">Conectando con el dispositivo via <b>bluetooth </b>...
+      <br>
+      <b>{{nombre}}</b>
+    </span>
+  </div>
+
+  }
+
+  @if(estaConectado==true&&pinValidado==false){
+  <span style="font-size: 15px; text-align: center; padding: 30px;">
+    Esperando pín <br>
+    <b style="color: rgb(41, 243, 132);">Conectado</b> con el dispositivo via <b>bluetooth</b>
+    <br>
+    <b>{{nombre}}</b>
+  </span>
+  }
+
+  @if (estaConectado==true&&pinValidado==true) {
+  <form [formGroup]="formulario" (ngSubmit)="verificar()" id="formulario">
+
+    <span style="font-size: 18px; text-align: center;">
+      El dispositivo no tiene las credenciales de red.
+    </span>
+
+    <mat-form-field appearance="outline">
+
+      <mat-label>
+        Nombre de la red
+      </mat-label>
+
+      <input matInput formControlName="nombreRed" autocomplete="off" />
+
+      <mat-icon matPrefix>
+        wifi
+      </mat-icon>
+
+      @if (formulario.get('nombreRed')?.hasError('required')) {
+      <mat-error>
+        El nombre de la red es requerido
+      </mat-error>
+      }
+
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+
+      <mat-label>
+        Contraseña de la red
+      </mat-label>
+
+      <input matInput type="password" formControlName="contrasenaRed" autocomplete="new-password" />
+
+      <mat-icon matPrefix>
+        lock
+      </mat-icon>
+
+      @if (formulario.get('contrasenaRed')?.hasError('required')) {
+      <mat-error>
+        La contraseña de la red es requerida
+      </mat-error>
+      }
+
+    </mat-form-field>
+
+
+  </form>
+  }
+
+</mat-dialog-content>
+
+
+<mat-dialog-actions align="center">
+
+  @if (estaConectado==true) {
+
+  @if (tienePin==true&&pinValidado==true) {
+  <button mat-raised-button color="primary" type="button" (click)="capturarNuevoPin(true)">
+    <mat-icon>password</mat-icon>
+    Cambiar pin
+  </button>
+  }
+
+  @if (pinValidado==true) {
+  <button mat-raised-button color="primary" type="submit" form="formulario">
+    <mat-icon>cached</mat-icon>
+    Actualizar
+  </button>
+  }
+
+  @if(estaConectado==true&&pinValidado==false){
+  <button mat-raised-button color="primary" type="button" (click)="capturarPin()">
+    <mat-icon>key</mat-icon>
+    Acceder
+  </button>
+  }
+  }
+</mat-dialog-actions>

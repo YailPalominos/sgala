@@ -77,7 +77,7 @@ export class PanelSuscripciones extends Panel {
       referencia: FormularioSuscripcion,
       titulo: 'Suscripciones',
       icono: 'event',
-      largo: '500px',
+      largo: 'l30%,m50%,c100%',
       desactivarAutocerrado: true,
       alFinalizar: this.finalizarConfirmacion.bind(this),
     });

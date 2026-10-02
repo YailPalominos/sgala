@@ -7,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltip } from "@angular/material/tooltip";
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSelectModule } from '@angular/material/select';
 import { NgxMaskDirective } from 'ngx-mask';
 import { Router } from '@angular/router';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
@@ -16,6 +17,8 @@ import { Notificador } from '../../recursos/notificador';
 import { Formulario } from '../../recursos/dialogo.formulario';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
 import { PushServicio } from '../../recursos/push';
+import { TemaServicio } from '../../recursos/tema.servicio';
+import { temas, Tema } from '../../recursos/constantes';
 
 @Component({
   selector: 'formulario-usuario',
@@ -29,6 +32,7 @@ import { PushServicio } from '../../recursos/push';
     MatIconModule,
     MatTooltip,
     MatSlideToggleModule,
+    MatSelectModule,
     NgxMaskDirective
   ],
   templateUrl: './formulario-usuario.html',
@@ -60,6 +64,9 @@ export class FormularioUsuario extends Formulario {
   private router = inject(Router);
   private dialogoServicio = inject(DialogoServicio);
   public pushServicio = inject(PushServicio)
+  public temaServicio = inject(TemaServicio)
+
+  public temas: Tema[] = temas;
 
   public formulario = new FormGroup({
     clave: new FormControl('', Validators.required),
@@ -143,7 +150,7 @@ export class FormularioUsuario extends Formulario {
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      largo: '500px',
+      largo: 'l25%,m45%,c100%',
       desactivarAutocerrado: true,
       parametros: {
         titulo: 'Cambiar la contraseña',
@@ -190,5 +197,9 @@ export class FormularioUsuario extends Formulario {
     } else {
       await this.eliminarSuscripcion();
     }
+  }
+
+  public cambiarTema(clave: string): void {
+    this.temaServicio.aplicar(clave);
   }
 }

@@ -3,7 +3,7 @@ import tls from 'tls';
 import fs from 'fs';
 import { entorno } from './recursos/entorno';
 import { enviarDispositivoActualizado, enviarNotificacionUsuario } from './socket';
-import { obtenerDatosDispositivos, crearLocalizacion } from './repositorios/base-datos/dispositivo.repositorio';
+import { obtenerDatosDispositivos } from './repositorios/base-datos/dispositivo.repositorio';
 import dayjs from "dayjs";
 import { enviarWebPush } from './webpush';
 import { actualizarDatosDispositivo, actualizarEstatusConexion, agregarAlarma, eliminarAlarma, eliminarAlarmasDesconexion, EstadoDispositivoRedis, guardarEstadosDispositivos, obtenerDispositivo, obtenerDispositivosSinConexion } from './repositorios/redis/dispositivo.redis';
@@ -17,11 +17,9 @@ export interface ClienteMqtt extends Client {
 
 export const aedesInstance = new Aedes();
 
-function obtenerCN(
-  certificado: tls.PeerCertificate
-): string | null {
+function obtenerCN(certificado: tls.PeerCertificate): string | null {
 
-  const cn = certificado.subject?.CN;
+  const cn = certificado.subject?.CN;//Cambiada temporalmente
 
   if (!cn) {
     return null;
@@ -51,9 +49,8 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
     async (socket) => {
 
       const certificado = socket.getPeerCertificate();
-
       const claveDispositivo = obtenerCN(certificado);
-
+      
       if (!claveDispositivo) {
         socket.destroy();
         return;
@@ -62,7 +59,7 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
       try {
 
         await obtenerDispositivo(
-          claveDispositivo.toUpperCase()
+          claveDispositivo
         );
 
       } catch {
@@ -73,7 +70,7 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
       }
 
       (socket as any).claveDispositivo =
-        claveDispositivo.toUpperCase();
+        claveDispositivo;
       aedesInstance.handle(socket);
 
     }
@@ -89,6 +86,7 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
     const socket = cliente.conn as any;
 
     const claveDispositivo = socket.claveDispositivo;
+
 
     if (!claveDispositivo) {
       return;
@@ -205,8 +203,10 @@ export async function desconectar(claveDispositivo: string) {
       porcentajeBateria: null,
       estatusEncendida: null,
       estatusMovimiento: null,
-      localizacion: null
+      localizacion: null,
+      estatus:null
     });
+    
 
     const dispositivo = await obtenerDispositivo(claveDispositivo);
 
@@ -266,183 +266,180 @@ export async function desconectar(claveDispositivo: string) {
 /**
  * Se ejecuta cuando un dispositivo publica un mensaje.
  */
-export async function onPublicacion(
-  claveDispositivo: string,
-  topico: string,
-  payload: Buffer
-) {
-
-  if (topico.startsWith('respuestas/')) {
-    return;
-  }
-
+export async function onPublicacion(claveDispositivo: string, topico: string, payload: Buffer) {
   try {
+
+    if (topico.startsWith('respuestas/')) {
+      return;
+    }
 
     const datos = JSON.parse(
       payload.toString("utf8")
     );
 
+    await actualizarDatosDispositivo(claveDispositivo, datos);
+    await enviarDispositivoActualizado(claveDispositivo);
 
-    await actualizarDatosDispositivo(claveDispositivo, datos)
+    // await actualizarDatosDispositivo(claveDispositivo, datos)
 
-    const dispositivo = await obtenerDispositivo(claveDispositivo);
+    // const dispositivo = await obtenerDispositivo(claveDispositivo);
 
-    if (datos.estatusAlarma === false) {
-      const alarmasSensor = dispositivo.alarmas?.filter(
-        a => a.descripcion.includes('giroscopio/acelerómetro')
-      ) ?? [];
+    // if (datos.estatusAlarma === false) {
+    //   const alarmasSensor = dispositivo.alarmas?.filter(
+    //     a => a.descripcion.includes('giroscopio/acelerómetro')
+    //   ) ?? [];
 
-      for (const alarma of alarmasSensor) {
-        await eliminarAlarma(claveDispositivo, alarma.clave);
-        await eliminarNotificacionPorAlarma(dispositivo.idUsuario, alarma.clave, dispositivo.clave, 'alarma');
-      }
+    //   for (const alarma of alarmasSensor) {
+    //     await eliminarAlarma(claveDispositivo, alarma.clave);
+    //     await eliminarNotificacionPorAlarma(dispositivo.idUsuario, alarma.clave, dispositivo.clave, 'alarma');
+    //   }
 
-      await actualizarDatosDispositivo(claveDispositivo, {
-        estatusFijarEstacionado: false
-      });
+    //   await actualizarDatosDispositivo(claveDispositivo, {
+    //     estatusFijarEstacionado: false
+    //   });
 
-      if (alarmasSensor.length > 0) {
-        await enviarNotificacionUsuario(dispositivo.idUsuario);
-      }
-    }
+    //   if (alarmasSensor.length > 0) {
+    //     await enviarNotificacionUsuario(dispositivo.idUsuario);
+    //   }
+    // }
 
-    await enviarDispositivoActualizado(claveDispositivo)
+    // await enviarDispositivoActualizado(claveDispositivo)
 
-    if (datos.estatusAlarma === true && dispositivo.estatusAlarma === true && dispositivo.estatusFijarEstacionado === true) {
-      const yaExisteSensor = dispositivo.alarmas?.some(a => a.descripcion.includes('giroscopio/acelerómetro'));
+    // if (datos.estatusAlarma === true && dispositivo.estatusAlarma === true && dispositivo.estatusFijarEstacionado === true) {
+    //   const yaExisteSensor = dispositivo.alarmas?.some(a => a.descripcion.includes('giroscopio/acelerómetro'));
 
-      if (!yaExisteSensor) {
-        const claveAlarmaSensor = crypto.randomUUID();
+    //   if (!yaExisteSensor) {
+    //     const claveAlarmaSensor = crypto.randomUUID();
 
-        await agregarAlarma(claveDispositivo, {
-          clave: claveAlarmaSensor,
-          descripcion: 'Movimiento detectado (giroscopio/acelerómetro)',
-          fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
-        });
+    //     await agregarAlarma(claveDispositivo, {
+    //       clave: claveAlarmaSensor,
+    //       descripcion: 'Movimiento detectado (giroscopio/acelerómetro)',
+    //       fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+    //     });
 
-        await agregarNotificacion(
-          dispositivo.idUsuario,
-          {
-            clave: crypto.randomUUID(),
-            descripcion: `Alarma en '${dispositivo.alias}': movimiento detectado (giroscopio/acelerómetro).`,
-            fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-            atendida: null,
-            claveDispositivo: dispositivo.clave,
-            claveAlarma: claveAlarmaSensor,
-            origen: 'alarma'
-          }
-        );
+    //     await agregarNotificacion(
+    //       dispositivo.idUsuario,
+    //       {
+    //         clave: crypto.randomUUID(),
+    //         descripcion: `Alarma en '${dispositivo.alias}': movimiento detectado (giroscopio/acelerómetro).`,
+    //         fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    //         atendida: null,
+    //         claveDispositivo: dispositivo.clave,
+    //         claveAlarma: claveAlarmaSensor,
+    //         origen: 'alarma'
+    //       }
+    //     );
 
-        await crearEventoSistema(
-          dispositivo.idUsuario,
-          `Alarma dispositivo clave:"${claveDispositivo}" movimiento detectado (giroscopio/acelerómetro) generada con la clave de alarma:"${claveAlarmaSensor}"`
-        );
+    //     await crearEventoSistema(
+    //       dispositivo.idUsuario,
+    //       `Alarma dispositivo clave:"${claveDispositivo}" movimiento detectado (giroscopio/acelerómetro) generada con la clave de alarma:"${claveAlarmaSensor}"`
+    //     );
 
-        await enviarNotificacionUsuario(dispositivo.idUsuario);
-        await enviarDispositivoActualizado(claveDispositivo);
-      }
-    }
+    //     await enviarNotificacionUsuario(dispositivo.idUsuario);
+    //     await enviarDispositivoActualizado(claveDispositivo);
+    //   }
+    // }
 
-    if (dispositivo.estatusFijarEstacionado === true && dispositivo.estatusMovimiento === true) {
-      const yaExisteGPS = dispositivo.alarmas?.some(a => a.descripcion.includes('GPS'));
+    // if (dispositivo.estatusFijarEstacionado === true && dispositivo.estatusMovimiento === true) {
+    //   const yaExisteGPS = dispositivo.alarmas?.some(a => a.descripcion.includes('GPS'));
 
-      if (!yaExisteGPS) {
-        const claveAlarmaMovimiento = crypto.randomUUID();
+    //   if (!yaExisteGPS) {
+    //     const claveAlarmaMovimiento = crypto.randomUUID();
 
-        await agregarAlarma(claveDispositivo, {
-          clave: claveAlarmaMovimiento,
-          descripcion: 'Movimiento detectado (GPS)',
-          fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
-        });
+    //     await agregarAlarma(claveDispositivo, {
+    //       clave: claveAlarmaMovimiento,
+    //       descripcion: 'Movimiento detectado (GPS)',
+    //       fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+    //     });
 
-        await agregarNotificacion(
-          dispositivo.idUsuario,
-          {
-            clave: crypto.randomUUID(),
-            descripcion: `Alarma en '${dispositivo.alias}': movimiento detectado (GPS).`,
-            fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-            atendida: null,
-            claveDispositivo: dispositivo.clave,
-            claveAlarma: claveAlarmaMovimiento,
-            origen: 'alarma'
-          }
-        );
+    //     await agregarNotificacion(
+    //       dispositivo.idUsuario,
+    //       {
+    //         clave: crypto.randomUUID(),
+    //         descripcion: `Alarma en '${dispositivo.alias}': movimiento detectado (GPS).`,
+    //         fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    //         atendida: null,
+    //         claveDispositivo: dispositivo.clave,
+    //         claveAlarma: claveAlarmaMovimiento,
+    //         origen: 'alarma'
+    //       }
+    //     );
 
-        await crearEventoSistema(
-          dispositivo.idUsuario,
-          `Alarma dispositivo clave:"${claveDispositivo}" movimiento detectado (GPS) generada con la clave de alarma:"${claveAlarmaMovimiento}"`
-        );
+    //     await crearEventoSistema(
+    //       dispositivo.idUsuario,
+    //       `Alarma dispositivo clave:"${claveDispositivo}" movimiento detectado (GPS) generada con la clave de alarma:"${claveAlarmaMovimiento}"`
+    //     );
 
-        await enviarNotificacionUsuario(dispositivo.idUsuario);
-        await enviarDispositivoActualizado(claveDispositivo);
-      }
-    }
+    //     await enviarNotificacionUsuario(dispositivo.idUsuario);
+    //     await enviarDispositivoActualizado(claveDispositivo);
+    //   }
+    // }
 
-    if (dispositivo.porcentajeBateria !== null && dispositivo.porcentajeBateria <= 20) {
-      const yaTieneBateriaBaja = dispositivo.alarmas?.some(
-        a => a.descripcion.includes('Batería baja')
-      );
+    // if (dispositivo.porcentajeBateria !== null && dispositivo.porcentajeBateria <= 20) {
+    //   const yaTieneBateriaBaja = dispositivo.alarmas?.some(
+    //     a => a.descripcion.includes('Batería baja')
+    //   );
 
-      if (!yaTieneBateriaBaja) {
-        const claveAlarmaBateria = crypto.randomUUID();
+    //   if (!yaTieneBateriaBaja) {
+    //     const claveAlarmaBateria = crypto.randomUUID();
 
-        await agregarAlarma(claveDispositivo, {
-          clave: claveAlarmaBateria,
-          descripcion: `Batería baja (${dispositivo.porcentajeBateria}%)`,
-          fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
-        });
+    //     await agregarAlarma(claveDispositivo, {
+    //       clave: claveAlarmaBateria,
+    //       descripcion: `Batería baja (${dispositivo.porcentajeBateria}%)`,
+    //       fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+    //     });
 
-        await agregarNotificacion(
-          dispositivo.idUsuario,
-          {
-            clave: crypto.randomUUID(),
-            descripcion: `Alarma en '${dispositivo.alias}': batería baja (${dispositivo.porcentajeBateria}%).`,
-            fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-            atendida: null,
-            claveDispositivo: dispositivo.clave,
-            claveAlarma: claveAlarmaBateria,
-            origen: 'alarma'
-          }
-        );
+    //     await agregarNotificacion(
+    //       dispositivo.idUsuario,
+    //       {
+    //         clave: crypto.randomUUID(),
+    //         descripcion: `Alarma en '${dispositivo.alias}': batería baja (${dispositivo.porcentajeBateria}%).`,
+    //         fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    //         atendida: null,
+    //         claveDispositivo: dispositivo.clave,
+    //         claveAlarma: claveAlarmaBateria,
+    //         origen: 'alarma'
+    //       }
+    //     );
 
-        await crearEventoSistema(
-          dispositivo.idUsuario,
-          `Alarma dispositivo clave:"${claveDispositivo}" batería baja ${dispositivo.porcentajeBateria}% generada con la clave de alarma:"${claveAlarmaBateria}"`
-        );
+    //     await crearEventoSistema(
+    //       dispositivo.idUsuario,
+    //       `Alarma dispositivo clave:"${claveDispositivo}" batería baja ${dispositivo.porcentajeBateria}% generada con la clave de alarma:"${claveAlarmaBateria}"`
+    //     );
 
-        await enviarNotificacionUsuario(dispositivo.idUsuario);
-        await enviarDispositivoActualizado(claveDispositivo);
-      }
-    } else if (dispositivo.porcentajeBateria !== null && dispositivo.porcentajeBateria > 20) {
-      const alarmaBateria = dispositivo.alarmas?.find(
-        a => a.descripcion.includes('Batería baja')
-      );
+    //     await enviarNotificacionUsuario(dispositivo.idUsuario);
+    //     await enviarDispositivoActualizado(claveDispositivo);
+    //   }
+    // } else if (dispositivo.porcentajeBateria !== null && dispositivo.porcentajeBateria > 20) {
+    //   const alarmaBateria = dispositivo.alarmas?.find(
+    //     a => a.descripcion.includes('Batería baja')
+    //   );
 
-      if (alarmaBateria) {
-        try {
-          await eliminarAlarma(claveDispositivo, alarmaBateria.clave);
-          await eliminarNotificacionPorAlarma(dispositivo.idUsuario, alarmaBateria.clave);
-          await enviarNotificacionUsuario(dispositivo.idUsuario);
-          await enviarDispositivoActualizado(claveDispositivo);
-        } catch { }
-      }
-    }
-    // console.log("Dispositivo:", claveDispositivo);
-    // console.log("Tópico:", topico);
-    // console.log("Datos:", datos);
+    //   if (alarmaBateria) {
+    //     try {
+    //       await eliminarAlarma(claveDispositivo, alarmaBateria.clave);
+    //       await eliminarNotificacionPorAlarma(dispositivo.idUsuario, alarmaBateria.clave);
+    //       await enviarNotificacionUsuario(dispositivo.idUsuario);
+    //       await enviarDispositivoActualizado(claveDispositivo);
+    //     } catch { }
+    //   }
+    // }
+    // // console.log("Dispositivo:", claveDispositivo);
+    // // console.log("Tópico:", topico);
+    // // console.log("Datos:", datos);
 
-    if (datos.localizacion) {
-      const { latitud, longitud, altitud } = datos.localizacion;
+    // if (datos.localizacion) {
+    //   const { latitud, longitud, altitud } = datos.localizacion;
 
-      if (
-        latitud !== undefined &&
-        longitud !== undefined &&
-        altitud !== undefined
-      ) {
+    //   if (
+    //     latitud !== undefined &&
+    //     longitud !== undefined &&
+    //     altitud !== undefined
+    //   ) {
 
-        await crearLocalizacion(claveDispositivo, datos.localizacion)
-      }
-    }
+    //     await crearLocalizacion(claveDispositivo, datos.localizacion)
+    //   }
+    // }
 
   } catch (error) {
 
@@ -461,11 +458,7 @@ export async function onPublicacion(
  *
  * Timeout de 10 segundos.
  */
-export async function enviarSolicitudDispositivo(
-  claveDispositivo: string,
-  datos: Record<string, any>
-): Promise<{ exito: boolean; mensaje: string }> {
-
+export async function enviarSolicitudDispositivo(claveDispositivo: string, datos: Record<string, any>): Promise<{ estatus: boolean; mensaje: string }> {
   return new Promise((resolve, reject) => {
 
     const timeout = setTimeout(() => {
@@ -489,11 +482,11 @@ export async function enviarSolicitudDispositivo(
         const respuesta = JSON.parse(packet.payload.toString('utf8'));
         console.log('📥 Respuesta dispositivo:', { dispositivo: claveDispositivo, respuesta });
         resolve({
-          exito: respuesta.exito === true,
+          estatus: respuesta.estatus === true,
           mensaje: respuesta.mensaje || ''
         });
       } catch {
-        resolve({ exito: false, mensaje: 'Respuesta inválida del dispositivo.' });
+        resolve({ estatus: false, mensaje: 'Respuesta inválida del dispositivo.' });
       }
     };
 
@@ -537,7 +530,10 @@ export async function iniciarConexiones() {
       idUsuario: dispositivo.idUsuario,
       alias: dispositivo.alias,
       telefono: dispositivo.telefono,
+      tipo: dispositivo.tipo,
+      tipoTexto: dispositivo.tipoTexto,
       cualidades: dispositivo.cualidades,
+      estatus: null,
       estatusConexion: null,
       localizacion: null,
       estatusAlarma: null,

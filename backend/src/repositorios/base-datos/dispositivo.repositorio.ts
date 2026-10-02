@@ -1,5 +1,6 @@
-import sql from 'mssql';
-import { pool, poolSesion } from '../../recursos/base-datos';
+import { Prisma } from '@prisma/client';
+import { prisma, ejecutarConSesion } from '../../recursos/prisma';
+import { obtenerSesion } from '@/interceptores/solicitud';
 
 export interface Dispositivo {
   id: number;
@@ -28,6 +29,8 @@ export interface DispositivoClave {
   idUsuario: number;
   alias: string;
   telefono: string;
+  tipoTexto: string;
+  tipo: string;
   fechaFinalSuscripcion: Date | null;
   cualidades: string;
 }
@@ -41,26 +44,24 @@ export interface LocalizacionDispositivo {
 
 
 export async function buscarPorClave(clave: string, idUsuario: number): Promise<any | null> {
-  const resultado = await pool.request()
-    .input('clave', sql.VarChar(50), clave)
-    .query(`
+  const registros = await prisma.$queryRaw<any[]>`
       SELECT
         pd.id AS idPreDispositivo,
         d.id AS idDispositivo,
-        d.id_usuario,
+        d.id_usuario AS idUsuario,
         d.alias,
         d.telefono
       FROM pre_dispositivos pd
       LEFT JOIN dispositivos d
         ON d.id_pre_dispositivo = pd.id
-      WHERE pd.clave = TRY_CONVERT(uniqueidentifier, @clave);
-    `);
+      WHERE pd.clave = TRY_CONVERT(uniqueidentifier, ${clave});
+    `;
 
-  if (resultado.recordset.length === 0) {
+  if (registros.length === 0) {
     throw new Error('La clave del pre dispositivo no existe.');
   }
 
-  const registro = resultado.recordset[0];
+  const registro = registros[0];
 
   // La clave existe pero todavía no está vinculada
   if (!registro.idDispositivo) {
@@ -80,69 +81,57 @@ export async function buscarPorClave(clave: string, idUsuario: number): Promise<
 }
 
 export async function crear(datos: DatosCrear) {
-  const validacion = await poolSesion.request()
-    .input('claveDispositivo', sql.VarChar(50), datos.clave)
-    .query(`
+
+  const registros = await prisma.$queryRaw<any[]>`
       SELECT
         pd.id AS idPreDispositivo,
         d.id AS idDispositivo
       FROM pre_dispositivos pd
       LEFT JOIN dispositivos d
         ON d.id_pre_dispositivo = pd.id
-      WHERE pd.clave = TRY_CONVERT(uniqueidentifier, @claveDispositivo);
-    `);
+      WHERE pd.clave = TRY_CONVERT(uniqueidentifier, ${datos.clave});
+    `;
 
-  if (validacion.recordset.length === 0) {
+  if (registros.length === 0) {
     throw new Error('La clave del pre dispositivo no existe.');
   }
 
-  const registro = validacion.recordset[0];
+  const registro = registros[0];
 
   if (registro.idDispositivo) {
     throw new Error('La clave del pre dispositivo ya está siendo utilizada.');
   }
 
-  await pool.request()
-    .input('idUsuario', sql.Int, datos.idUsuario)
-    .input('idPreDispositivo', sql.Int, registro.idPreDispositivo)
-    .input('alias', sql.VarChar(100), datos.alias || null)
-    .input('telefono', sql.VarChar(20), datos.telefono || null)
-    .query(`
-      DECLARE @insertado TABLE (id INT);
+  const sesion = obtenerSesion();
 
-      INSERT INTO dispositivos (
-        id_usuario,
-        id_pre_dispositivo,
-        alias,
-        telefono
-      )
-      OUTPUT INSERTED.id INTO @insertado
-      VALUES (
-        @idUsuario,
-        @idPreDispositivo,
-        @alias,
-        @telefono
-      );
-
-      SELECT id FROM @insertado;
-    `);
+  await ejecutarConSesion(sesion?.idUsuario ?? 0, async (tx) => {
+    return tx.dispositivos.create({
+      data: {
+        id_usuario: datos.idUsuario,
+        id_pre_dispositivo: registro.idPreDispositivo,
+        alias: datos.alias || null as any,
+        telefono: datos.telefono || null
+      }
+    });
+  });
 }
 
 export async function actualizar(datos: DatosActualizar): Promise<void> {
-  await poolSesion.request()
-    .input('clave', sql.UniqueIdentifier, datos.clave)
-    .input('telefono', sql.VarChar, datos.telefono)
-    .input('alias', sql.VarChar, datos.alias)
-    .query(`
+
+  const sesion = obtenerSesion();
+
+  await ejecutarConSesion(sesion?.idUsuario ?? 0, async (tx) => {
+    return tx.$executeRaw`
       UPDATE dis
       SET
-        dis.alias = @alias,
-        dis.telefono = @telefono
+        dis.alias = ${datos.alias},
+        dis.telefono = ${datos.telefono}
       FROM dispositivos dis
       INNER JOIN pre_dispositivos pd
         ON pd.id = dis.id_pre_dispositivo
-      WHERE pd.clave = @clave;
-    `);
+      WHERE pd.clave = TRY_CONVERT(uniqueidentifier, ${datos.clave});
+    `;
+  });
 }
 
 //#region Dispositivos
@@ -156,33 +145,38 @@ export async function obtenerListaDispositivosUsuario(
   idUsuario: number
 ): Promise<{ clave: string; alias: string }[]> {
 
-  const resultado = await pool.request()
-    .input('idUsuario', sql.Int, idUsuario)
-    .query(`
-            SELECT
-                prd.clave,
-                dis.alias
-            FROM dispositivos dis
-            INNER JOIN pre_dispositivos prd
-                ON prd.id = dis.id_pre_dispositivo
-            WHERE dis.id_usuario = @idUsuario
-              AND prd.estatus = 1
-            ORDER BY dis.alias;
-        `);
+  const registros = await prisma.$queryRaw<{ clave: string; alias: string }[]>`
+        SELECT
+            prd.clave,
+            dis.alias
+        FROM dispositivos dis
+        INNER JOIN pre_dispositivos prd
+            ON prd.id = dis.id_pre_dispositivo
+        WHERE dis.id_usuario = ${idUsuario}
+          AND prd.estatus = 1
+        ORDER BY dis.alias;
+    `;
 
-  return resultado.recordset;
+  return registros;
 }
 
 export async function obtenerDatosDispositivos(): Promise<DispositivoClave[]> {
-  const resultado = await pool.request()
-    .query(`
+  const registros = await prisma.$queryRaw<DispositivoClave[]>`
       SELECT 
-          dis.id_usuario,
+          dis.id_usuario AS idUsuario,
           prd.clave,
-          sus.fecha_final as fecha_final_suscripcion,
+          sus.fecha_final AS fechaFinalSuscripcion,
           dis.alias,
           dis.telefono,
-          prd.cualidades
+          prd.cualidades,
+          prd.tipo,
+          CASE prd.tipo
+            WHEN 'I' THEN 'Interruptor'
+            WHEN 'T' THEN 'Timbre'
+            WHEN 'C' THEN 'Camara'
+            WHEN 'D' THEN 'Dispositivo'
+            ELSE 'Desconocido'
+          END AS tipoTexto
       FROM dispositivos dis
       INNER JOIN pre_dispositivos prd
           ON prd.id = dis.id_pre_dispositivo
@@ -194,9 +188,9 @@ export async function obtenerDatosDispositivos(): Promise<DispositivoClave[]> {
           ORDER BY s.fecha_final DESC
       ) sus
       WHERE prd.estatus = 1;
-    `);
+    `;
 
-  return resultado.recordset;
+  return registros;
 }
 
 
@@ -206,31 +200,31 @@ export async function obtenerDatosDispositivos(): Promise<DispositivoClave[]> {
  * @param filtros Filtros para las localizaciones
  */
 export async function obtenerLocalizaciones(idUsuario: number, filtros: any): Promise<LocalizacionDispositivo[]> {
-  const consulta = await pool.request()
-    .input('idUsuario', sql.Int, idUsuario)
-    .input('claveDispositivo', sql.VarChar, filtros.claveDispositivo ?? null)
-    .query(`
-            SELECT
-                d.alias AS aliasDispositivo,
-                l.latitud,
-                l.longitud,
-                l.altitud
-            FROM localizaciones l
-            INNER JOIN dispositivos d
-                ON d.id = l.id_dispositivo
-            INNER JOIN pre_dispositivos pd
-                ON pd.id = d.id_pre_dispositivo
-            INNER JOIN usuarios u
-                ON u.id = d.id_usuario
-            WHERE u.id = @idUsuario
-              AND (
-                    @claveDispositivo IS NULL
-                    OR pd.clave = @claveDispositivo
-                  )
-            ORDER BY l.id;
-        `);
 
-  return consulta.recordset;
+  const claveDispositivo = filtros.claveDispositivo ?? null;
+
+  const registros = await prisma.$queryRaw<LocalizacionDispositivo[]>`
+        SELECT
+            d.alias AS aliasDispositivo,
+            l.latitud,
+            l.longitud,
+            l.altitud
+        FROM localizaciones l
+        INNER JOIN dispositivos d
+            ON d.id = l.id_dispositivo
+        INNER JOIN pre_dispositivos pd
+            ON pd.id = d.id_pre_dispositivo
+        INNER JOIN usuarios u
+            ON u.id = d.id_usuario
+        WHERE u.id = ${idUsuario}
+          AND (
+                ${claveDispositivo} IS NULL
+                OR pd.clave = TRY_CONVERT(uniqueidentifier, ${claveDispositivo})
+              )
+        ORDER BY l.id;
+    `;
+
+  return registros;
 }
 
 /**
@@ -247,28 +241,23 @@ export async function crearLocalizacion(
   }
 ): Promise<void> {
 
-  await pool.request()
-    .input('claveDispositivo', sql.VarChar, claveDispositivo)
-    .input('latitud', sql.Float, localizacion.latitud)
-    .input('longitud', sql.Float, localizacion.longitud)
-    .input('altitud', sql.Float, localizacion.altitud)
-    .query(`
-            INSERT INTO localizaciones (
-                id_dispositivo,
-                latitud,
-                longitud,
-                altitud
-            )
-            SELECT
-                d.id,
-                @latitud,
-                @longitud,
-                @altitud
-            FROM dispositivos d
-            INNER JOIN pre_dispositivos pd
-                ON pd.id = d.id_pre_dispositivo
-            WHERE pd.clave = @claveDispositivo;
-        `);
+  await prisma.$executeRaw`
+        INSERT INTO localizaciones (
+            id_dispositivo,
+            latitud,
+            longitud,
+            altitud
+        )
+        SELECT
+            d.id,
+            ${localizacion.latitud},
+            ${localizacion.longitud},
+            ${localizacion.altitud}
+        FROM dispositivos d
+        INNER JOIN pre_dispositivos pd
+            ON pd.id = d.id_pre_dispositivo
+        WHERE pd.clave = TRY_CONVERT(uniqueidentifier, ${claveDispositivo});
+    `;
 }
 
 //#endregion

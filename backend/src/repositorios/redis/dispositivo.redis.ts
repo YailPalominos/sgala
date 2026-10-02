@@ -13,32 +13,25 @@ export interface EstadoDispositivoRedis {
     cualidades: string;
     telefono: string;
     estatusConexion: boolean | null;
-
     localizacion: {
         latitud: number;
         longitud: number;
         altitud: number;
     } | null;
-
+    /** Indica el estatus general del dispositivo, Interruptor(I). */
+    estatus: boolean | null;
     /** Indica si está activo el corta corriente. */
     estatusCortaCorriente: boolean | null;
-
     /** Indica si está activa la alarma. */
     estatusAlarma: boolean | null;
-
     /** Fecha de finalización de la suscripción del dispositivo. */
     fechaFinalSuscripcion: string | null;
-
     porcentajeBateria: number | null;
-
     /** Indica si el dispositivo está encendido. */
     estatusEncendida: boolean | null;
-
     /** Indica si el dispositivo está en movimiento. */
     estatusMovimiento: boolean | null;
-
     estatusFijarEstacionado: boolean | null;
-
     alarmas: Alarma[] | null;
 }
 
@@ -154,7 +147,9 @@ export async function obtenerDispositivoDeUsuario(
 
     const dispositivos = await obtenerDispositivosUsuario(idUsuario);
 
-    return dispositivos.find(d => d.clave === clave) ?? null;
+    return dispositivos.find(
+        d => d.clave.toUpperCase() === clave.toUpperCase()
+    ) ?? null;
 }
 
 
@@ -506,7 +501,7 @@ export async function actualizarEstatusConexion(
 
     try {
 
-        const dispositivo = await obtenerDispositivo(clave.toUpperCase());
+        const dispositivo = await obtenerDispositivo(clave);
 
         const llaveRedis = `dispositivos:${dispositivo.idUsuario}`;
 
@@ -520,7 +515,7 @@ export async function actualizarEstatusConexion(
             JSON.parse(datos);
 
         const indice = dispositivos.findIndex(
-            d => d.clave === clave.toUpperCase()
+            d => d.clave.toUpperCase() === clave.toUpperCase()
         );
 
         if (indice === -1) {
@@ -590,7 +585,8 @@ export async function actualizarDatosDispositivo(
             'estatusEncendida',
             'estatusMovimiento',
             'localizacion',
-            'estatusFijarEstacionado'
+            'estatusFijarEstacionado',
+            'estatus'
         ] as const;
 
         for (const campo of campos) {

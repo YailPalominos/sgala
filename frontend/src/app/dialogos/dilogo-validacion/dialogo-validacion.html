@@ -4,8 +4,15 @@
 
 <mat-dialog-content>
 
+  @if (escaneando()) {
+  <div class="contenedor-qr">
+    <video #video class="video-qr" autoplay playsinline muted></video>
+    <p class="texto-qr">Apunta la cámara al código QR.</p>
+  </div>
+  }
 
-  <form [formGroup]="formulario" (ngSubmit)="verificar()" id="formulario">
+  <form [formGroup]="formulario" (ngSubmit)="verificar()" id="formulario"
+    [style.display]="escaneando() ? 'none' : 'block'">
 
     <p style="margin: 10px;text-align: center;width: 100%">
       Ingresa la clave del pre {{ parametros === 'U' ? 'usuario' : 'dispositivo' }}.
@@ -45,7 +52,13 @@
 
 <mat-dialog-actions align="center">
 
-  <button mat-raised-button color="accent" type="button">
+  @if (escaneando()) {
+  <button mat-raised-button color="warn" type="button" (click)="detenerEscaneo()">
+    <mat-icon>close</mat-icon>
+    Cancelar
+  </button>
+  } @else {
+  <button mat-raised-button color="accent" type="button" (click)="escanearQR()">
     <mat-icon>qr_code_2</mat-icon>
     QR
   </button>
@@ -54,5 +67,6 @@
     <mat-icon>verified_user</mat-icon>
     Verificar
   </button>
+  }
 
 </mat-dialog-actions>

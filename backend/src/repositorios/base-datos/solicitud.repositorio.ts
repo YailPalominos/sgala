@@ -1,5 +1,4 @@
-import sql from 'mssql';
-import { pool } from '../../recursos/base-datos';
+import { prisma } from '../../recursos/prisma';
 
 export interface Solicitud {
     descripcion: string;
@@ -8,22 +7,14 @@ export interface Solicitud {
 
 export async function crear(solicitud: Solicitud) {
 
-  await pool.request()
-    .input(
-      'descripcion',
-      sql.VarChar(1000),
-      solicitud.descripcion.trim()
-    )
-    .input(
-      'medioContacto',
-      sql.VarChar(50),
-      solicitud.medioContacto
-        ? solicitud.medioContacto.trim()
-        : null
-    )
-    .query(
-      `INSERT INTO solicitudes (descripcion, medio_contacto, estatus)
-       VALUES (@descripcion, @medioContacto, 1)`
-    );
+    await prisma.solicitudes.create({
+        data: {
+            descripcion: solicitud.descripcion.trim(),
+            medio_contacto: solicitud.medioContacto
+                ? solicitud.medioContacto.trim()
+                : null,
+            estatus: true
+        }
+    });
 
 }

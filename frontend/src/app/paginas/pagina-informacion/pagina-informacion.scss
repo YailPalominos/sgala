@@ -60,7 +60,7 @@
 
 
 
-.asistente-flotante {
+.agente-flotante {
   position: fixed;
   right: 25px;
   bottom: 25px;
@@ -70,33 +70,40 @@
   align-items: center;
   gap: 12px;
 }
-.btn-asistente {
+.btn-agente {
   width: 60px;
   height: 60px;
+  min-width: 60px;
+  padding: 0;
+  border-radius: 50% !important;
 
-  background-color: #ff0040c0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: var(--tema-primary, #273036);
   color: white;
 
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
 
   &:hover {
-    background-color: #9c161dc0
+    background-color: var(--tema-secondary, #9c161d);
   }
 }
 
 
-.btn-asistente .mat-badge-content {
+.btn-agente .mat-badge-content {
   width: 24px;
   height: 24px;
   line-height: 24px;
   font-size: 14px;
   font-weight: bold;
 }
-.btn-asistente .material-symbols-outlined {
+.btn-agente .material-symbols-outlined {
   font-size: 30px;
 }
 
-.btn-asistente:hover {
+.btn-agente:hover {
   transform: scale(1.08);
 
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.30);
@@ -104,7 +111,7 @@
 
 /* Notificación inicial */
 
-.asistente-notificacion {
+.agente-notificacion {
   background-color: white;
   color: #273036;
 
@@ -137,7 +144,7 @@
 
 /* Atención al entrar */
 
-.btn-asistente {
+.btn-agente {
   animation: llamar-atencion 1s ease 1.5s;
 }
 
@@ -166,16 +173,16 @@
 /* Pantallas pequeñas */
 
 @media (max-width: 600px) {
-  .asistente-flotante {
+  .agente-flotante {
     right: 15px;
     bottom: 15px;
   }
 
-  .asistente-notificacion {
+  .agente-notificacion {
     display: none;
   }
 
-  .btn-asistente {
+  .btn-agente {
     width: 55px;
     height: 55px;
   }

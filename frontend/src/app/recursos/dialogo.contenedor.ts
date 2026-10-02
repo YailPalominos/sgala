@@ -331,7 +331,7 @@ export class DialogoContenedorComponent {
     this.expandido = false;
 
     this.dialogoReferencia.updateSize(
-      this.data.width ?? '850px',
+      this.data.width ?? '320px',
       this.data.height ?? 'auto'
     );
 
@@ -362,7 +362,7 @@ export class DialogoContenedorComponent {
       });
     } else {
       this.dialogoReferencia.updateSize(
-        '850px',
+        this.data.width ?? '320px',
         'auto'
       );
     }

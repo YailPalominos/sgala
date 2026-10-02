@@ -1,7 +1,6 @@
 import { Inject, inject, Injectable, runInInjectionContext, signal, Type } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { DialogoContenedorComponent } from "./dialogo.contenedor";
-import { Subject } from "rxjs";
 import { clases } from "../app.config";
 import { EnvironmentInjector } from '@angular/core';
 import { Formulario } from "./dialogo.formulario";
@@ -134,6 +133,24 @@ export class DialogoServicio {
     this.guardar();
   }
 
+  /**
+   * Cierra todos los diálogos abiertos y elimina
+   * los datos persistidos en el almacenamiento local.
+   */
+  public eliminarTodos(): void {
+
+    for (const ref of this.referencias.values()) {
+      ref.close();
+    }
+
+    this.referencias.clear();
+    this.callbacks.clear();
+
+    this._dialogos.set([]);
+
+    localStorage.removeItem(this.claveStorage);
+  }
+
   public actualizarTitulo(id: string, titulo: string) {
 
     this._dialogos.update(x =>
@@ -181,11 +198,96 @@ export class DialogoServicio {
     );
   }
 
+  /**
+   * Determina el tipo de pantalla actual.
+   * 'c' celular | 'm' tablet | 'l' computadora
+   */
+  private obtenerTipoPantalla(): 'c' | 'm' | 'l' {
+    const ancho = window.innerWidth;
+
+    if (ancho <= 599) {
+      return 'c';
+    }
+
+    if (ancho <= 1023) {
+      return 'm';
+    }
+
+    return 'l';
+  }
+
+  /**
+   * Resuelve el ancho del diálogo según el tipo de pantalla.
+   *
+   * Acepta:
+   * - Formato responsivo: 'l30%,m50%,c100%'
+   * - Valor único: '450px' o '50%' (se usa igual en todas)
+   * - undefined: no se define ancho (solo aplica el mínimo de 320px)
+   *
+   * Devuelve el ancho a aplicar, undefined si no hay definido,
+   * o 'maximizado' si debe abrirse expandido.
+   */
+  private resolverLargo(largo?: string): string | 'maximizado' | undefined {
+
+    const tipo = this.obtenerTipoPantalla();
+
+    // En celular siempre maximizado
+    if (tipo === 'c') {
+      return 'maximizado';
+    }
+
+    if (!largo) {
+      return undefined;
+    }
+
+    // Formato responsivo: contiene comas o prefijos l/m/c
+    if (/[lmc]\s*\d/.test(largo)) {
+
+      const partes = largo.split(',').map(p => p.trim());
+
+      const mapa: Record<string, string> = {};
+
+      for (const parte of partes) {
+        const coincidencia = parte.match(/^([lmc])\s*(.+)$/);
+        if (coincidencia) {
+          mapa[coincidencia[1]] = coincidencia[2];
+        }
+      }
+
+      // Buscar el valor del tipo actual, con fallback a los otros definidos
+      return mapa[tipo] ?? mapa['l'] ?? mapa['m'] ?? undefined;
+    }
+
+    // Valor único (px o %)
+    return largo;
+  }
+
+  private generarUUID(): string {
+    if (
+      typeof crypto !== 'undefined' &&
+      typeof crypto.randomUUID === 'function'
+    ) {
+      return crypto.randomUUID();
+    }
+
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+      /[xy]/g,
+      (c) => {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x'
+          ? r
+          : (r & 0x3 | 0x8);
+
+        return v.toString(16);
+      }
+    );
+  }
+
   abrir(
     configuracionDialogo: ConfiguracionDialogo
   ) {
 
-    const id = crypto.randomUUID()
+    const id = this.generarUUID();
     const nombrePanel = configuracionDialogo.referencia.name
     const referencia = configuracionDialogo.referencia;
 
@@ -204,6 +306,9 @@ export class DialogoServicio {
       );
     }
 
+    const largoResuelto = this.resolverLargo(configuracionDialogo.largo);
+    const abrirMaximizado = largoResuelto === 'maximizado';
+
     const dialogo: EstadoDialogo = {
       id,
       titulo: this.generarTitulo(configuracionDialogo.titulo),
@@ -217,11 +322,11 @@ export class DialogoServicio {
       posicionY: 0,
       ancho: 0,
       alto: 0,
-      expandido: false,
+      expandido: abrirMaximizado,
       minimizado: false,
       // Referencias para abri 
       referencia: nombrePanel,
-      width: configuracionDialogo.largo,
+      width: abrirMaximizado ? undefined : largoResuelto,
       height: configuracionDialogo.ancho ?? (esPanel ? '80vh' : undefined),
       maxWidth: configuracionDialogo.maximoLargo,
       maxHeight: configuracionDialogo.maximoAncho,
@@ -276,7 +381,8 @@ export class DialogoServicio {
         DialogoContenedorComponent,
         {
           width:
-            dialogo.width ?? '850px',
+            dialogo.width,
+          minWidth: '320px',
           maxWidth:
             dialogo.maxWidth ?? '100vw',
           maxHeight:

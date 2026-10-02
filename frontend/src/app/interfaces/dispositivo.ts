@@ -13,11 +13,14 @@ export interface Alarma {
 export interface Dispositivo {
   id: number;
   alias: string;
-  telefono: string;
+  telefono?: string;
+  tipo: string;
+  tipoTexto?: string;
   clave: string;
   cualidades: string;
   fechaFinalSuscripcion: string | null;
   localizacion: Localizacion | null;
+  estatus: boolean | null;
   estatusConexion: boolean | null;
   estatusEncendida: boolean | null;
   estatusMovimiento: boolean | null;
@@ -25,5 +28,5 @@ export interface Dispositivo {
   estatusCortaCorriente: boolean | null;
   porcentajeBateria: number | null,
   estatusFijarEstacionado: boolean | null,
-  alarmas: Alarma[]| null
+  alarmas: Alarma[] | null
 }

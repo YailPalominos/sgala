@@ -121,7 +121,7 @@ export class PaginaInicio implements OnInit {
       referencia: DialogoAlarmas,
       titulo: 'Alarmas',
       icono: 'notifications_active',
-      largo: '450px',
+      largo: 'l30%,m50%,c100%',
       desactivarAutocerrado: true,
       datos: {
         alias: dispositivo.alias,
@@ -153,7 +153,7 @@ export class PaginaInicio implements OnInit {
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      largo: '450px',
+      largo: 'l25%,m45%,c100%',
       desactivarAutocerrado: true,
       parametros: {
         titulo: "Corta corriente",
@@ -182,13 +182,54 @@ export class PaginaInicio implements OnInit {
     }
   }
 
+
+
+  //#region Interruptor
+
+  public intercalarActivacion(dispositivo: Dispositivo): void {
+    const estatus = dispositivo.estatus === true
+    this.dialogoServicio.abrir({
+      referencia: DialogoConfirmacion,
+      titulo: 'Confirmar',
+      icono: 'check',
+      largo: 'l25%,m45%,c100%',
+      desactivarAutocerrado: true,
+      parametros: {
+        titulo: "Intercalar estado",
+        mensaje: estatus
+          ? '¿Desea desactivar el interruptor?'
+          : '¿Desea activar del interruptor?',
+      },
+      datos: {
+        clave: dispositivo.clave,
+        estatus: estatus ? false : true
+      },
+      alFinalizar: this.finalizarIntercalarActivacion.bind(this)
+    });
+  }
+
+  private finalizarIntercalarActivacion(respuesta?: any) {
+    if (respuesta?.resultado == true) {
+      this.marcarProcesando(respuesta.datos.clave);
+      this.socket.emitir(
+        'solicitud/dispositivo',
+        {
+          clave: respuesta.datos.clave,
+          estatus: respuesta.datos.estatus
+        }
+      );
+    }
+  }
+
+  //#endregion
+
   public intercalarFijarEstacionado(dispositivo: Dispositivo): void {
     const estatusFijarEstacionado = dispositivo.estatusFijarEstacionado === true
     this.dialogoServicio.abrir({
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      largo: '450px',
+      largo: 'l25%,m45%,c100%',
       desactivarAutocerrado: true,
       parametros: {
         titulo: "Fijar estacionado",
@@ -223,7 +264,7 @@ export class PaginaInicio implements OnInit {
       referencia: FormularioDispositivo,
       titulo: 'Dispositivo',
       icono: 'view_carousel',
-      largo: '450px',
+      largo: 'l35%,m55%,c100%',
       desactivarAutocerrado: true,
       parametros: 'A',
       datos: dispositivo
@@ -240,12 +281,11 @@ export class PaginaInicio implements OnInit {
       referencia: DialogoValidacion,
       titulo: 'Validar',
       icono: 'check_circle',
-      largo: '450px',
+      largo: 'l30%,m50%,c100%',
       desactivarAutocerrado: true,
       parametros: 'D',//'D' Dipsitivo
       alFinalizar: this.finalizarAgregarDispositivo.bind(this)
     });
-
   }
 
   public finalizarAgregarDispositivo(resultado?: string) {
@@ -254,7 +294,7 @@ export class PaginaInicio implements OnInit {
         referencia: FormularioDispositivo,
         titulo: 'Dispositivo',
         icono: 'view_carousel',
-        largo: '450px',
+        largo: 'l35%,m55%,c100%',
         desactivarAutocerrado: true,
         parametros: 'A',
         datos: { clave: resultado }
@@ -359,6 +399,25 @@ export class PaginaInicio implements OnInit {
     return estatus ? 'Encendida' : 'Apagada';
   }
 
+  public textoInterruptorEncendido(estatus: boolean | null): string {
+    if (estatus === null) return '-';
+    return estatus == true ? 'Activado' : 'Desactivado';
+  }
+
+  /**
+   * Devuelve el icono Material correspondiente al tipo de dispositivo.
+   * Tipos: I = Interruptor, T = Timbre, C = Cámara, D = Dispositivo.
+   */
+  public iconoTipo(tipo: string | null): string {
+    switch (tipo) {
+      case 'I': return 'toggle_on';
+      case 'T': return 'doorbell';
+      case 'C': return 'photo_camera';
+      case 'D': return 'devices_other';
+      default: return 'help_outline';
+    }
+  }
+
   public textoMovimiento(estatus: boolean | null): string {
     if (estatus === null) return '-';
     return estatus ? 'En movimiento' : 'Sin movimiento';
@@ -367,6 +426,11 @@ export class PaginaInicio implements OnInit {
   public colorEncendida(estatus: boolean | null): string {
     if (estatus === null) return '#757575';
     return estatus ? '#FF9800' : '#4CAF50';
+  }
+
+  public colorInterruptorActivado(estatus: boolean | null): string {
+    if (estatus === null) return '#757575';
+    return estatus ? '#00ff55' : '#f54242';
   }
 
   public colorMovimiento(estatus: boolean | null): string {

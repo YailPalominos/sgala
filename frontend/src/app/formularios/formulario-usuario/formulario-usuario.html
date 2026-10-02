@@ -4,7 +4,7 @@
 
 <mat-dialog-content>
 
-    <form [formGroup]="formulario" (ngSubmit)="preparar()">
+    <form id="formUsuario" [formGroup]="formulario" (ngSubmit)="preparar()">
 
         <p style="text-align: center;width: 100%;">
             @if (parametros == 'R') {
@@ -20,7 +20,7 @@
             }
         </p>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" class="c100 m50 g50">
             <mat-label>Alias</mat-label>
             <input matInput formControlName="alias" type="tel" autocomplete="tel" />
             <mat-icon matPrefix>badge</mat-icon>
@@ -47,7 +47,7 @@
             }
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" class="c100 m50 g50">
             <mat-label>Dirección de correo electronico</mat-label>
             <input matInput formControlName="direccionCorreoElectronico" autocomplete="off" />
             <mat-icon matPrefix>email</mat-icon>
@@ -66,7 +66,7 @@
 
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" class="c100 m50 g50">
             <mat-label>Teléfono</mat-label>
             <input matInput formControlName="telefono" autocomplete="off" mask="0000000000" />
             <mat-icon matPrefix>phone</mat-icon>
@@ -86,6 +86,16 @@
         </mat-form-field>
 
         @if (parametros == 'A') {
+        <mat-form-field appearance="outline" class="c100 m100 g100">
+            <mat-label>Tema</mat-label>
+            <mat-icon matPrefix>palette</mat-icon>
+            <mat-select [value]="temaServicio.temaActivo()" (selectionChange)="cambiarTema($event.value)">
+                @for (tema of temas; track tema.clave) {
+                <mat-option [value]="tema.clave">{{ tema.nombre }}</mat-option>
+                }
+            </mat-select>
+        </mat-form-field>
+
         <div class="toggle-notificaciones" matTooltip="Notificaciones en segundo plano.">
             <mat-slide-toggle [checked]="suscripcionActiva" (change)="intercalarNotificaciones($event.checked)"
                 color="primary">
@@ -94,28 +104,30 @@
         </div>
         }
 
-        <div class="acciones-formulario acciones-3">
-
-            @if (parametros == 'A') {
-            <div>
-                <button mat-raised-button type="button" style="background-color:#0059b6; color:white"
-                    (click)="restablecer()" matTooltip="Cambiar contraseña">
-                    <mat-icon>lock_reset</mat-icon>
-                    Restablecer
-                </button>
-            </div>
-            }
-
-            <div>
-                <button mat-raised-button color="primary" type="submit">
-                    <mat-icon>
-                        {{ parametros == 'R' ? 'add' : 'edit' }}
-                    </mat-icon>
-                    {{ parametros == 'R' ? 'Crear' : 'Actualizar' }}
-                </button>
-            </div>
-        </div>
-
     </form>
 
 </mat-dialog-content>
+
+<mat-dialog-actions>
+
+    @if (parametros == 'A') {
+    <div class="c100 m50 g50">
+        <button mat-raised-button type="button" style="background-color:#0059b6; color:white"
+            (click)="restablecer()" matTooltip="Cambiar contraseña">
+            <mat-icon>lock_reset</mat-icon>
+            Restablecer
+        </button>
+    </div>
+    }
+
+    <div [class]="parametros == 'A' ? 'c100 m50 g50' : 'c100 m100 g100'">
+        <button mat-raised-button color="primary" type="submit" form="formUsuario"
+            [class.boton-inactivo]="!puedeEnviar()">
+            <mat-icon>
+                {{ parametros == 'R' ? 'add' : 'edit' }}
+            </mat-icon>
+            {{ parametros == 'R' ? 'Crear' : 'Actualizar' }}
+        </button>
+    </div>
+
+</mat-dialog-actions>

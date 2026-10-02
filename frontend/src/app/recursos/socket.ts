@@ -4,6 +4,7 @@ import { BehaviorSubject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Autenticador } from './autenticador';
 import { Notificador } from './notificador';
+import { Cargador } from './cargador';
 
 @Injectable({ providedIn: 'root' })
 export class Socket {
@@ -11,6 +12,9 @@ export class Socket {
   private socketUrl = environment.socketUrl;
   private autenticador = inject(Autenticador);
   private notificador = inject(Notificador);
+  private cargador = inject(Cargador);
+  private desconectadoManual = false;
+  private sesionInvalida = false;
   // agrgar notificaicone
   private dispositivosSubject = new BehaviorSubject<any[]>([]);
   public dispositivos$ = this.dispositivosSubject.asObservable();
@@ -38,9 +42,19 @@ export class Socket {
       return;
     }
 
+    this.desconectadoManual = false;
+    this.sesionInvalida = false;
+
     this.socketCliente = io(this.socketUrl, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
+
+      // Reconexión automática: seguir intentando indefinidamente
+      // mientras no haya conexión.
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
 
       auth: {
         claveSesion: sesion.clave
@@ -50,6 +64,8 @@ export class Socket {
     this.socketCliente.on('connect', () => {
       console.log('🟢 Socket conectado');
       console.log('Id Socket:', this.socketCliente?.id);
+      // Hay conexión: ocultar el spinner de carga.
+      this.cargador.ocultar();
     });
 
     this.socketCliente.on(
@@ -83,12 +99,37 @@ export class Socket {
       }
     );
 
-    this.socketCliente.on('disconnect', () => {
-      console.log('🔴 Socket desconectado');
+    this.socketCliente.on('disconnect', (motivo) => {
+      console.log('🔴 Socket desconectado:', motivo);
+      // Si no fue una desconexión manual ni por sesión inválida,
+      // se perdió la conexión: mostrar el spinner hasta reconectar.
+      if (!this.desconectadoManual && !this.sesionInvalida) {
+        this.cargador.mostrar('Sin conexión con SGALA');
+      }
     });
 
     this.socketCliente.on('connect_error', (error) => {
       console.error('❌ Error de conexión Socket:', error.message);
+
+      // Sesión inválida/expirada: no reintentar, cerrar sesión y
+      // enviar al usuario al login avisándole.
+      if (error.message === 'No autorizado') {
+        this.sesionInvalida = true;
+        this.desconectadoManual = true;
+        this.socketCliente?.disconnect();
+        this.socketCliente = null;
+        this.cargador.ocultar();
+        this.notificador.error(
+          'Tu sesión no es válida o expiró. Inicia sesión nuevamente.'
+        );
+        this.autenticador.eliminarSesion();
+        return;
+      }
+
+      // No se logró (re)conectar: mantener el spinner activo.
+      if (!this.desconectadoManual) {
+        this.cargador.mostrar('Sin conexión con SGALA');
+      }
     });
 
     this.socketCliente.on('error/dispositivo', (datos: any) => {
@@ -107,11 +148,17 @@ export class Socket {
 
     console.log('🔌 Desconectando socket:', this.socketCliente.id);
 
+    // Marcar como desconexión manual para no mostrar el spinner.
+    this.desconectadoManual = true;
+
     this.socketCliente.disconnect();
 
     console.log('🔴 Socket desconectado');
 
     this.socketCliente = null;
+
+    // Asegurar que el spinner quede oculto al cerrar sesión.
+    this.cargador.ocultar();
   }
 
   private convertirNullStrings<T>(obj: T): T {

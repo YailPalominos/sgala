@@ -66,8 +66,13 @@ async function manejarConexion(socket: Socket): Promise<void> {
       notificaciones
     );
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       console.log(`📡 Socket: usuario "${alias}" (Id=${id}) desconectado, socket=${socket.id}`);
+      try {
+        await redisRepositorio.limpiarClaveSocket(id, socket.id);
+      } catch (error) {
+        console.error('❌ Error al limpiar la clave de socket:', error);
+      }
     });
 
     socket.on('solicitud/dispositivo', async (datos) => {
@@ -77,7 +82,7 @@ async function manejarConexion(socket: Socket): Promise<void> {
           datos
         );
 
-        if (!respuesta.exito) {
+        if (!respuesta.estatus) {
           socket.emit('error/dispositivo', {
             mensaje: respuesta.mensaje || 'El dispositivo rechazó la solicitud.'
           });
@@ -227,9 +232,7 @@ export async function iniciarServidorSocketio(): Promise<HttpServer> {
   return httpServer;
 }
 
-export async function enviarDispositivoActualizado(
-  claveDispositivo: string
-): Promise<void> {
+export async function enviarDispositivoActualizado(claveDispositivo: string): Promise<void> {
 
   const dispositivo = await redisRepositorio.obtenerDispositivo(
     claveDispositivo
@@ -257,9 +260,7 @@ export async function enviarDispositivoActualizado(
 
 }
 
-export async function enviarNotificacionUsuario(
-  idUsuario: number
-): Promise<void> {
+export async function enviarNotificacionUsuario(idUsuario: number): Promise<void> {
 
   const notificaciones =
     await redisRepositorio.obtenerNotificaciones(idUsuario);

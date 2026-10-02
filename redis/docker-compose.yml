@@ -4,6 +4,7 @@ services:
     container_name: sgala-redis
     environment:
       TZ: "America/Mexico_City"
+    command: ["redis-server", "--requirepass", "R3d1s_Sg4l@#2024_Vn9zW"]
     ports:
       - "6379:6379"
     volumes:

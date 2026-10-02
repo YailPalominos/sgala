@@ -50,7 +50,7 @@
     table-layout: auto;
 
     th {
-      background-color: #3e474d;
+      background: linear-gradient(135deg, var(--tema-primary, #3e474d) 0%, var(--tema-secondary, #273036) 100%);
       color: white !important;
       font-size: 12px;
       font-weight: 600;

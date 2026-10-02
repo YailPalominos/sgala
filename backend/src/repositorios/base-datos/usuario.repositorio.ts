@@ -1,10 +1,10 @@
-import sql from 'mssql';
-import { pool, poolSesion } from '../../recursos/base-datos';
+import { prisma, ejecutarConSesion } from '../../recursos/prisma';
+import { obtenerSesion } from '@/interceptores/solicitud';
 import { crearEvento } from '@/recursos/evento';
 
 export interface Usuario {
   id: number;
-  clave:string;
+  clave: string;
   alias: string;
   direccionCorreoElectronico: string;
   contrasena: string;
@@ -28,25 +28,23 @@ export interface DatosActualizarUsuario {
 }
 
 export async function buscarPorClave(clave: string): Promise<any | null> {
-  const resultado = await pool.request()
-    .input('clave', sql.VarChar(50), clave)
-    .query(`
+  const registros = await prisma.$queryRaw<any[]>`
       SELECT
         pu.id AS idPreUsuario,
         u.alias,
-        u.direccion_correo_electronico,
+        u.direccion_correo_electronico AS direccionCorreoElectronico,
         u.telefono
       FROM pre_usuarios pu
       LEFT JOIN usuarios u
         ON u.id_pre_usuario = pu.id
-      WHERE pu.clave = TRY_CONVERT(uniqueidentifier, @clave);
-    `);
+      WHERE pu.clave = TRY_CONVERT(uniqueidentifier, ${clave});
+    `;
 
-  if (resultado.recordset.length === 0) {
+  if (registros.length === 0) {
     throw new Error('La clave del pre usuario no existe.');
   }
 
-  const registro = resultado.recordset[0];
+  const registro = registros[0];
 
   // La clave existe pero todavía no está vinculada
   if (!registro.alias) {
@@ -62,23 +60,21 @@ export async function buscarPorClave(clave: string): Promise<any | null> {
 }
 
 export async function obtenerIdPreUsuarioPorClave(clave: string): Promise<number> {
-  const resultado = await pool.request()
-    .input('clave', sql.VarChar(50), clave)
-    .query(`
+  const registros = await prisma.$queryRaw<any[]>`
       SELECT
         pu.id AS idPreUsuario,
         u.id AS idUsuario
       FROM pre_usuarios pu
       LEFT JOIN usuarios u
         ON u.id_pre_usuario = pu.id
-      WHERE pu.clave = TRY_CONVERT(uniqueidentifier, @clave);
-    `);
+      WHERE pu.clave = TRY_CONVERT(uniqueidentifier, ${clave});
+    `;
 
-  if (resultado.recordset.length === 0) {
+  if (registros.length === 0) {
     throw new Error('La clave del pre usuario no existe.');
   }
 
-  const registro = resultado.recordset[0];
+  const registro = registros[0];
 
   if (registro.idUsuario) {
     throw new Error('La clave del pre usuario ya está siendo utilizada.');
@@ -86,60 +82,25 @@ export async function obtenerIdPreUsuarioPorClave(clave: string): Promise<number
 
   return registro.idPreUsuario;
 }
+
 export async function crearUsuario(
   datos: DatosCrearUsuario
 ): Promise<void> {
 
-  const consulta = await poolSesion.request()
-    .input('alias', sql.VarChar(50), datos.alias)
-    .input(
-      'direccionCorreoElectronico',
-      sql.VarChar(100),
-      datos.direccionCorreoElectronico
-    )
-    .input(
-      'contrasena',
-      sql.VarChar(255),
-      datos.contrasena
-    )
-    .input(
-      'idPreUsuario',
-      sql.Int,
-      datos.idPreUsuario
-    )
-    .input(
-      'telefono',
-      sql.VarChar(20),
-      datos.telefono
-    )
-    .query(`
-            DECLARE @insertado TABLE (id INT);
+  const sesion = obtenerSesion();
 
-            INSERT INTO usuarios (
-                alias,
-                direccion_correo_electronico,
-                contrasena,
-                id_pre_usuario,
-                telefono
-            )
-            OUTPUT INSERTED.id INTO @insertado
-            VALUES (
-                @alias,
-                @direccionCorreoElectronico,
-                @contrasena,
-                @idPreUsuario,
-                @telefono
-            );
-
-            SELECT *
-            FROM usuarios
-            WHERE id = (
-                SELECT id
-                FROM @insertado
-            );
-        `);
-
-  const usuario = consulta.recordset[0];
+  const usuario = await ejecutarConSesion(sesion?.idUsuario ?? 0, async (tx) => {
+    return tx.usuarios.create({
+      data: {
+        alias: datos.alias,
+        direccion_correo_electronico: datos.direccionCorreoElectronico,
+        contrasena: datos.contrasena,
+        id_pre_usuario: datos.idPreUsuario,
+        telefono: datos.telefono,
+        estatus: true
+      }
+    });
+  });
 
   crearEvento(
     'Creó el registro de Usuario',
@@ -148,11 +109,14 @@ export async function crearUsuario(
 }
 
 export async function buscarPorIdentificador(identificador: string): Promise<Usuario> {
-  const resultado = await pool.request()
-    .input('identificador', sql.VarChar(100), identificador)
-    .query('SELECT * FROM usuarios WHERE alias = @identificador OR direccion_correo_electronico = @identificador OR telefono = @identificador');
+  const registros = await prisma.$queryRaw<Usuario[]>`
+    SELECT * FROM usuarios
+    WHERE alias = ${identificador}
+       OR direccion_correo_electronico = ${identificador}
+       OR telefono = ${identificador}
+  `;
 
-  const usuario = resultado.recordset[0];
+  const usuario = registros[0];
 
   if (!usuario) {
     throw new Error('Usuario no encontrado.');
@@ -173,54 +137,45 @@ export async function buscarPorIdentificador(identificador: string): Promise<Usu
  */
 export async function buscarExistentePorIdentificador(identificador: string): Promise<Usuario | null> {
 
-  const resultado = await pool.request()
-    .input('identificador', sql.VarChar(100), identificador)
-    .query(`
+  const registros = await prisma.$queryRaw<Usuario[]>`
       SELECT *
       FROM usuarios
-      WHERE alias = @identificador
-         OR direccion_correo_electronico = @identificador
-         OR telefono = @identificador
-    `);
+      WHERE alias = ${identificador}
+         OR direccion_correo_electronico = ${identificador}
+         OR telefono = ${identificador}
+    `;
 
-  return resultado.recordset[0] ?? null;
+  return registros[0] ?? null;
 }
 
 export async function actualizarContrasena(idUsuario: number, hashContrasena: string): Promise<void> {
-  await pool.request()
-    .input('id', sql.Int, idUsuario)
-    .input('contrasena', sql.VarChar(255), hashContrasena)
-    .query('UPDATE usuarios SET contrasena = @contrasena WHERE id = @id');
+  await prisma.usuarios.update({
+    where: { id: idUsuario },
+    data: { contrasena: hashContrasena }
+  });
 }
 
 export async function actualizarEstatus(idUsuario: number, estatus: boolean): Promise<void> {
-  await pool.request()
-    .input('id', sql.Int, idUsuario)
-    .input('estatus', sql.Bit, estatus ? 1 : 0)
-    .query('UPDATE usuarios SET estatus = @estatus WHERE id = @id');
+  await prisma.usuarios.update({
+    where: { id: idUsuario },
+    data: { estatus }
+  });
 }
 
 export async function actualizar(datos: DatosActualizarUsuario): Promise<void> {
 
-  const consulta = await poolSesion.request()
-    .input('id', sql.Int, datos.idUsuario)
-    .input('alias', sql.VarChar(50), datos.alias)
-    .input('direccionCorreoElectronico', sql.VarChar(100), datos.direccionCorreoElectronico)
-    .input('telefono', sql.VarChar(20), datos.telefono)
-    .query(`
-            UPDATE usuarios
-            SET
-                alias = @alias,
-                direccion_correo_electronico = @direccionCorreoElectronico,
-                telefono = @telefono
-            WHERE id = @id;
+  const sesion = obtenerSesion();
 
-            SELECT *
-            FROM usuarios
-            WHERE id = @id;
-        `);
-
-  const usuario = consulta.recordset[0];
+  const usuario = await ejecutarConSesion(sesion?.idUsuario ?? 0, async (tx) => {
+    return tx.usuarios.update({
+      where: { id: datos.idUsuario },
+      data: {
+        alias: datos.alias,
+        direccion_correo_electronico: datos.direccionCorreoElectronico,
+        telefono: datos.telefono
+      }
+    });
+  });
 
   crearEvento(
     'Actualizó el registro de Usuario',

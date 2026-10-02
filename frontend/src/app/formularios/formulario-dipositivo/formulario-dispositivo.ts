@@ -11,6 +11,7 @@ import { ServicioDispositivo } from '../../servicios/servicio-dispositivo';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
 import { Formulario } from '../../recursos/dialogo.formulario';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
+import { DialogoConexion } from '../../dialogos/dilogo-conexion/dialogo-conexion';
 
 
 @Component({
@@ -51,7 +52,7 @@ export class FormularioDispositivo extends Formulario {
     alias: new FormControl('', [
       Validators.required,
       Validators.maxLength(25),
-      Validators.pattern(/^[a-zA-Z0-9]+$/)
+      Validators.pattern(/^[a-zA-Z0-9]+(?: [a-zA-Z0-9]+)*$/)
     ]),
     telefono: new FormControl('', [
       Validators.required,
@@ -78,7 +79,7 @@ export class FormularioDispositivo extends Formulario {
       referencia: DialogoConfirmacion,
       titulo: 'Confirmar',
       icono: 'check',
-      largo: '450px',
+      largo: 'l25%,m45%,c100%',
       desactivarAutocerrado: true,
       parametros: {
         titulo: esActualizar ? 'Actualizar dispositivo' : 'Crear dispositivo',
@@ -121,4 +122,22 @@ export class FormularioDispositivo extends Formulario {
       }
     });
   }
+
+
+  public async conectar(): Promise<void> {
+    this.dialogoServicio.abrir({
+      referencia: DialogoConexion,
+      titulo: 'Conexión',
+      icono: 'bluetooth_connected',
+      largo: 'l30%,m50%,c100%',
+      desactivarAutocerrado: true,
+      parametros: {
+        titulo: 'Crear dispositivo',
+        mensaje: '¿Está seguro de actualizar el dispositivo?'
+      },
+      datos: this.datos,
+      alFinalizar: this.finalizarConfirmacion.bind(this)
+    });
+  }
+
 }

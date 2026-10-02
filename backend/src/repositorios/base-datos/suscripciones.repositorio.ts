@@ -1,5 +1,4 @@
-import sql from 'mssql';
-import { pool } from '../../recursos/base-datos';
+import { prisma } from '../../recursos/prisma';
 
 export interface Suscripcion {
     clave?: string;
@@ -11,29 +10,27 @@ export interface Suscripcion {
 
 export async function obtenerSuscripcionesDispositivo(claveDispositivo: string): Promise<{ clave: string; nombre: string }[]> {
 
-    const consulta = await pool.request()
-        .input('claveDispositivo', sql.VarChar(50), claveDispositivo)
-        .query(`
-            SELECT
-                s.fecha_final AS fechaFinalAnterior
-            FROM dispositivos d
-            INNER JOIN pre_dispositivos pd
-                ON pd.id = d.id_pre_dispositivo
-            OUTER APPLY (
-                SELECT TOP (1)
-                    fecha_final
-                FROM suscripciones
-                WHERE id_dispositivo = d.id
-                ORDER BY fecha_final DESC
-            ) s
-            WHERE pd.clave = TRY_CONVERT(uniqueidentifier, @claveDispositivo);
-        `);
+    const registros = await prisma.$queryRaw<any[]>`
+        SELECT
+            s.fecha_final AS fechaFinalAnterior
+        FROM dispositivos d
+        INNER JOIN pre_dispositivos pd
+            ON pd.id = d.id_pre_dispositivo
+        OUTER APPLY (
+            SELECT TOP (1)
+                fecha_final
+            FROM suscripciones
+            WHERE id_dispositivo = d.id
+            ORDER BY fecha_final DESC
+        ) s
+        WHERE pd.clave = TRY_CONVERT(uniqueidentifier, ${claveDispositivo});
+    `;
 
-    if (consulta.recordset.length === 0) {
+    if (registros.length === 0) {
         throw new Error('El dispositivo no existe.');
     }
 
-    const esPrimeraSuscripcion = consulta.recordset[0].fechaFinalAnterior == null;
+    const esPrimeraSuscripcion = registros[0].fechaFinalAnterior == null;
 
     if (esPrimeraSuscripcion) {
         return [
@@ -58,32 +55,30 @@ export async function obtenerSuscripcionesDispositivo(claveDispositivo: string):
 
 export async function obtenerResumenSuscripcionDispositivo(claveDispositivo: string, tipoSuscripcion: string): Promise<any> {
 
-    const consulta = await pool.request()
-        .input('claveDispositivo', sql.VarChar(50), claveDispositivo)
-        .query(`
-            SELECT
-                d.id AS idDispositivo,
-                GETDATE() AS fechaServidor,
-                s.fecha_final AS fechaFinalAnterior,
-                pd.cualidades
-            FROM dispositivos d
-            INNER JOIN pre_dispositivos pd
-                ON pd.id = d.id_pre_dispositivo
-            OUTER APPLY (
-                SELECT TOP (1)
-                    fecha_final
-                FROM suscripciones
-                WHERE id_dispositivo = d.id
-                ORDER BY fecha_final DESC
-            ) s
-            WHERE pd.clave = TRY_CONVERT(uniqueidentifier, @claveDispositivo);
-        `);
+    const registros = await prisma.$queryRaw<any[]>`
+        SELECT
+            d.id AS idDispositivo,
+            GETDATE() AS fechaServidor,
+            s.fecha_final AS fechaFinalAnterior,
+            pd.cualidades
+        FROM dispositivos d
+        INNER JOIN pre_dispositivos pd
+            ON pd.id = d.id_pre_dispositivo
+        OUTER APPLY (
+            SELECT TOP (1)
+                fecha_final
+            FROM suscripciones
+            WHERE id_dispositivo = d.id
+            ORDER BY fecha_final DESC
+        ) s
+        WHERE pd.clave = TRY_CONVERT(uniqueidentifier, ${claveDispositivo});
+    `;
 
-    if (consulta.recordset.length === 0) {
+    if (registros.length === 0) {
         throw new Error('El dispositivo no existe.');
     }
 
-    const registro = consulta.recordset[0];
+    const registro = registros[0];
 
     const fechaServidor = new Date(registro.fechaServidor);
     const fechaFinalAnterior = registro.fechaFinalAnterior
@@ -148,29 +143,27 @@ export async function obtenerResumenSuscripcionDispositivo(claveDispositivo: str
  */
 export async function obtenerFechaFinalSuscripcion(claveDispositivo: string): Promise<Date | null> {
 
-    const consulta = await pool.request()
-        .input('claveDispositivo', sql.VarChar(50), claveDispositivo)
-        .query(`
-            SELECT
-                s.fecha_final AS fechaFinalSuscripcion
-            FROM dispositivos d
-            INNER JOIN pre_dispositivos pd
-                ON pd.id = d.id_pre_dispositivo
-            OUTER APPLY (
-                SELECT TOP (1)
-                    fecha_final
-                FROM suscripciones
-                WHERE id_dispositivo = d.id
-                ORDER BY fecha_final DESC
-            ) s
-            WHERE pd.clave = TRY_CONVERT(uniqueidentifier, @claveDispositivo);
-        `);
+    const registros = await prisma.$queryRaw<any[]>`
+        SELECT
+            s.fecha_final AS fechaFinalSuscripcion
+        FROM dispositivos d
+        INNER JOIN pre_dispositivos pd
+            ON pd.id = d.id_pre_dispositivo
+        OUTER APPLY (
+            SELECT TOP (1)
+                fecha_final
+            FROM suscripciones
+            WHERE id_dispositivo = d.id
+            ORDER BY fecha_final DESC
+        ) s
+        WHERE pd.clave = TRY_CONVERT(uniqueidentifier, ${claveDispositivo});
+    `;
 
-    if (consulta.recordset.length === 0) {
+    if (registros.length === 0) {
         throw new Error('El dispositivo no existe.');
     }
 
-    const fechaFinal = consulta.recordset[0].fechaFinalSuscripcion;
+    const fechaFinal = registros[0].fechaFinalSuscripcion;
 
     return fechaFinal
         ? new Date(fechaFinal)
@@ -186,62 +179,47 @@ export async function crearSuscripcion(claveDispositivo: string, tipoSuscripcion
     );
 
     // Obtener id del dispositivo
-    const consulta = await pool.request()
-        .input('claveDispositivo', sql.VarChar(50), claveDispositivo)
-        .query(`
-            SELECT d.id
-            FROM dispositivos d
-            INNER JOIN pre_dispositivos pd
-                ON pd.id = d.id_pre_dispositivo
-            WHERE pd.clave = TRY_CONVERT(uniqueidentifier, @claveDispositivo);
-        `);
+    const registros = await prisma.$queryRaw<any[]>`
+        SELECT d.id
+        FROM dispositivos d
+        INNER JOIN pre_dispositivos pd
+            ON pd.id = d.id_pre_dispositivo
+        WHERE pd.clave = TRY_CONVERT(uniqueidentifier, ${claveDispositivo});
+    `;
 
-    if (consulta.recordset.length === 0) {
+    if (registros.length === 0) {
         throw new Error('El dispositivo no existe.');
     }
 
-    const idDispositivo = consulta.recordset[0].id;
+    const idDispositivo = registros[0].id;
 
-    await pool.request()
-        .input('idDispositivo', sql.Int, idDispositivo)
-        .input('tipo', sql.Char(1), suscripcion.tipoSuscripcion)
-        .input('fechaInicial', sql.DateTime, suscripcion.fechaInicial)
-        .input('fechaFinal', sql.DateTime, suscripcion.fechaFinal)
-        .query(`
-            INSERT INTO suscripciones (
-                id_dispositivo,
-                tipo,
-                fecha_inicial,
-                fecha_final
-            )
-            VALUES (
-                @idDispositivo,
-                @tipo,
-                @fechaInicial,
-                @fechaFinal
-            );
-        `);
+    await prisma.suscripciones.create({
+        data: {
+            id_dispositivo: idDispositivo,
+            tipo: suscripcion.tipoSuscripcion,
+            fecha_inicial: suscripcion.fechaInicial,
+            fecha_final: suscripcion.fechaFinal
+        }
+    });
 }
 
 export async function obtenerSuscripciones(idUsuario: number, filtros: any): Promise<Suscripcion[]> {
-    const consulta = await pool.request()
-        .input('idUsuario', sql.Int, idUsuario)
-        .query(`
-            SELECT
-                CASE s.tipo
-                    WHEN 'G' THEN 'Prueba gratuita'
-                    WHEN 'S' THEN 'Semestral'
-                    WHEN 'A' THEN 'Anual'
-                END AS tipoTexto,
-                s.fecha_inicial AS fechaInicial,
-                s.fecha_final AS fechaFinal,
-                d.alias AS aliasDispositivo,
-                s.clave
-            FROM suscripciones s
-            INNER JOIN dispositivos d
-                ON d.id = s.id_dispositivo
-            WHERE d.id_usuario = @idUsuario
-            ORDER BY s.fecha_final DESC;
-        `);
-    return consulta.recordset;
+    const registros = await prisma.$queryRaw<Suscripcion[]>`
+        SELECT
+            CASE s.tipo
+                WHEN 'G' THEN 'Prueba gratuita'
+                WHEN 'S' THEN 'Semestral'
+                WHEN 'A' THEN 'Anual'
+            END AS tipoTexto,
+            s.fecha_inicial AS fechaInicial,
+            s.fecha_final AS fechaFinal,
+            d.alias AS aliasDispositivo,
+            s.clave
+        FROM suscripciones s
+        INNER JOIN dispositivos d
+            ON d.id = s.id_dispositivo
+        WHERE d.id_usuario = ${idUsuario}
+        ORDER BY s.fecha_final DESC;
+    `;
+    return registros;
 }

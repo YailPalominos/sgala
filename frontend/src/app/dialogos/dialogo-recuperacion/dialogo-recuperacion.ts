@@ -48,7 +48,7 @@ export class DialogoRecuperacion extends Formulario {
           referencia: DialogoSeleccion,
           titulo: 'Seleccionar medio',
           icono: 'contact_mail',
-          largo: '400px',
+          largo: 'l25%,m45%,c100%',
           desactivarAutocerrado: true,
           recordar: false,
           parametros: {

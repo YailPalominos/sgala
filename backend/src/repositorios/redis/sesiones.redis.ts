@@ -304,6 +304,44 @@ export async function actualizarClaveSocket(
 
 
 /**
+ * Limpia la clave de socket de la sesión que tenga ese socketId.
+ * Pone claveSocket en null para que no reciba notificaciones.
+ */
+export async function limpiarClaveSocket(
+    idUsuario: number,
+    socketId: string
+): Promise<void> {
+
+    try {
+
+        const sesiones = await obtenerSesiones(idUsuario);
+
+        let modificado = false;
+
+        for (const sesion of sesiones) {
+            if (sesion.claveSocket === socketId) {
+                sesion.claveSocket = undefined;
+                modificado = true;
+            }
+        }
+
+        if (modificado) {
+            await guardarSesiones(idUsuario, sesiones);
+        }
+
+    } catch (error) {
+
+        throw new Error(
+            `Error al limpiar el socket del usuario ${idUsuario}: ${error instanceof Error
+                ? error.message
+                : String(error)
+            }`
+        );
+    }
+}
+
+
+/**
  * Obtiene todas las claves de socket activas
  * de las sesiones de un usuario.
  */
