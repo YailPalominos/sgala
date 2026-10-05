@@ -1,16 +1,23 @@
 import { Component, inject } from '@angular/core';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { NgxSpinnerComponent } from 'ngx-spinner';
 import { Cargador } from '../../recursos/cargador';
 
 @Component({
   selector: 'app-cargador',
   standalone: true,
-  imports: [MatProgressSpinnerModule],
+  imports: [NgxSpinnerComponent],
   template: `
     @if (cargador.visible()) {
       <div class="cargador-overlay">
         <div class="cargador-contenido">
-          <mat-spinner diameter="140" strokeWidth="8"></mat-spinner>
+          <ngx-spinner
+            type="ball-spin-clockwise-fade-rotating"
+            size="large"
+            color="#616161"
+            bdColor="rgba(0, 0, 0, 0)"
+            [fullScreen]="false"
+            [showSpinner]="true">
+          </ngx-spinner>
 
           <div class="texto">
             Cargando <span class="puntos"></span>
@@ -41,10 +48,6 @@ import { Cargador } from '../../recursos/cargador';
       flex-direction: column;
       align-items: center;
       gap: 16px;
-    }
-
-    :host ::ng-deep .mat-mdc-progress-spinner circle {
-      stroke: #616161 !important;
     }
 
     .texto {

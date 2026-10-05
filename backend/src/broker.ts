@@ -1,7 +1,7 @@
 import Aedes, { Client } from 'aedes';
 import tls from 'tls';
-import fs from 'fs';
 import { entorno } from './recursos/entorno';
+import { leerCertificadosServidor, obtenerClaveDispositivoDesdeCertificado } from './servicios/certificados.servicio';
 import { enviarDispositivoActualizado, enviarNotificacionUsuario } from './socket';
 import { obtenerDatosDispositivos } from './repositorios/base-datos/dispositivo.repositorio';
 import dayjs from "dayjs";
@@ -17,39 +17,18 @@ export interface ClienteMqtt extends Client {
 
 export const aedesInstance = new Aedes();
 
-function obtenerCN(certificado: tls.PeerCertificate): string | null {
-
-  const cn = certificado.subject?.CN;//Cambiada temporalmente
-
-  if (!cn) {
-    return null;
-  }
-
-  return Array.isArray(cn)
-    ? cn[0] ?? null
-    : cn;
-}
-
 export async function iniciarBrokerMqtt(): Promise<tls.Server> {
 
   await iniciarConexiones();
 
-  const rutaCertificados = entorno.DIRECTORIO;
-
-  const opciones: tls.TlsOptions = {
-    key: fs.readFileSync(`${rutaCertificados}/certificados/servidor.key`),
-    cert: fs.readFileSync(`${rutaCertificados}/certificados/servidor.crt`),
-    ca: fs.readFileSync(`${rutaCertificados}/certificados/ca.crt`),
-    requestCert: true,
-    rejectUnauthorized: true
-  };
+  const opciones: tls.TlsOptions = leerCertificadosServidor(entorno.DIRECTORIO);
 
   const servidor = tls.createServer(
     opciones,
     async (socket) => {
 
       const certificado = socket.getPeerCertificate();
-      const claveDispositivo = obtenerCN(certificado);
+      const claveDispositivo = obtenerClaveDispositivoDesdeCertificado(certificado);
       
       if (!claveDispositivo) {
         socket.destroy();
@@ -524,8 +503,7 @@ export async function enviarSolicitudDispositivo(claveDispositivo: string, datos
 export async function iniciarConexiones() {
   try {
     const dispositivosClave = await obtenerDatosDispositivos();
-
-    const estados: any[] = dispositivosClave.map(dispositivo => ({
+    const estados: EstadoDispositivoRedis[] = dispositivosClave.map(dispositivo => ({
       clave: dispositivo.clave,
       idUsuario: dispositivo.idUsuario,
       alias: dispositivo.alias,

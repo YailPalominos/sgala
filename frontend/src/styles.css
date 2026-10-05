@@ -10,6 +10,24 @@
   --mdc-protected-button-label-text-color: var(--tema-primary, #424242);
   --mat-fab-foreground-color: #ffffff;
   --mat-fab-container-color: var(--tema-primary, #424242);
+  --mdc-fab-container-color: var(--tema-primary, #424242);
+  --mdc-fab-small-container-color: var(--tema-primary, #424242);
+}
+
+.mat-mdc-fab.mat-accent,
+.mat-mdc-mini-fab.mat-accent {
+  --mdc-fab-container-color: var(--tema-primary, #424242);
+  --mdc-fab-small-container-color: var(--tema-primary, #424242);
+  --mat-fab-foreground-color: #fff;
+  --mat-fab-small-foreground-color: #fff;
+}
+
+.mat-mdc-mini-fab.fab-tema {
+  --mdc-fab-small-container-color: var(--tema-primary, #424242);
+  --mat-fab-small-container-color: var(--tema-primary, #424242);
+  --mat-fab-small-foreground-color: #fff;
+  background-color: var(--tema-primary, #424242) !important;
+  color: #fff !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════

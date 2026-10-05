@@ -3,6 +3,7 @@ import express from 'express';
 import { manejadorErrores } from './interceptores/error.middleware';
 import { middlewareSesion } from './interceptores/sesion.middleware';
 import { autenticacionRouter } from './rutas/usuario.ruta';
+import { administradorRouter } from './rutas/administrador.ruta';
 import { dispositivoRouter } from './rutas/dispositivo.ruta';
 import { solicitudRouter } from './rutas/solicitud.ruta';
 import { suscripcionesRoute } from './rutas/suscripciones.ruta';
@@ -21,7 +22,7 @@ const puerto = entorno.PUERTO_API
 
 const app = express();
 
-const permitidos = ['https://10.1.33.98:4200'];
+const permitidos = ['https://192.168.1.5:4200', 'https://localhost:4200'];
 
 app.use(cors({
   origin(origin, callback) {
@@ -41,6 +42,10 @@ app.use(
     path: [
       {
         url: '/api/usuarios/iniciar-sesion',
+        method: 'POST'
+      },
+      {
+        url: '/api/administradores/autenticar',
         method: 'POST'
       },
       {
@@ -71,7 +76,24 @@ app.use(
   })
 );
 
+app.use((solicitud, respuesta, siguiente) => {
+  const esRutaAdministrador = solicitud.path.startsWith('/api/administradores/');
+  const esCierreSesion = solicitud.path === '/api/usuarios/cerrar-sesion';
+  if (
+    solicitud.sesion?.tipoCuenta === 'administrador' &&
+    !esRutaAdministrador &&
+    !esCierreSesion
+  ) {
+    respuesta.status(403).json({
+      mensaje: 'La sesión de administrador no puede acceder a rutas de usuario.'
+    });
+    return;
+  }
+  siguiente();
+});
+
 app.use('/api/usuarios', autenticacionRouter);
+app.use('/api/administradores', administradorRouter);
 app.use('/api/dispositivos', dispositivoRouter);
 app.use('/api/solicitudes', solicitudRouter);
 app.use('/api/datos', datosRoute);

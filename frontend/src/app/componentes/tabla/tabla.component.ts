@@ -32,6 +32,8 @@ export interface Filtros {
   marcador: string;
   texto: string;
   botones?: Boton[]
+  mostrarBusqueda?: boolean;
+  criterios?: Record<string, string>;
 }
 
 @Component({
@@ -81,26 +83,27 @@ export class TablaComponent implements OnChanges {
 
     this.paginatorIntl.changes.next();
 
+    this.dataSource.filterPredicate = (fila, filtro) => {
+      if (!filtro) return true;
+      if (filtro.startsWith('criterios:')) {
+        const criterios = JSON.parse(filtro.slice('criterios:'.length)) as Record<string, string>;
+        return Object.entries(criterios).every(([clave, valor]) =>
+          String(fila[clave] ?? '').toLocaleLowerCase().includes(valor.toLocaleLowerCase())
+        );
+      }
+      return Object.values(fila).some((valor) =>
+        String(valor ?? '').toLocaleLowerCase().includes(filtro.toLocaleLowerCase())
+      );
+    };
+
     effect(() => {
-
-      if (!this.filtros) {
-        return;
-      }
-
-
-      const texto = this.filtros()
-        .texto
-        .trim()
-        .toLowerCase();
-
-
-      this.dataSource.filter = texto;
-
-
-      if (this.dataSource.paginator) {
-        this.dataSource.paginator.firstPage();
-      }
-
+      if (!this.filtros) return;
+      const configuracion = this.filtros();
+      const criterios = configuracion.criterios;
+      this.dataSource.filter = criterios
+        ? `criterios:${JSON.stringify(criterios)}`
+        : configuracion.texto.trim().toLocaleLowerCase();
+      this.dataSource.paginator?.firstPage();
     });
 
   }

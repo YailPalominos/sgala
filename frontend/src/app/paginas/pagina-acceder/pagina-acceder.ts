@@ -14,6 +14,7 @@ import { DialogoRecuperacion } from '../../dialogos/dialogo-recuperacion/dialogo
 import { FormularioUsuario } from '../../formularios/formulario-usuario/formulario-usuario';
 import { Autenticador } from '../../recursos/autenticador';
 import { ServicioUsuario } from '../../servicios/servicio-usuario';
+import { ServicioAdministrador } from '../../servicios/servicio-administrador';
 import { Notificador } from '../../recursos/notificador';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
 import { TemaServicio } from '../../recursos/tema.servicio';
@@ -37,6 +38,7 @@ import { DialogoAgente } from '../../dialogos/dialogo-agente/dialogo-agente';
 export class PaginaAcceder {
   private autenticador = inject(Autenticador);
   private usuarioServicio = inject(ServicioUsuario);
+  private administradorServicio = inject(ServicioAdministrador);
   private router = inject(Router);
   private rutaActiva = inject(ActivatedRoute);
   private notificador = inject(Notificador);
@@ -57,7 +59,7 @@ export class PaginaAcceder {
     this.dialogoServicio.eliminarTodos()
 
     this.esAdministrador.set(
-      this.rutaActiva.snapshot.queryParamMap.get('tipo') === 'admin'
+      this.rutaActiva.snapshot.queryParamMap.get('tipo') === 'administrador'
     );
   }
 
@@ -69,7 +71,11 @@ export class PaginaAcceder {
     }
 
     const { identificador, contrasena } = this.formulario.getRawValue();
-    this.usuarioServicio.acceder({ identificador: identificador!, contrasena: contrasena! }).subscribe({
+    const credenciales = { identificador: identificador!, contrasena: contrasena! };
+    const solicitud = this.esAdministrador()
+      ? this.administradorServicio.autenticar(credenciales)
+      : this.usuarioServicio.acceder(credenciales);
+    solicitud.subscribe({
       next: (respuesta) => {
         if (respuesta.estatus === 202) {
           this.notificador.advertencia("Debe cambiar su contraseña")
@@ -79,7 +85,7 @@ export class PaginaAcceder {
           this.autenticador.guardarSesion(respuesta.datos);
           const sesion = this.autenticador.obtenerSesion();
           this.notificador.exitoso("Bienvenido " + sesion?.alias);
-          this.router.navigate(['/inicio']);
+          this.router.navigate([this.esAdministrador() ? '/dispositivos' : '/inicio']);
         }
       }
     });

@@ -35,6 +35,32 @@ export interface DispositivoClave {
   cualidades: string;
 }
 
+export interface DispositivoAdministrativo {
+  id: number;
+  clave: string;
+  estatus: boolean;
+  cualidades: string | null;
+  idDispositivo: number | null;
+  aliasDispositivo: string | null;
+  telefono: string | null;
+  tipo: string;
+  tipoTexto: string;
+  idUsuario: number | null;
+  aliasUsuario: string | null;
+  correoUsuario: string | null;
+  fechaFinalSuscripcion: Date | null;
+}
+
+export interface DatosCrearPreDispositivo {
+  tipo: 'I' | 'T' | 'C' | 'D';
+  cualidades: string | null;
+}
+
+export interface PreDispositivoCreado {
+  id: number;
+  clave: string;
+}
+
 export interface LocalizacionDispositivo {
   aliasDispositivo: string;
   latitud: number;
@@ -191,6 +217,54 @@ export async function obtenerDatosDispositivos(): Promise<DispositivoClave[]> {
     `;
 
   return registros;
+}
+
+export async function obtenerListaAdministrativa(): Promise<DispositivoAdministrativo[]> {
+  return prisma.$queryRaw<DispositivoAdministrativo[]>`
+    SELECT
+      prd.id,
+      prd.clave,
+      prd.estatus,
+      prd.cualidades,
+      dis.id AS idDispositivo,
+      dis.alias AS aliasDispositivo,
+      dis.telefono,
+      prd.tipo,
+      CASE prd.tipo
+        WHEN 'I' THEN 'Interruptor'
+        WHEN 'T' THEN 'Timbre'
+        WHEN 'C' THEN 'Cámara'
+        WHEN 'D' THEN 'Dispositivo'
+        ELSE 'Desconocido'
+      END AS tipoTexto,
+      u.id AS idUsuario,
+      u.alias AS aliasUsuario,
+      u.direccion_correo_electronico AS correoUsuario,
+      sus.fecha_final AS fechaFinalSuscripcion
+    FROM pre_dispositivos prd
+    LEFT JOIN dispositivos dis
+      ON prd.id = dis.id_pre_dispositivo
+    LEFT JOIN usuarios u
+      ON u.id = dis.id_usuario
+    OUTER APPLY (
+      SELECT TOP 1 s.fecha_final
+      FROM suscripciones s
+      WHERE s.id_dispositivo = dis.id
+      ORDER BY s.fecha_final DESC
+    ) sus
+    ORDER BY prd.id DESC
+  `;
+}
+
+export async function crearPreDispositivo(
+  datos: DatosCrearPreDispositivo
+): Promise<PreDispositivoCreado> {
+  const resultado = await prisma.$queryRaw<PreDispositivoCreado[]>`
+    INSERT INTO dbo.pre_dispositivos (tipo, cualidades, estatus)
+    OUTPUT INSERTED.id AS id, INSERTED.clave AS clave
+    VALUES (${datos.tipo}, ${datos.cualidades}, 1)
+  `;
+  return resultado[0];
 }
 
 

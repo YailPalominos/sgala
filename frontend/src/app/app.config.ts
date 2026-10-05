@@ -17,6 +17,8 @@ import { InjectionToken, Type, isDevMode } from '@angular/core';
 import { FormularioSuscripcion } from './formularios/formulario-suscripcion/formulario-suscripcion';
 import { PanelLocalizaciones } from './paneles/panel-localizaciones/panel-localizaciones.componente';
 import { FormularioDispositivo } from './formularios/formulario-dipositivo/formulario-dispositivo';
+import { FormularioPreDispositivo } from './formularios/formulario-pre-dispositivo/formulario-pre-dispositivo';
+import { FormularioAdministradorPerfil } from './formularios/formulario-administrador-perfil/formulario-administrador-perfil';
 import { PaginaAcceder } from './paginas/pagina-acceder/pagina-acceder';
 import { DialogoConfirmacion } from './dialogos/dialogo-confirmacion/dialogo-confirmacion';
 import { DialogoRecuperacion } from './dialogos/dialogo-recuperacion/dialogo-recuperacion';
@@ -31,6 +33,7 @@ import { DialogoAgente } from './dialogos/dialogo-agente/dialogo-agente';
 import { DialogoConexion } from './dialogos/dilogo-conexion/dialogo-conexion';
 import { DialogoCaptura } from './dialogos/dialogo-captura/dialogo-captura';
 import { DialogoResolucion } from './dialogos/dialogo-resolucion/dialogo-resolucion';
+import { PaginaDispositivos } from './paginas/pagina-dispositivos/pagina-dispositivos';
 
 export const clases = new InjectionToken<Type<any>[]>('clases');
 
@@ -56,12 +59,15 @@ export const appConfig: ApplicationConfig = {
       useValue: [
         FormularioSuscripcion,
         FormularioDispositivo,
+        FormularioPreDispositivo,
+        FormularioAdministradorPerfil,
         FormularioUsuario,
         PanelSuscripciones,
         PanelLocalizaciones,
         PanelEventos,
         PaginaInicio,
         PaginaAcceder,
+        PaginaDispositivos,
         DialogoValidacion,
         DialogoConfirmacion,
         DialogoRecuperacion,

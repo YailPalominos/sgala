@@ -11,6 +11,40 @@ export interface Evento {
     tipo: string | null;
 }
 
+export interface EventoAdministrativo {
+    id: number;
+    descripcion: string;
+    fecha: Date;
+    aliasUsuario: string | null;
+}
+
+export async function obtenerListaAdministrativa(): Promise<EventoAdministrativo[]> {
+    return prisma.$queryRaw<EventoAdministrativo[]>`
+        DECLARE @consulta NVARCHAR(MAX);
+        IF COL_LENGTH('dbo.eventos', 'descripcion') IS NOT NULL
+            SET @consulta = N'
+                SELECT
+                    e.id,
+                    e.descripcion,
+                    e.fecha,
+                    u.alias AS aliasUsuario
+                FROM dbo.eventos e
+                LEFT JOIN dbo.usuarios u ON u.id = e.id_usuario
+                ORDER BY e.fecha DESC, e.id DESC;';
+        ELSE
+            SET @consulta = N'
+                SELECT
+                    e.id,
+                    e.accion AS descripcion,
+                    e.fecha,
+                    u.alias AS aliasUsuario
+                FROM dbo.eventos e
+                LEFT JOIN dbo.usuarios u ON u.id = e.id_usuario
+                ORDER BY e.fecha DESC, e.id DESC;';
+        EXEC sys.sp_executesql @consulta;
+    `;
+}
+
 export async function crear(descripcion: string): Promise<void> {
 
     const sesion = obtenerSesion();

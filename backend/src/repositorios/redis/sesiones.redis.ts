@@ -15,6 +15,7 @@ export interface SesionRedis {
     clave: string;
     claveUsuario: string;
     idUsuario: number;
+    tipoCuenta?: 'usuario' | 'administrador';
     alias: string;
     direccionCorreoElectronico: string;
     telefono: string;
@@ -96,7 +97,8 @@ export async function crearSesion(
     direccionCorreoElectronico: string,
     alias: string,
     idUsuario: number,
-    telefono: string
+    telefono: string,
+    tipoCuenta: 'usuario' | 'administrador' = 'usuario'
 ): Promise<SesionRedis> {
 
     try {
@@ -107,6 +109,7 @@ export async function crearSesion(
             clave,
             claveUsuario,
             idUsuario,
+            tipoCuenta,
             alias,
             direccionCorreoElectronico,
             telefono,
@@ -300,6 +303,21 @@ export async function actualizarClaveSocket(
             }`
         );
     }
+}
+
+export async function actualizarPerfilSesion(
+    idUsuario: number,
+    claveSesion: string,
+    datos: Pick<SesionRedis, 'alias' | 'direccionCorreoElectronico'>
+): Promise<void> {
+    const sesiones = await obtenerSesiones(idUsuario);
+    const sesion = sesiones.find((actual) => actual.clave === claveSesion);
+    if (!sesion) {
+        throw new Error('La sesión del administrador no existe.');
+    }
+    sesion.alias = datos.alias;
+    sesion.direccionCorreoElectronico = datos.direccionCorreoElectronico;
+    await guardarSesiones(idUsuario, sesiones);
 }
 
 

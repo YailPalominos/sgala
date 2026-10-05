@@ -5,6 +5,7 @@ import { BehaviorSubject } from 'rxjs';
 export interface Sesion {
   clave: string;
   claveUsuario:string
+  tipoCuenta?: 'usuario' | 'administrador';
   alias: string;
   direccionCorreoElectronico: string;
   claveSocket: string;

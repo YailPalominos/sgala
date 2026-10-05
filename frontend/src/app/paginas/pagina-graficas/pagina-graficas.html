@@ -1,0 +1,76 @@
+<main class="pagina-graficas">
+  <app-navegacion-administracion titulo="Gráficas"></app-navegacion-administracion>
+
+  @if (cargando()) {
+    <div class="estado">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Cargando gráficas...</p>
+    </div>
+  } @else if (error()) {
+    <div class="estado estado-error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error() }}</p>
+      <button type="button" (click)="cargar()">Reintentar</button>
+    </div>
+  } @else {
+    <section class="resumen" aria-label="Resumen administrativo">
+      @for (dato of resumen(); track dato.etiqueta) {
+        <article class="tarjeta-resumen">
+          <mat-icon>{{ dato.icono }}</mat-icon>
+          <div>
+            <span>{{ dato.etiqueta }}</span>
+            <strong>{{ dato.total }}</strong>
+          </div>
+        </article>
+      }
+    </section>
+
+    <section class="graficas" aria-label="Estadísticas">
+      <article class="tarjeta-grafica">
+        <h2>Pre-dispositivos por tipo</h2>
+        @for (barra of dispositivosPorTipo(); track barra.etiqueta) {
+          <div class="fila-grafica">
+            <span>{{ barra.etiqueta }}</span>
+            <div class="pista"><div class="barra" [style.width.%]="barra.porcentaje"></div></div>
+            <strong>{{ barra.total }}</strong>
+          </div>
+        } @empty {
+          <p class="sin-datos">No hay pre-dispositivos registrados.</p>
+        }
+      </article>
+
+      <article class="tarjeta-grafica">
+        <h2>Asignación de dispositivos</h2>
+        @for (barra of dispositivosPorAsignacion(); track barra.etiqueta) {
+          <div class="fila-grafica">
+            <span>{{ barra.etiqueta }}</span>
+            <div class="pista"><div class="barra" [style.width.%]="barra.porcentaje"></div></div>
+            <strong>{{ barra.total }}</strong>
+          </div>
+        }
+      </article>
+
+      <article class="tarjeta-grafica">
+        <h2>Estado de usuarios</h2>
+        @for (barra of usuariosPorEstado(); track barra.etiqueta) {
+          <div class="fila-grafica">
+            <span>{{ barra.etiqueta }}</span>
+            <div class="pista"><div class="barra" [style.width.%]="barra.porcentaje"></div></div>
+            <strong>{{ barra.total }}</strong>
+          </div>
+        }
+      </article>
+
+      <article class="tarjeta-grafica">
+        <h2>Eventos por mes · últimos 6 meses</h2>
+        @for (barra of eventosPorMes(); track barra.etiqueta) {
+          <div class="fila-grafica">
+            <span>{{ barra.etiqueta }}</span>
+            <div class="pista"><div class="barra" [style.width.%]="barra.porcentaje"></div></div>
+            <strong>{{ barra.total }}</strong>
+          </div>
+        }
+      </article>
+    </section>
+  }
+</main>

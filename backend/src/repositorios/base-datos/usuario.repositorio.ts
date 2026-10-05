@@ -27,6 +27,41 @@ export interface DatosActualizarUsuario {
   telefono: string
 }
 
+export interface UsuarioAdministrativo {
+  id: number;
+  alias: string;
+  direccionCorreoElectronico: string;
+  telefono: string | null;
+  estatus: boolean;
+}
+
+export async function obtenerListaAdministrativa(): Promise<UsuarioAdministrativo[]> {
+  return prisma.$queryRaw<UsuarioAdministrativo[]>`
+    DECLARE @consulta NVARCHAR(MAX);
+    IF COL_LENGTH('dbo.usuarios', 'telefono') IS NOT NULL
+      SET @consulta = N'
+        SELECT
+          id,
+          alias,
+          direccion_correo_electronico AS direccionCorreoElectronico,
+          telefono,
+          estatus
+        FROM dbo.usuarios
+        ORDER BY alias, id;';
+    ELSE
+      SET @consulta = N'
+        SELECT
+          id,
+          alias,
+          direccion_correo_electronico AS direccionCorreoElectronico,
+          CAST(NULL AS VARCHAR(20)) AS telefono,
+          estatus
+        FROM dbo.usuarios
+        ORDER BY alias, id;';
+    EXEC sys.sp_executesql @consulta;
+  `;
+}
+
 export async function buscarPorClave(clave: string): Promise<any | null> {
   const registros = await prisma.$queryRaw<any[]>`
       SELECT

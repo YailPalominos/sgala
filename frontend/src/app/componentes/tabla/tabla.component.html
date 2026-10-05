@@ -1,6 +1,6 @@
 <div class="contenedor">
 
-  @if (filtros!=undefined) {
+  @if (filtros!=undefined && filtros().mostrarBusqueda !== false) {
   <div class="barra-acciones">
     <mat-form-field appearance="outline" class="buscar-input">
       <mat-label>{{filtros().etiqueta}}</mat-label>
@@ -31,12 +31,10 @@
           @for (boton of columna.botones; track boton) {
           @if (!boton.visible || boton.visible(fila)) {
           <span [matTooltip]="boton.tooltip?.(fila) ?? ''">
-            <button mat-raised-button color="accent" (click)="boton.accion(fila)" class="boton-icono"
-              [disabled]="boton.estado" [style]="boton.estilos?.(fila)">
+            <button mat-icon-button color="accent" (click)="boton.accion(fila)" class="boton-icono"
+            [attr.aria-label]="boton.tooltip?.(fila) ?? boton.icono"
+            [disabled]="boton.estado?.(fila) ?? false" [style]="boton.estilos?.(fila)">
               <mat-icon>{{ boton.icono }}</mat-icon>
-              @if (boton.texto) {
-              {{ boton.texto }}
-              }
             </button>
           </span>
           }

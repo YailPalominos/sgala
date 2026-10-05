@@ -1,0 +1,166 @@
+.pagina-admin {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 90%;
+  max-width: none;
+  margin: 0 auto;
+}
+
+.formulario-administrador {
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 18%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 3%, white);
+}
+
+.formulario-administrador h2 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+
+.campos-formulario {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.campos-formulario mat-form-field,
+.campos-filtros-principales mat-form-field,
+.campos-filtros-adicionales mat-form-field {
+  width: 100%;
+}
+
+.campo-permisos {
+  grid-column: span 2;
+}
+
+.acciones-formulario,
+.acciones-filtros {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.acciones-formulario {
+  margin-top: 8px;
+}
+
+.filtros-formulario {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.filtros-acordeon {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #a5a4a4;
+  border-radius: 12px;
+}
+
+.filtros-acordeon ::ng-deep .mat-expansion-panel {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent;
+}
+
+.campos-filtros-principales {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.campos-filtros-adicionales {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.filtros-acordeon ::ng-deep .mat-expansion-panel-body {
+  padding: 12px 16px;
+}
+
+.panel-filtros-variables ::ng-deep .mat-expansion-panel-header {
+  display: none;
+}
+
+.acciones-filtros {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 56px;
+}
+
+.estado {
+  display: flex;
+  min-height: 180px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  opacity: 0.75;
+}
+
+.estado > mat-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 48px;
+}
+
+.estado p {
+  margin: 0;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}
+
+.pagina-admin app-tabla {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 800px) {
+  .campos-formulario {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .campos-formulario,
+  .campos-filtros-adicionales {
+    grid-template-columns: 1fr;
+  }
+
+  .campos-filtros-principales {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .acciones-filtros {
+    grid-column: 1 / -1;
+  }
+
+  .campo-permisos {
+    grid-column: auto;
+  }
+}
+
+.pagina-admin app-tabla ::ng-deep .contenedor {
+  padding-right: 0;
+  padding-left: 0;
+}

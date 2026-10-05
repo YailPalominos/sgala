@@ -11,9 +11,26 @@ export const Autorizador: CanActivateFn = () => {
         take(1),
         map(autenticado => {
             if (autenticado) {
+                if (autenticador.obtenerSesion()?.tipoCuenta === 'administrador') {
+                    return router.createUrlTree(['/dispositivos']);
+                }
                 return true;
             }
             return router.createUrlTree(['/acceder']);
         })
     );
+};
+
+export const AutorizadorAdministrador: CanActivateFn = () => {
+    const autenticador = inject(Autenticador);
+    const router = inject(Router);
+    const sesion = autenticador.obtenerSesion();
+    if (!sesion) {
+        return router.createUrlTree(['/acceder'], {
+            queryParams: { tipo: 'administrador' }
+        });
+    }
+    return sesion.tipoCuenta === 'administrador'
+        ? true
+        : router.createUrlTree(['/inicio']);
 };

@@ -21,6 +21,7 @@ import { PanelSuscripciones } from './paneles/panel-suscripciones/panel-suscripc
 import { PanelLocalizaciones } from './paneles/panel-localizaciones/panel-localizaciones.componente';
 import { MatBadgeModule } from '@angular/material/badge';
 import { PanelEventos } from './paneles/panel-eventos/panel-eventos.componente';
+import { FormularioAdministradorPerfil } from './formularios/formulario-administrador-perfil/formulario-administrador-perfil';
 
 export interface Notificacion {
   clave: string,
@@ -69,10 +70,16 @@ export class AppComponent {
       .subscribe(valor => {
         this.autenticado = valor;
         if (valor) {
-          this.socket.conectar();
           const sesion = this.autenticacionServicio.obtenerSesion()
           if (sesion != null) {
             this.sesion = sesion
+            if (sesion.tipoCuenta === 'administrador') {
+              this.socket.desconectar();
+              this.notificaciones = [];
+              this.totalNotificacionesPendientes = 0;
+            } else {
+              this.socket.conectar();
+            }
           }
         } else {
           this.socket.desconectar();
@@ -180,6 +187,18 @@ export class AppComponent {
   }
 
   public actualizarUsuario(): void {
+    if (this.sesion.tipoCuenta === 'administrador') {
+      this.dialogoServicio.abrir({
+        referencia: FormularioAdministradorPerfil,
+        titulo: 'Mi perfil de administrador',
+        icono: 'admin_panel_settings',
+        largo: 'l35%,m55%,c100%',
+        desactivarAutocerrado: true,
+        recordar: false
+      });
+      return;
+    }
+
     this.dialogoServicio.abrir({
       referencia: FormularioUsuario,
       titulo: 'Usuario',

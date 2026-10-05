@@ -22,6 +22,23 @@ CREATE TABLE usuarios (
 );
 GO
 
+-- Tabla de administradores del sistema
+IF OBJECT_ID(N'dbo.administradores', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.administradores (
+    id INT IDENTITY(1,1) NOT NULL,
+    nombres VARCHAR(50) NOT NULL,
+    apellidos VARCHAR(50) NOT NULL,
+    direccion_correo_electronico VARCHAR(100) NOT NULL,
+    contrasena VARCHAR(255) NOT NULL,
+    estatus BIT NOT NULL,
+    alias VARCHAR(15) NOT NULL,
+    permisos VARCHAR(500) NULL,
+    CONSTRAINT PK_administradores PRIMARY KEY CLUSTERED (id)
+  );
+END
+GO
+
 -- Tabla de pre-dispositivos (registrados antes de vincular a un usuario)
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'pre_dispositivos') AND type = 'U')
 CREATE TABLE pre_dispositivos (
@@ -109,15 +126,42 @@ GO
 CREATE INDEX ix_eventos_id_usuario ON eventos(id_usuario);
 GO
 
+-- Historial de acciones realizadas por administradores
+IF OBJECT_ID(N'dbo.eventos_administradores', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.eventos_administradores (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    fecha DATETIME NOT NULL DEFAULT GETDATE(),
+    accion VARCHAR(500) NOT NULL,
+    id_administrador INT NOT NULL
+      REFERENCES dbo.administradores(id) ON DELETE CASCADE ON UPDATE CASCADE
+  );
+END
+GO
 
--- CREATE TABLE suscripciones (
---     id INT IDENTITY(1,1) PRIMARY KEY,
---     id_dispositivo INT NOT NULL,
---     clave UNIQUEIDENTIFIER NULL,
---     fecha_inicial DATETIME NOT NULL DEFAULT GETDATE(),
---     fecha_final DATETIME NOT NULL,
---     precio DECIMAL(10,2) NOT NULL,
--- );
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'ix_eventos_administradores_fecha')
+  CREATE INDEX ix_eventos_administradores_fecha
+    ON dbo.eventos_administradores(fecha DESC, id DESC);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'ix_eventos_administradores_id_administrador')
+  CREATE INDEX ix_eventos_administradores_id_administrador
+    ON dbo.eventos_administradores(id_administrador);
+GO
+
+-- Tabla de suscripciones de los dispositivos
+IF OBJECT_ID(N'dbo.suscripciones', N'U') IS NULL
+BEGIN
+  CREATE TABLE dbo.suscripciones (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    id_dispositivo INT NOT NULL,
+    clave UNIQUEIDENTIFIER NULL,
+    fecha_inicial DATETIME NOT NULL,
+    fecha_final DATETIME NOT NULL,
+    tipo CHAR(100) NOT NULL
+  );
+END
+GO
 
 
 /*==========================================================
@@ -323,4 +367,32 @@ CREATE TABLE solicitudes (
   medio_contacto VARCHAR(50) NULL,
   estatus BIT NOT NULL DEFAULT 1
 );
+GO
+
+-- Administrador principal inicial
+IF NOT EXISTS (
+  SELECT 1
+  FROM dbo.administradores
+  WHERE direccion_correo_electronico = 'yail.palominos@gmail.com'
+)
+BEGIN
+  INSERT INTO dbo.administradores (
+    nombres,
+    apellidos,
+    direccion_correo_electronico,
+    contrasena,
+    estatus,
+    alias,
+    permisos
+  )
+  VALUES (
+    'Braulio Yail',
+    'Palominos Patiño',
+    'yail.palominos@gmail.com',
+    '12345',
+    1,
+    'yail.palominos',
+    NULL
+  );
+END
 GO
