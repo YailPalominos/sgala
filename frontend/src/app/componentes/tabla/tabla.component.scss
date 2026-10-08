@@ -16,6 +16,7 @@
   width: 100%;
   padding: 10px 1.5% 10px 1.5%;
   box-sizing: border-box;
+  height: 100%;
 }
 
 .barra-acciones {
@@ -114,7 +115,8 @@ tr:hover {
   height: 40px;
   padding: 0 !important;
 
-  background-color: #424242 !important;
+  /* Color acorde al tema seleccionado. */
+  background-color: var(--tema-primary, #424242) !important;
   color: white !important;
   border: 1px solid #ffffff !important;
   border-radius: 8px;
@@ -128,6 +130,11 @@ tr:hover {
 
   .mat-icon {
     margin: 0;
+    color: white !important;
+  }
+
+  &:disabled .mat-icon {
+    color: #757575 !important;
   }
 }
 

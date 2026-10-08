@@ -7,12 +7,16 @@ import {
   crearPreDispositivo,
   obtenerListaAdministrativa
 } from '../repositorios/base-datos/dispositivo.repositorio';
+import { crearCertificado } from '../servicios/certificados.servicio';
+import fs from 'fs';
+import { ZipArchive } from 'archiver';
 import { obtenerListaAdministrativa as obtenerListaUsuarios } from '../repositorios/base-datos/usuario.repositorio';
 import { obtenerListaAdministrativa as obtenerListaEventos } from '../repositorios/base-datos/evento.repositorio';
 import { ErrorHttp } from '../interceptores/error.middleware';
 import {
   actualizarPerfilSesion,
   crearSesion,
+  crearLlaveRecuperacion,
   eliminarSesion
 } from '@/repositorios/redis/sesiones.redis';
 
@@ -86,6 +90,26 @@ administradorRouter.post(
       throw new ErrorHttp(401, 'Credenciales inválidas.');
     }
 
+    // Si la contraseña está en texto plano, es provisional: se exige
+    // cambiarla antes de entrar (igual que el flujo del usuario).
+    // Se responde 202 con una llave de recuperación. El administrador
+    // usa idUsuario negativo (-administrador.id) para identificarlo.
+    if (!esBcrypt) {
+      const claveLlaveRecuperacion = await crearLlaveRecuperacion(
+        -administrador.id,
+        'A'
+      );
+      await eventoAdministradorRepositorio.registrar(
+        administrador.id,
+        'Inició sesión pero requiere cambiar su contraseña.'
+      );
+      respuesta.status(202).json({
+        mensaje: 'Debe cambiar su contraseña',
+        datos: claveLlaveRecuperacion
+      });
+      return;
+    }
+
     const sesion = await crearSesion(
       `administrador:${administrador.id}`,
       administrador.direccionCorreoElectronico,
@@ -118,6 +142,68 @@ administradorRouter.get(
   })
 );
 
+/**
+ * Descarga los certificados del cliente de un dispositivo como un ZIP
+ * que contiene: ca.crt, cliente.key y cliente.crt.
+ * La clave es el UUID del pre-dispositivo con el que se generaron.
+ */
+administradorRouter.get(
+  '/dispositivos/descargar-certificados/:clave',
+  asyncHandler(async (solicitud, respuesta) => {
+    const clave = String(solicitud.params.clave ?? '').trim();
+
+    const esUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!esUuid.test(clave)) {
+      throw new ErrorHttp(400, 'La clave del dispositivo no es válida.');
+    }
+
+    // Obtiene (o regenera si faltaran) las rutas de los certificados
+    // del cliente asociados a esa clave.
+    const certificados = crearCertificado(clave);
+
+    const archivos: Array<{ ruta: string; nombre: string }> = [
+      { ruta: certificados.ca, nombre: 'ca.crt' },
+      { ruta: certificados.key, nombre: 'cliente.key' },
+      { ruta: certificados.cert, nombre: 'cliente.crt' }
+    ];
+
+    for (const archivo of archivos) {
+      if (!fs.existsSync(archivo.ruta)) {
+        throw new ErrorHttp(
+          404,
+          `No se encontró el certificado "${archivo.nombre}" del dispositivo.`
+        );
+      }
+    }
+
+    respuesta.setHeader('Content-Type', 'application/zip');
+    respuesta.setHeader(
+      'Content-Disposition',
+      `attachment; filename="certificados-${clave}.zip"`
+    );
+
+    const comprimido = new ZipArchive({ zlib: { level: 9 } });
+
+    comprimido.on('error', (error: Error) => {
+      throw error;
+    });
+
+    comprimido.pipe(respuesta);
+
+    for (const archivo of archivos) {
+      comprimido.file(archivo.ruta, { name: archivo.nombre });
+    }
+
+    await comprimido.finalize();
+
+    await eventoAdministradorRepositorio.registrar(
+      Math.abs(solicitud.sesion.idUsuario),
+      `Descargó los certificados del dispositivo con clave ${clave}.`
+    );
+  })
+);
+
 administradorRouter.post(
   '/pre-dispositivos/crear',
   asyncHandler(async (solicitud, respuesta) => {
@@ -145,6 +231,19 @@ administradorRouter.post(
         ? cualidades.trim()
         : null
     });
+
+    // Generar el certificado de cliente usando la clave (UUID) con la
+    // que quedó registrado el pre-dispositivo en la base de datos.
+    // Se firma con la CA del servidor y queda disponible para descargar.
+    try {
+      crearCertificado(datos.clave);
+    } catch (error) {
+      console.error(
+        `No se pudo generar el certificado del pre-dispositivo ${datos.clave}:`,
+        error
+      );
+    }
+
     await eventoAdministradorRepositorio.registrar(
       Math.abs(solicitud.sesion.idUsuario),
       `Creó un pre-dispositivo de tipo ${tipo}.`
@@ -275,6 +374,7 @@ administradorRouter.post(
       nombres: datos.nombres as string,
       apellidos: datos.apellidos as string,
       direccionCorreoElectronico: datos.direccionCorreoElectronico as string,
+      telefono: (datos.telefono as string | null | undefined) ?? null,
       contrasena,
       estatus: datos.estatus !== false,
       alias: datos.alias as string,
@@ -335,6 +435,7 @@ administradorRouter.put(
       nombres: datos.nombres as string,
       apellidos: datos.apellidos as string,
       direccionCorreoElectronico: datos.direccionCorreoElectronico as string,
+      telefono: (datos.telefono as string | null | undefined) ?? null,
       contrasena,
       estatus: datos.estatus,
       alias: datos.alias as string,
@@ -384,14 +485,26 @@ administradorRouter.put(
       throw new ErrorHttp(409, 'El alias o correo electrónico ya está registrado.');
     }
 
+    if (
+      datos.telefono !== undefined &&
+      datos.telefono !== null &&
+      (typeof datos.telefono !== 'string' || datos.telefono.length > 20)
+    ) {
+      throw new ErrorHttp(400, 'El teléfono debe ser texto de hasta 20 caracteres o null.');
+    }
+
     const contrasena = typeof datos.contrasena === 'string' && datos.contrasena
       ? await bcrypt.hash(datos.contrasena, saltRounds)
       : actual.contrasena;
+    const telefono = typeof datos.telefono === 'string' && datos.telefono.trim()
+      ? datos.telefono.trim()
+      : null;
     const actualizado = await administradorRepositorio.actualizar({
       id,
       nombres: datos.nombres as string,
       apellidos: datos.apellidos as string,
       direccionCorreoElectronico: datos.direccionCorreoElectronico as string,
+      telefono,
       contrasena,
       estatus: actual.estatus,
       alias: datos.alias as string,
@@ -411,6 +524,44 @@ administradorRouter.put(
         direccionCorreoElectronico: datos.direccionCorreoElectronico
       },
       mensaje: 'Perfil de administrador actualizado exitosamente.'
+    });
+  })
+);
+
+/**
+ * Restablece (cambia) la contraseña del administrador autenticado.
+ * El administrador ya está autenticado, por lo que basta con enviar
+ * la nueva contraseña, que se guarda cifrada.
+ */
+administradorRouter.put(
+  '/perfil/contrasena',
+  asyncHandler(async (solicitud, respuesta) => {
+    if (
+      solicitud.body === null ||
+      typeof solicitud.body !== 'object' ||
+      Array.isArray(solicitud.body)
+    ) {
+      throw new ErrorHttp(400, 'Los datos no son válidos.');
+    }
+    const { contrasena } = solicitud.body as { contrasena?: unknown };
+    if (typeof contrasena !== 'string' || contrasena.length < 4 || contrasena.length > 255) {
+      throw new ErrorHttp(400, 'La contraseña debe tener entre 4 y 255 caracteres.');
+    }
+
+    const id = Math.abs(solicitud.sesion.idUsuario);
+    const actual = await administradorRepositorio.obtenerConContrasena(id);
+    if (!actual) {
+      throw new ErrorHttp(404, 'Administrador no encontrado.');
+    }
+
+    const contrasenaCifrada = await bcrypt.hash(contrasena, saltRounds);
+    const actualizado = await administradorRepositorio.actualizarContrasena(id, contrasenaCifrada);
+    if (!actualizado) {
+      throw new ErrorHttp(404, 'Administrador no encontrado.');
+    }
+    await eventoAdministradorRepositorio.registrar(id, 'Cambió su contraseña de administrador.');
+    respuesta.status(200).json({
+      mensaje: 'Contraseña actualizada exitosamente.'
     });
   })
 );

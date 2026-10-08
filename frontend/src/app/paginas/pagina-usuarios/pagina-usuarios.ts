@@ -10,8 +10,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { Columna, Filtros, TablaComponent } from '../../componentes/tabla/tabla.component';
-import { NavegacionAdministracion } from '../../componentes/navegacion-administracion/navegacion-administracion';
 import { ServicioAdministrador } from '../../servicios/servicio-administrador';
+import { Menu } from '../../componentes/menu/menu.component';
 
 interface UsuarioAdministrativo {
   id: number;
@@ -36,8 +36,8 @@ interface UsuarioAdministrativo {
     MatTooltipModule,
     MatExpansionModule,
     ReactiveFormsModule,
-    NavegacionAdministracion,
-    TablaComponent
+    TablaComponent,
+    Menu
   ],
   templateUrl: './pagina-usuarios.html',
   styleUrl: './pagina-usuarios.scss'

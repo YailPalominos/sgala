@@ -48,6 +48,17 @@ export class Conexion {
         });
     }
 
+    /**
+     * Descarga un archivo binario (por ejemplo un ZIP) como Blob,
+     * enviando el encabezado de sesión.
+     */
+    public descargarArchivo(rutaControlador: string): Observable<Blob> {
+        return this.http.get(this.rutaServidor + rutaControlador, {
+            headers: this.obtenerEncabezado(),
+            responseType: 'blob'
+        });
+    }
+
     //Funcion auxiliar
     private objetoAHttpParams(obj: Record<string, any>): HttpParams {
         let params = new HttpParams();

@@ -49,4 +49,14 @@ export class ServicioUsuario {
     public suscribirANotificaciones(datos: any): Observable<Respuesta<void>> {
         return this.conexion.post<void>(`${this.ruta}/suscribir-a-notificaciones`, datos);
     }
+
+    public verificarCodigo(codigo: string, tipo: 'usuario' | 'correo' | 'telefono'): Observable<Respuesta<any>> {
+        return this.conexion.get<any>(
+            `${this.ruta}/verificar-codigo/${tipo}/${codigo}`
+        );
+    }
+
+    public confirmarCodigo(codigo: string, tipo: 'usuario' | 'correo' | 'telefono'): Observable<Respuesta<any>> {
+        return this.conexion.post<any>(`${this.ruta}/confirmar-codigo`, { codigo, tipo });
+    }
 }

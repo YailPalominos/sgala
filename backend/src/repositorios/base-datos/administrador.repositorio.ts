@@ -6,6 +6,7 @@ export interface Administrador {
   nombres: string;
   apellidos: string;
   direccionCorreoElectronico: string;
+  telefono: string | null;
   estatus: boolean;
   alias: string;
   permisos: string | null;
@@ -19,6 +20,7 @@ export interface DatosCrearAdministrador {
   nombres: string;
   apellidos: string;
   direccionCorreoElectronico: string;
+  telefono: string | null;
   contrasena: string;
   estatus: boolean;
   alias: string;
@@ -34,6 +36,7 @@ const columnasPublicas = `
   nombres,
   apellidos,
   direccion_correo_electronico AS "direccionCorreoElectronico",
+  telefono,
   estatus,
   alias,
   permisos
@@ -65,6 +68,7 @@ export async function obtenerConContrasena(
       nombres,
       apellidos,
       direccion_correo_electronico AS "direccionCorreoElectronico",
+      telefono,
       contrasena,
       estatus,
       alias,
@@ -84,6 +88,7 @@ export async function buscarPorIdentificador(
       nombres,
       apellidos,
       direccion_correo_electronico AS "direccionCorreoElectronico",
+      telefono,
       contrasena,
       estatus,
       alias,
@@ -115,6 +120,7 @@ export async function crear(datos: DatosCrearAdministrador): Promise<number> {
       nombres,
       apellidos,
       direccion_correo_electronico,
+      telefono,
       contrasena,
       estatus,
       alias,
@@ -125,6 +131,7 @@ export async function crear(datos: DatosCrearAdministrador): Promise<number> {
       ${datos.nombres},
       ${datos.apellidos},
       ${datos.direccionCorreoElectronico},
+      ${datos.telefono},
       ${datos.contrasena},
       ${datos.estatus},
       ${datos.alias},
@@ -141,11 +148,28 @@ export async function actualizar(datos: DatosActualizarAdministrador): Promise<b
       nombres = ${datos.nombres},
       apellidos = ${datos.apellidos},
       direccion_correo_electronico = ${datos.direccionCorreoElectronico},
+      telefono = ${datos.telefono},
       contrasena = ${datos.contrasena},
       estatus = ${datos.estatus},
       alias = ${datos.alias},
       permisos = ${datos.permisos}
     WHERE id = ${datos.id}
+  `;
+  return resultado > 0;
+}
+
+/**
+ * Actualiza únicamente la contraseña de un administrador.
+ * Usado al migrar una contraseña en texto plano a su versión cifrada.
+ */
+export async function actualizarContrasena(
+  id: number,
+  contrasena: string
+): Promise<boolean> {
+  const resultado = await prisma.$executeRaw`
+    UPDATE dbo.administradores
+    SET contrasena = ${contrasena}
+    WHERE id = ${id}
   `;
   return resultado > 0;
 }

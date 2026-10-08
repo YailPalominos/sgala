@@ -10,11 +10,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { Columna, Filtros, TablaComponent } from '../../componentes/tabla/tabla.component';
-import { NavegacionAdministracion } from '../../componentes/navegacion-administracion/navegacion-administracion';
 import { Notificador } from '../../recursos/notificador';
 import { ServicioAdministrador } from '../../servicios/servicio-administrador';
 import { Observable } from 'rxjs';
 import { Respuesta } from '../../recursos/conexion';
+import { Menu } from '../../componentes/menu/menu.component';
 
 interface Administrador {
   id: number;
@@ -41,8 +41,8 @@ interface Administrador {
     MatTooltipModule,
     MatExpansionModule,
     ReactiveFormsModule,
-    NavegacionAdministracion,
-    TablaComponent
+    TablaComponent,
+    Menu
   ],
   templateUrl: './pagina-administradores.html',
   styleUrl: './pagina-administradores.scss'

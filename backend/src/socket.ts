@@ -26,7 +26,6 @@ async function middlewareAutenticacion(socket: Socket, next: (err?: Error) => vo
     if (!claveSesion) {
       return next(new Error('No autorizado'));
     }
-
     const sesion = await sesionServicio.obtenerSesion(claveSesion);
 
     if (!sesion) {

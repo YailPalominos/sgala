@@ -9,7 +9,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Columna, Filtros, TablaComponent } from '../../componentes/tabla/tabla.component';
-import { NavegacionAdministracion } from '../../componentes/navegacion-administracion/navegacion-administracion';
 import { ServicioAdministrador } from '../../servicios/servicio-administrador';
 
 interface EventoAdministrador {
@@ -34,7 +33,6 @@ interface EventoAdministrador {
     MatProgressSpinnerModule,
     MatTooltipModule,
     ReactiveFormsModule,
-    NavegacionAdministracion,
     TablaComponent
   ],
   templateUrl: './pagina-eventos-administradores.html',

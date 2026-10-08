@@ -333,6 +333,11 @@ html.cdk-global-scrollblock {
     align-items: center;
     padding: 10px;
     padding-bottom: 15px;
+
+    /* La barra es su propio contexto de contenedor, para decidir el
+       layout del título según el ancho del DIÁLOGO, no de la ventana. */
+    container-type: inline-size;
+    container-name: barra;
     background: linear-gradient(to right,
         transparent,
         var(--tema-primary, #272727) 15%,
@@ -604,9 +609,10 @@ form > mat-form-field .mat-mdc-form-field-infix {
   min-height: 55px;
   padding: 8px 16px !important;
   margin: 0 !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex !important;
+  align-items: center !important;
+  /* Centrar por defecto los elementos de la barra de acciones. */
+  justify-content: center !important;
   flex-wrap: wrap;
   gap: 10px;
   flex-shrink: 0;
@@ -653,4 +659,106 @@ button.boton-inactivo {
   background-color: #bdbdbd !important;
   color: #757575 !important;
   box-shadow: none !important;
+}
+
+/* ==========================================================
+   Diálogos: garantizar que mat-dialog-actions quede SIEMPRE
+   pegado abajo, incluso con el diálogo maximizado y poco
+   contenido. Se refuerza la cadena flex de arriba a abajo.
+   ========================================================== */
+
+/* El host del componente inyectado llena toda la altura disponible
+   y organiza su contenido en columna. */
+.dialogo-contenedor > :not(.barra-dialogo):not(.resize) {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* El contenido crece y empuja las acciones hacia abajo; hace scroll. */
+.dialogo-contenedor mat-dialog-content,
+.dialogo-contenedor .mat-mdc-dialog-content {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* Las acciones quedan ancladas al fondo, sin crecer ni encogerse. */
+.dialogo-contenedor mat-dialog-actions,
+.dialogo-contenedor .mat-mdc-dialog-actions {
+  flex: 0 0 auto !important;
+  margin-top: auto !important;
+}
+
+/* ==========================================================
+   Botones primary: usar el color del tema seleccionado.
+   Cubre mat-raised-button / mat-flat-button / mat-button con
+   color="primary", tanto en diálogos como en el resto de la app.
+   ========================================================== */
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-unelevated-button.mat-primary,
+.mat-mdc-button.mat-primary {
+  --mdc-filled-button-container-color: var(--tema-primary, #424242);
+  --mdc-protected-button-container-color: var(--tema-primary, #424242);
+  background-color: var(--tema-primary, #424242) !important;
+  color: #ffffff !important;
+}
+
+/* Icono dentro del botón primary hereda el color del texto. */
+.mat-mdc-raised-button.mat-primary .mat-icon,
+.mat-mdc-unelevated-button.mat-primary .mat-icon,
+.mat-mdc-button.mat-primary .mat-icon {
+  color: #ffffff !important;
+}
+
+/* La variante "inactiva" conserva su gris aunque sea primary. */
+button.boton-inactivo.mat-primary,
+button.boton-inactivo {
+  background-color: #bdbdbd !important;
+  color: #757575 !important;
+}
+
+button.boton-inactivo .mat-icon {
+  color: #757575 !important;
+}
+
+/* ==========================================================
+   Barra del diálogo en CELULAR (<= 599px):
+   título pegado a la izquierda y botones a la derecha,
+   para que no se amontonen. En pantallas mayores el título
+   permanece centrado (comportamiento por defecto).
+   ========================================================== */
+/* ==========================================================
+   Cuando el DIÁLOGO es angosto (no la ventana): título pegado
+   a la izquierda y botones a la derecha, para que no se
+   amontonen. En diálogos anchos el título permanece centrado.
+   Basado en el ancho de la barra mediante container query.
+   ========================================================== */
+@container barra (max-width: 420px) {
+  .dialogo-contenedor .barra-dialogo {
+    gap: 8px;
+  }
+
+  /* La barra izquierda está vacía: no debe ocupar espacio. */
+  .dialogo-contenedor .barra-dialogo .barra-izquierda {
+    display: none;
+  }
+
+  /* Los botones de la derecha no se comprimen. */
+  .dialogo-contenedor .barra-dialogo .barra-derecha {
+    flex-shrink: 0;
+  }
+
+  /* Título en el flujo, a la izquierda, ocupando el espacio sobrante. */
+  .dialogo-contenedor .barra-dialogo h1 {
+    position: static;
+    transform: none;
+    left: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    padding: 0 4px;
+    justify-content: flex-start;
+  }
 }

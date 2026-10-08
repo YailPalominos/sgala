@@ -21,6 +21,8 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
 
   await iniciarConexiones();
 
+  // El servicio añade el segmento "certificados" internamente,
+  // por lo que aquí se pasa solo el directorio base.
   const opciones: tls.TlsOptions = leerCertificadosServidor(entorno.DIRECTORIO);
 
   const servidor = tls.createServer(
@@ -29,7 +31,7 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
 
       const certificado = socket.getPeerCertificate();
       const claveDispositivo = obtenerClaveDispositivoDesdeCertificado(certificado);
-      
+
       if (!claveDispositivo) {
         socket.destroy();
         return;
@@ -183,57 +185,57 @@ export async function desconectar(claveDispositivo: string) {
       estatusEncendida: null,
       estatusMovimiento: null,
       localizacion: null,
-      estatus:null
+      estatus: null
     });
-    
+
 
     const dispositivo = await obtenerDispositivo(claveDispositivo);
 
-    const claveAlarmaDesconexion = crypto.randomUUID();
-
-    await agregarAlarma(claveDispositivo, {
-      clave: claveAlarmaDesconexion,
-      descripcion: `Dispositivo sin conexión`,
-      fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
-    });
-
-    await enviarDispositivoActualizado(claveDispositivo)
-
-    await agregarNotificacion(
-      dispositivo.idUsuario,
-      {
-        clave: crypto.randomUUID(),
-        descripcion: `Dispositivo '${dispositivo.alias}' sin conexión.`,
-        fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-        atendida: null,
-        claveDispositivo: dispositivo.clave,
-        claveAlarma: claveAlarmaDesconexion,
-        origen: 'conexion'
-      }
-    );
-
     await crearEventoSistema(
       dispositivo.idUsuario,
-      `Alarma dispositivo clave:"${claveDispositivo}" sin conexión generada con la clave de alarma:"${claveAlarmaDesconexion}"`
+      `Alarma dispositivo clave:"${claveDispositivo}" sin conexión."`
     );
 
-    await enviarNotificacionUsuario(dispositivo.idUsuario);
+    // const claveAlarmaDesconexion = crypto.randomUUID();
 
-    const suscripciones = await obtenerSuscripciones(dispositivo.idUsuario);
+    // await agregarAlarma(claveDispositivo, {
+    //   clave: claveAlarmaDesconexion,
+    //   descripcion: `Dispositivo sin conexión`,
+    //   fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+    // });
 
-    for (const suscripcion of suscripciones) {
-      await enviarWebPush(
-        suscripcion,
-        'SICVA',
-        `Dispositivo '${dispositivo.alias}' sin conexión.`,
-        {
-          tipo: 'sin-conexion',
-          claveDispositivo: dispositivo.clave,
-          alias: dispositivo.alias
-        },
-        dispositivo.idUsuario
-      );
-    }
+    // await enviarDispositivoActualizado(claveDispositivo)
+
+    // await agregarNotificacion(
+    //   dispositivo.idUsuario,
+    //   {
+    //     clave: crypto.randomUUID(),
+    //     descripcion: `Dispositivo '${dispositivo.alias}' sin conexión.`,
+    //     fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    //     atendida: null,
+    //     claveDispositivo: dispositivo.clave,
+    //     claveAlarma: claveAlarmaDesconexion,
+    //     origen: 'conexion'
+    //   }
+    // );
+
+    // await enviarNotificacionUsuario(dispositivo.idUsuario);
+
+    // const suscripciones = await obtenerSuscripciones(dispositivo.idUsuario);
+
+    // for (const suscripcion of suscripciones) {
+    //   await enviarWebPush(
+    //     suscripcion,
+    //     'SICVA',
+    //     `Dispositivo '${dispositivo.alias}' sin conexión.`,
+    //     {
+    //       tipo: 'sin-conexion',
+    //       claveDispositivo: dispositivo.clave,
+    //       alias: dispositivo.alias
+    //     },
+    //     dispositivo.idUsuario
+    //   );
+    // }
 
   } catch (error) {
     console.error(
@@ -450,7 +452,7 @@ export async function enviarSolicitudDispositivo(claveDispositivo: string, datos
 
       const topico = packet.topic;
 
-      if (topico !== `respuestas/${claveDispositivo}`) {
+      if (topico !== `respuestas/${claveDispositivo.toUpperCase()}`) {
         return;
       }
 
@@ -476,11 +478,12 @@ export async function enviarSolicitudDispositivo(claveDispositivo: string, datos
     const payload = Buffer.from(
       JSON.stringify(datosDispositivo)
     );
+    const topico = `solicitudes/${claveDispositivo.toUpperCase()}`;
 
     aedesInstance.publish(
       {
         cmd: 'publish',
-        topic: `solicitudes/${claveDispositivo}`,
+        topic: topico,
         payload,
         qos: 0,
         retain: false,
@@ -492,7 +495,7 @@ export async function enviarSolicitudDispositivo(claveDispositivo: string, datos
           aedesInstance.removeListener('publish', listener);
           reject(new Error('Error enviando solicitud MQTT.'));
         } else {
-          console.log('📤 Solicitud enviada:', { dispositivo: claveDispositivo, datos });
+          // console.log('📤 Solicitud enviada:', { dispositivo: claveDispositivo, datos }, "> " + topico);
         }
       }
     );
@@ -507,7 +510,6 @@ export async function iniciarConexiones() {
       clave: dispositivo.clave,
       idUsuario: dispositivo.idUsuario,
       alias: dispositivo.alias,
-      telefono: dispositivo.telefono,
       tipo: dispositivo.tipo,
       tipoTexto: dispositivo.tipoTexto,
       cualidades: dispositivo.cualidades,

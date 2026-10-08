@@ -4,7 +4,7 @@ import { BehaviorSubject } from 'rxjs';
 
 export interface Sesion {
   clave: string;
-  claveUsuario:string
+  claveUsuario: string
   tipoCuenta?: 'usuario' | 'administrador';
   alias: string;
   direccionCorreoElectronico: string;
@@ -52,6 +52,10 @@ export class Autenticador {
     this.router.navigate([
       '/acceder'
     ]);
+  }
+  public eliminarSesionSinNavegar(): void {
+    localStorage.removeItem(this.claveSesion);
+    this.autenticadoSubject.next(false);
   }
 
 }

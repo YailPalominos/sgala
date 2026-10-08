@@ -24,6 +24,13 @@ export class ServicioAdministrador {
     return this.conexion.get<any[]>(`${this.ruta}/dispositivos/obtener-lista`);
   }
 
+  /** Descarga el ZIP con los certificados (ca.crt, cliente.key, cliente.crt). */
+  public descargarCertificados(clave: string): Observable<Blob> {
+    return this.conexion.descargarArchivo(
+      `${this.ruta}/dispositivos/descargar-certificados/${clave}`
+    );
+  }
+
   public obtenerListaUsuarios(): Observable<Respuesta<any[]>> {
     return this.conexion.get<any[]>(`${this.ruta}/usuarios/obtener-lista`);
   }
@@ -41,6 +48,7 @@ export class ServicioAdministrador {
     nombres: string;
     apellidos: string;
     direccionCorreoElectronico: string;
+    telefono: string | null;
     alias: string;
   }>> {
     return this.conexion.get(`${this.ruta}/perfil`);
@@ -50,10 +58,15 @@ export class ServicioAdministrador {
     nombres: string;
     apellidos: string;
     direccionCorreoElectronico: string;
+    telefono: string | null;
     alias: string;
     contrasena?: string;
   }): Observable<Respuesta<{ alias: string; direccionCorreoElectronico: string }>> {
     return this.conexion.put(`${this.ruta}/perfil`, datos);
+  }
+
+  public restablecerContrasena(contrasena: string): Observable<Respuesta<void>> {
+    return this.conexion.put<void>(`${this.ruta}/perfil/contrasena`, { contrasena });
   }
 
   public crearPreDispositivo(datos: {

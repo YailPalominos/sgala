@@ -19,6 +19,7 @@ import { Notificador } from '../../recursos/notificador';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
 import { TemaServicio } from '../../recursos/tema.servicio';
 import { DialogoAgente } from '../../dialogos/dialogo-agente/dialogo-agente';
+import { FormularioPreUsuario } from '../../formularios/formulario-pre-usuario/formulario-pre-usuario';
 
 @Component({
   selector: 'app-login',
@@ -93,30 +94,13 @@ export class PaginaAcceder {
 
   registrarUsuario(): void {
     this.dialogoServicio.abrir({
-      referencia: DialogoValidacion,
-      titulo: 'Validar',
-      icono: 'check_circle',
-      largo: 'l30%,m50%,c100%',
-      desactivarAutocerrado: true,
-      parametros: 'U',
-      recordar: false,
-      alFinalizar: this.finalizarRegistrarUsuario.bind(this)
-    });
-  }
-
-  finalizarRegistrarUsuario(respuesta?: string) {
-    if (respuesta === undefined || respuesta === '') {
-      return;
-    }
-    this.dialogoServicio.abrir({
-      referencia: FormularioUsuario,
+      referencia: FormularioPreUsuario,
       titulo: 'Usuario',
       icono: 'person',
-      largo: 'l35%,m55%,c100%',
+      largo: 'l40%,m55%,c100%',
       desactivarAutocerrado: true,
       parametros: 'C',
       recordar: false,
-      datos: { clave: respuesta }
     });
   }
 

@@ -1,9 +1,18 @@
 import bcrypt from 'bcrypt';
 import * as usuarioRepo from '../repositorios/base-datos/usuario.repositorio';
-import { enviarCorreoRecuperacion, enviarCorreoBienvenida } from './correo.servicio';
+import * as administradorRepo from '../repositorios/base-datos/administrador.repositorio';
+import { enviarCorreoRecuperacion, enviarCorreoBienvenida, enviarCorreoConfirmacion } from './correo.servicio';
 import { ErrorHttp } from '../interceptores/error.middleware';
 import { crear as crearEvento } from '../repositorios/base-datos/evento.repositorio'
 import { crearLlaveRecuperacion, crearSesion, eliminarLlaveRecuperacion, obtenerLlaveRecuperacion, SesionRedis } from '@/repositorios/redis/sesiones.redis';
+import {
+  crearPreUsuario,
+  obtenerPreUsuarioPorClave,
+  eliminarPreUsuario,
+  obtenerPreUsuarioPorIdentificador,
+  PreUsuarioRedis
+} from '@/repositorios/redis/pre-usuarios.redis';
+import { obtenerDatosPreCambioPorCodigo } from '@/repositorios/redis/pre-cambios.redis';
 
 export interface DatosUsuarioRegistro {
   clave: string;
@@ -19,59 +28,125 @@ export interface LoginResultado {
 
 const SALT_ROUNDS = 10;
 
-function generarContrasenaProvisional(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let resultado = '';
-  for (let i = 0; i < 10; i++) {
-    resultado += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return resultado;
-}
-
 /**
- * Valida que la clave del dispositivo exista y no esté vinculada.
+ * Genera una contraseña provisional combinando el alias del usuario,
+ * caracteres especiales y números aleatorios, sin superar 10 caracteres.
  */
-export async function validarClave(clave: string): Promise<any> {
-  let datosUsuario;
-  try {
-    datosUsuario = await usuarioRepo.buscarPorClave(clave);
-  } catch {
-    throw new ErrorHttp(400, 'Clave de usuario inválida.')
+function generarContrasenaProvisional(alias: string): string {
+  const especiales = '!@#$%&*?';
+  const especial = especiales.charAt(
+    Math.floor(Math.random() * especiales.length)
+  );
+
+  // Base: alias limpio (solo letras/números), capitalizado.
+  const base = alias.replace(/[^a-zA-Z0-9]/g, '');
+  const inicio = base
+    ? base.charAt(0).toUpperCase() + base.slice(1).toLowerCase()
+    : 'User';
+
+  // Completar con números aleatorios hasta llegar a 10 caracteres
+  // (1 carácter se reserva para el especial).
+  const longitudBase = Math.min(inicio.length, 9 - 1);
+  let resultado = inicio.slice(0, longitudBase) + especial;
+
+  while (resultado.length < 10) {
+    resultado += Math.floor(Math.random() * 10).toString();
   }
-  if (datosUsuario == null) {
-    return null;
-  }
-  return datosUsuario;
+
+  return resultado.slice(0, 10);
 }
 
 /**
- * Crear un nuevo usuario.
+ * Valida que ni la base de datos ni los pre-usuarios en Redis tengan ya
+ * registrado el alias, correo o teléfono indicado.
+ */
+async function validarNoDuplicado(
+  alias: string,
+  direccionCorreoElectronico: string,
+  telefono: string
+): Promise<void> {
+
+  const comprobaciones: Array<[string, string]> = [
+    [alias, 'El alias ya está registrado. Intente con otro.'],
+    [direccionCorreoElectronico, 'La dirección de correo electrónico ya está registrada.'],
+    [telefono, 'El número de teléfono ya está registrado.']
+  ];
+
+  for (const [valor, mensaje] of comprobaciones) {
+    const enBaseDatos = await usuarioRepo.buscarExistentePorIdentificador(valor);
+    const enRedis = await obtenerPreUsuarioPorIdentificador(valor);
+    if (enBaseDatos || enRedis) {
+      throw new ErrorHttp(409, mensaje);
+    }
+  }
+}
+
+/**
+ * Registra un pre-usuario: valida que no exista duplicado, lo guarda
+ * temporalmente en Redis (24 h) y envía por correo una clave (UUID)
+ * de confirmación. El usuario aún NO se crea en la base de datos.
  */
 export async function crear(datos: any): Promise<void> {
 
-  const aliasExistente = await usuarioRepo.buscarExistentePorIdentificador(datos.alias);
-  if (aliasExistente) {
-    throw new ErrorHttp(409, 'El alias ya está registrado "Intente con otro"');
+  const alias = String(datos.alias ?? '').trim();
+  const direccionCorreoElectronico = String(datos.direccionCorreoElectronico ?? '').trim();
+  const telefono = String(datos.telefono ?? '').trim();
+
+  if (!alias || !direccionCorreoElectronico || !telefono) {
+    throw new ErrorHttp(400, 'Alias, correo electrónico y teléfono son obligatorios.');
   }
 
-  const correoExistente = await usuarioRepo.buscarExistentePorIdentificador(datos.direccionCorreoElectronico);
-  if (correoExistente) {
-    throw new ErrorHttp(409, 'La dirección de correo electrónico ya está registrada');
+  await validarNoDuplicado(alias, direccionCorreoElectronico, telefono);
+
+  const clave = await crearPreUsuario({
+    alias,
+    direccionCorreoElectronico,
+    telefono
+  });
+
+
+  await enviarCorreoConfirmacion(direccionCorreoElectronico, clave);
+}
+
+/**
+ * Confirma un registro mediante la clave (UUID) recibida por correo.
+ * Si la clave es válida y vigente, crea el usuario en la base de datos
+ * con una contraseña provisional y envía el correo de bienvenida.
+ */
+export async function confirmar(clave: string): Promise<void> {
+
+  const preUsuario = await obtenerPreUsuarioPorClave(clave);
+
+  if (!preUsuario) {
+    throw new ErrorHttp(400, 'El enlace de confirmación es inválido o ha expirado.');
   }
 
-  const telefonoExistente = await usuarioRepo.buscarExistentePorIdentificador(datos.telefono);
-  if (telefonoExistente) {
-    throw new ErrorHttp(409, 'El número de teléfono ya está registrado');
+  // Revalidar que no se haya registrado el mismo dato mientras tanto.
+  const aliasEnBd = await usuarioRepo.buscarExistentePorIdentificador(preUsuario.alias);
+  const correoEnBd = await usuarioRepo.buscarExistentePorIdentificador(preUsuario.direccionCorreoElectronico);
+  const telefonoEnBd = await usuarioRepo.buscarExistentePorIdentificador(preUsuario.telefono);
+  if (aliasEnBd || correoEnBd || telefonoEnBd) {
+    await eliminarPreUsuario(clave);
+    throw new ErrorHttp(409, 'Los datos ya fueron registrados por otra cuenta.');
   }
 
-  const contrasenaProvisional = generarContrasenaProvisional();
+  const contrasenaProvisional = generarContrasenaProvisional(preUsuario.alias);
 
-  datos.contrasena = contrasenaProvisional
-  datos.idPreUsuario = await usuarioRepo.obtenerIdPreUsuarioPorClave(datos.clave)
+  await usuarioRepo.crearUsuario({
+    alias: preUsuario.alias,
+    direccionCorreoElectronico: preUsuario.direccionCorreoElectronico,
+    telefono: preUsuario.telefono,
+    contrasena: contrasenaProvisional
+  });
 
-  await usuarioRepo.crearUsuario(datos);
+  await eliminarPreUsuario(clave);
 
-  await enviarCorreoBienvenida(datos);
+  await enviarCorreoBienvenida({
+    alias: preUsuario.alias,
+    telefono: preUsuario.telefono,
+    direccionCorreoElectronico: preUsuario.direccionCorreoElectronico,
+    contrasena: contrasenaProvisional
+  });
 }
 
 /**
@@ -117,6 +192,7 @@ export async function autenticar(identificador: string, contrasena: string): Pro
     if (!contrasenaValida) {
       throw new ErrorHttp(400, 'Credenciales inválidas');
     }
+
     const sesion = await crearSesion(usuario.clave, usuario.direccionCorreoElectronico, usuario.alias, usuario.id, usuario.telefono);
 
     await crearEvento('Inicio sesión.')
@@ -178,7 +254,6 @@ export async function solicitarRecuperacion(identificador: string, tipo: string)
 
 /**
  * Cambia la contraseña usando una llave de recuperación.
- * Actualiza estatus a 1 (activo normal).
  */
 export async function cambiarContrasena(llave: string, nuevaContrasena: string): Promise<void> {
   const recuperacion = await obtenerLlaveRecuperacion(llave);
@@ -189,6 +264,42 @@ export async function cambiarContrasena(llave: string, nuevaContrasena: string):
 
   const contrasenaHash = await bcrypt.hash(nuevaContrasena, SALT_ROUNDS);
 
-  await usuarioRepo.actualizarContrasena(recuperacion.idUsuario, contrasenaHash);
+  // El administrador usa idUsuario negativo (-administrador.id).
+  // En ese caso se actualiza la tabla de administradores.
+  if (recuperacion.idUsuario < 0) {
+    await administradorRepo.actualizarContrasena(
+      Math.abs(recuperacion.idUsuario),
+      contrasenaHash
+    );
+  } else {
+    await usuarioRepo.actualizarContrasena(recuperacion.idUsuario, contrasenaHash);
+  }
+
   await eliminarLlaveRecuperacion(llave);
+}
+
+
+/**
+ *Verifica que el codigo exista y regresa los datos del pre usuario para su evaluación
+ */
+export async function verificarCodigo(codigo: string): Promise<PreUsuarioRedis> {
+  const preUsuario = await obtenerPreUsuarioPorClave(codigo);
+
+  if (!preUsuario) {
+    throw new ErrorHttp(400, 'El código de verificación no existe o ha caducado.');
+  }
+
+  return preUsuario
+}
+
+
+export async function verificarCodigoPreCambio(codigo: string): Promise<any | null> {
+
+  const datos = await obtenerDatosPreCambioPorCodigo(codigo);
+
+  if (!datos) {
+    throw new ErrorHttp(400, 'El código de verificación no existe o ha caducado.');
+  }
+
+  return datos
 }

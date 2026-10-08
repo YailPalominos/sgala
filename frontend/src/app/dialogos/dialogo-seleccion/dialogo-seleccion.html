@@ -34,9 +34,6 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="center">
-  <button mat-button (click)="cancelar()">
-    {{ parametros.textoCancelar || 'Cancelar' }}
-  </button>
 
   <button mat-raised-button color="primary" [disabled]="parametros.requerido && !seleccion" (click)="aceptar()">
     {{ parametros.textoAceptar || 'Aceptar' }}

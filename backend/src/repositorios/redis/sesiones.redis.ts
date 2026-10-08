@@ -93,7 +93,7 @@ async function guardarSesiones(
  * La sesión se agrega al array del usuario.
  */
 export async function crearSesion(
-    claveUsuario: string,
+    clave: string,
     direccionCorreoElectronico: string,
     alias: string,
     idUsuario: number,
@@ -103,11 +103,11 @@ export async function crearSesion(
 
     try {
 
-        const clave = uuidv4();
+        const claveSesion = uuidv4();
 
         const sesion: SesionRedis = {
-            clave,
-            claveUsuario,
+            clave: claveSesion,
+            claveUsuario: clave,
             idUsuario,
             tipoCuenta,
             alias,

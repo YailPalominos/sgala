@@ -25,6 +25,12 @@ export const Solicitudes: HttpInterceptorFn = (req, next) => {
 
         map(event => {
 
+            // No transformar respuestas binarias (blob/arraybuffer),
+            // como la descarga de un ZIP: deben pasar intactas.
+            if (req.responseType !== 'json') {
+                return event;
+            }
+
             if (event instanceof HttpResponse) {
 
                 const body =

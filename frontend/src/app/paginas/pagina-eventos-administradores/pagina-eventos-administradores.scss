@@ -1,28 +1,42 @@
 :host {
   display: block;
-  min-height: 100%;
+  height: 100%;
+}
+app-menu{
+  width: 100%;
 }
 
-.pagina-admin {
+.pagina {
   display: flex;
-  width: 90%;
   height: 100%;
   min-height: 0;
-  margin: 0 auto;
   flex-direction: column;
   box-sizing: border-box;
+  width: 90%;
+  max-width: none;
+  margin: 0 auto;
 }
 
 .filtros-formulario {
   display: block;
   width: 100%;
+  padding: 0;
+  gap: 0;
   margin-bottom: 8px;
   box-sizing: border-box;
+}
+
+.acciones-filtros {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-bottom: 20px;
 }
 
 .filtros-acordeon {
   display: block;
   width: 100%;
+  padding-top: 20px;
   overflow: hidden;
   box-sizing: border-box;
   background: #fff;
@@ -37,20 +51,82 @@
   background: transparent;
 }
 
-.campos-filtros-principales {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+/* Contenedores de filtros: flex-wrap + container query para que los
+   hijos respeten las clases responsivas c/m/g según el ancho disponible. */
+.campos-filtros-principales,
+.campos-filtros-adicionales {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  container-type: inline-size;
+  container-name: filtros;
 }
 
 .campos-filtros-adicionales {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
   margin-top: 8px;
 }
 
+/* Ancho por defecto (sin container query): ocupar todo el ancho. */
+.campos-filtros-principales>[class*="c"],
+.campos-filtros-principales>[class*="m"],
+.campos-filtros-principales>[class*="g"],
+.campos-filtros-adicionales>[class*="c"],
+.campos-filtros-adicionales>[class*="m"],
+.campos-filtros-adicionales>[class*="g"] {
+  width: 100%;
+}
+
+/* Escala completa de anchos (10% a 100%, de 10 en 10) por breakpoint.
+   El gap es de 8px; se descuenta de forma proporcional para que
+   las columnas quepan en una fila sin desbordar. */
+
+/* Contenedor chico (clases c*) */
+@container filtros (max-width: 399px) {
+  .campos-filtros-principales>.c10,  .campos-filtros-adicionales>.c10  { width: calc(10%  - 8px); }
+  .campos-filtros-principales>.c20,  .campos-filtros-adicionales>.c20  { width: calc(20%  - 8px); }
+  .campos-filtros-principales>.c30,  .campos-filtros-adicionales>.c30  { width: calc(30%  - 8px); }
+  .campos-filtros-principales>.c33,  .campos-filtros-adicionales>.c33  { width: calc(33.333% - 8px); }
+  .campos-filtros-principales>.c40,  .campos-filtros-adicionales>.c40  { width: calc(40%  - 8px); }
+  .campos-filtros-principales>.c50,  .campos-filtros-adicionales>.c50  { width: calc(50%  - 8px); }
+  .campos-filtros-principales>.c60,  .campos-filtros-adicionales>.c60  { width: calc(60%  - 8px); }
+  .campos-filtros-principales>.c70,  .campos-filtros-adicionales>.c70  { width: calc(70%  - 8px); }
+  .campos-filtros-principales>.c80,  .campos-filtros-adicionales>.c80  { width: calc(80%  - 8px); }
+  .campos-filtros-principales>.c90,  .campos-filtros-adicionales>.c90  { width: calc(90%  - 8px); }
+  .campos-filtros-principales>.c100, .campos-filtros-adicionales>.c100 { width: 100%; }
+}
+
+/* Contenedor mediano (clases m*) */
+@container filtros (min-width: 400px) and (max-width: 699px) {
+  .campos-filtros-principales>.m10,  .campos-filtros-adicionales>.m10  { width: calc(10%  - 8px); }
+  .campos-filtros-principales>.m20,  .campos-filtros-adicionales>.m20  { width: calc(20%  - 8px); }
+  .campos-filtros-principales>.m30,  .campos-filtros-adicionales>.m30  { width: calc(30%  - 8px); }
+  .campos-filtros-principales>.m33,  .campos-filtros-adicionales>.m33  { width: calc(33.333% - 8px); }
+  .campos-filtros-principales>.m40,  .campos-filtros-adicionales>.m40  { width: calc(40%  - 8px); }
+  .campos-filtros-principales>.m50,  .campos-filtros-adicionales>.m50  { width: calc(50%  - 8px); }
+  .campos-filtros-principales>.m60,  .campos-filtros-adicionales>.m60  { width: calc(60%  - 8px); }
+  .campos-filtros-principales>.m70,  .campos-filtros-adicionales>.m70  { width: calc(70%  - 8px); }
+  .campos-filtros-principales>.m80,  .campos-filtros-adicionales>.m80  { width: calc(80%  - 8px); }
+  .campos-filtros-principales>.m90,  .campos-filtros-adicionales>.m90  { width: calc(90%  - 8px); }
+  .campos-filtros-principales>.m100, .campos-filtros-adicionales>.m100 { width: 100%; }
+}
+
+/* Contenedor grande (clases g*) */
+@container filtros (min-width: 700px) {
+  .campos-filtros-principales>.g10,  .campos-filtros-adicionales>.g10  { width: calc(10%  - 6px); }
+  .campos-filtros-principales>.g20,  .campos-filtros-adicionales>.g20  { width: calc(20%  - 6px); }
+  .campos-filtros-principales>.g30,  .campos-filtros-adicionales>.g30  { width: calc(30%  - 6px); }
+  .campos-filtros-principales>.g33,  .campos-filtros-adicionales>.g33  { width: calc(33.333% - 6px); }
+  .campos-filtros-principales>.g40,  .campos-filtros-adicionales>.g40  { width: calc(40%  - 6px); }
+  .campos-filtros-principales>.g50,  .campos-filtros-adicionales>.g50  { width: calc(50%  - 6px); }
+  .campos-filtros-principales>.g60,  .campos-filtros-adicionales>.g60  { width: calc(60%  - 6px); }
+  .campos-filtros-principales>.g70,  .campos-filtros-adicionales>.g70  { width: calc(70%  - 6px); }
+  .campos-filtros-principales>.g80,  .campos-filtros-adicionales>.g80  { width: calc(80%  - 6px); }
+  .campos-filtros-principales>.g90,  .campos-filtros-adicionales>.g90  { width: calc(90%  - 6px); }
+  .campos-filtros-principales>.g100, .campos-filtros-adicionales>.g100 { width: 100%; }
+}
+
+/* El contenido interno del campo siempre llena su columna asignada. */
 .campos-filtros-principales mat-form-field,
 .campos-filtros-adicionales mat-form-field {
   width: 100%;
@@ -64,12 +140,9 @@
   display: none;
 }
 
-.acciones-filtros {
-  display: flex;
-  min-height: 56px;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
+.mensaje-error,
+.estado-error {
+  color: var(--mat-sys-error);
 }
 
 .estado {
@@ -83,7 +156,7 @@
   opacity: 0.75;
 }
 
-.estado > mat-icon {
+.estado>mat-icon {
   width: 48px;
   height: 48px;
   font-size: 48px;
@@ -93,32 +166,26 @@
   margin: 0;
 }
 
-.estado-error {
-  color: var(--mat-sys-error);
-}
-
-.pagina-admin app-tabla {
+.pagina app-tabla {
   display: block;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  height: 100%;
 }
 
-.pagina-admin app-tabla ::ng-deep .contenedor {
+.pagina app-tabla ::ng-deep .contenedor {
   padding-right: 0;
   padding-left: 0;
 }
 
-@media (max-width: 650px) {
-  .campos-filtros-adicionales {
-    grid-template-columns: 1fr;
-  }
+// @media (max-width: 650px) {
+//   .acciones-filtros {
+//     width: 100%;
+//     justify-content: flex-end;
+//   }
 
-  .campos-filtros-principales {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .acciones-filtros {
-    grid-column: 1 / -1;
-  }
-}
+//   .pagina app-tabla {
+//     min-height: 0;
+//   }
+// }

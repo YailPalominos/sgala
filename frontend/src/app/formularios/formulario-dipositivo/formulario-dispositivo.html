@@ -1,5 +1,5 @@
 <h2 class="titulo">
-    @if (parametros.accion === 'R') {
+    @if (parametros === 'C') {
     Nuevo
     } @else {
     Editar
@@ -9,7 +9,7 @@
     <form id="formDispositivo" [formGroup]="formulario" (ngSubmit)="preparar()">
 
         <p style="text-align: center;width: 100%;">
-            @if (parametros.accion === 'R') {
+            @if (parametros === 'C') {
             Completa la información para crear un nuevo dispositivo.
             } @else {
             Edita la información del dispositivo.
@@ -20,7 +20,7 @@
             }
         </p>
 
-        <mat-form-field appearance="outline" class="c100 m50 g50">
+        <mat-form-field appearance="outline" class="c100 m100 g100">
             <mat-label>Alias</mat-label>
             <input matInput formControlName="alias" />
             <mat-icon matPrefix>label</mat-icon>
@@ -45,30 +45,13 @@
 
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="c100 m50 g50">
-            <mat-label>Teléfono</mat-label>
-            <input matInput formControlName="telefono" type="tel" mask="0000000000" />
-            <mat-icon matPrefix>phone</mat-icon>
-
-            @if (formulario.get('telefono')?.hasError('required')) {
-            <mat-error>
-                El teléfono es obligatorio
-            </mat-error>
-            }
-
-            @if (formulario.get('telefono')?.hasError('pattern')) {
-            <mat-error>
-                El teléfono debe contener exactamente 10 números
-            </mat-error>
-            }
-
-        </mat-form-field>
 
     </form>
 </mat-dialog-content>
 
 <mat-dialog-actions>
 
+    <!-- @if( parametros === 'A' ){
     <div class="c100 m50 g50">
         <button mat-raised-button color="accent" type="button" (click)="conectar()">
             <mat-icon>
@@ -77,14 +60,14 @@
             Conectar
         </button>
     </div>
-
+    } -->
     <div class="c100 m50 g50">
         <button mat-raised-button color="primary" type="submit" form="formDispositivo"
             [class.boton-inactivo]="!puedeEnviar()">
             <mat-icon>
-                {{ parametros.accion === 'R' ? 'add' : 'edit' }}
+                {{ parametros === 'C' ? 'add' : 'edit' }}
             </mat-icon>
-            {{ parametros.accion === 'R' ? 'Crear' : 'Actualizar' }}
+            {{ parametros === 'C' ? 'Crear' : 'Actualizar' }}
         </button>
     </div>
 

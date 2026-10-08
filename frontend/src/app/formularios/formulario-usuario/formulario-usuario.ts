@@ -129,9 +129,15 @@ export class FormularioUsuario extends Formulario {
 
   public actualizar(datos: any): void {
     this.servicioUsuario.actualizar(datos).subscribe({
-      next: () => {
-        this.notificador.exitoso("Usuario actualizdo exitosamente.")
-        this.cerrar(true)
+      next: (respuesta) => {
+        if (respuesta.estatus == 200) {
+          this.notificador.exitoso("Usuario actualizdo exitosamente.")
+          this.cerrar(true)
+        } else {
+          this.notificador.exitoso(respuesta.mensaje)
+          this.cerrar(false)
+        }
+
       }
     });
   }
@@ -161,22 +167,21 @@ export class FormularioUsuario extends Formulario {
   }
 
   private finalizarRestablecer(respuesta: any) {
-    if (respuesta.respuesta == true) {
+    if (respuesta.resultado == true) {
       this.solicitarLlave();
     }
   }
 
-
   public solicitarLlave() {
     this.servicioUsuario.solicitarLlaveRecuperacion().subscribe({
       next: (respuesta) => {
-        this.autenticador.eliminarSesion()
+        this.autenticador.eliminarSesionSinNavegar()
         this.router.navigate(['/restablecer'], {
           queryParams: {
-            clave: respuesta.datos.claveLlaveRecuperacion
+            llave: respuesta.datos
           }
         });
-        this.cerrar(true)
+        this.cerrar(false)
       },
     });
   }

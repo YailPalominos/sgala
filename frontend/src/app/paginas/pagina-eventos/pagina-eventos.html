@@ -1,17 +1,17 @@
 <main class="pagina-admin">
-  <app-navegacion-administracion titulo="Eventos"></app-navegacion-administracion>
+
 
   <form class="filtros-formulario" [formGroup]="formularioFiltros" (ngSubmit)="buscar()">
     <mat-accordion class="filtros-acordeon" multi>
       <mat-expansion-panel class="panel-filtros-fijos" expanded disabled hideToggle>
         <div class="campos-filtros-principales">
           <mat-form-field appearance="outline" class="c100 m50 g50">
-            <mat-label>Descripción</mat-label>
-            <input matInput formControlName="descripcion" />
+            <mat-label>Acción</mat-label>
+            <input matInput formControlName="accion" />
           </mat-form-field>
           <mat-form-field appearance="outline" class="c100 m50 g50">
-            <mat-label>Fecha</mat-label>
-            <input matInput type="date" formControlName="fechaTexto" />
+            <mat-label>Administrador</mat-label>
+            <input matInput formControlName="aliasAdministrador" />
           </mat-form-field>
           <div class="acciones-filtros">
             <button mat-mini-fab class="fab-tema" type="button" aria-label="Reiniciar filtros"
@@ -33,8 +33,12 @@
         </mat-expansion-panel-header>
         <div class="campos-filtros-adicionales">
           <mat-form-field appearance="outline" class="c100 m50 g50">
-            <mat-label>Usuario</mat-label>
-            <input matInput formControlName="aliasUsuario" />
+            <mat-label>Correo electrónico</mat-label>
+            <input matInput formControlName="correoAdministrador" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="c100 m50 g50">
+            <mat-label>Fecha</mat-label>
+            <input matInput type="date" formControlName="fechaTexto" />
           </mat-form-field>
           <mat-form-field appearance="outline" class="c100 m50 g50">
             <mat-label>ID</mat-label>
@@ -46,9 +50,16 @@
   </form>
 
   @if (cargando()) {
-    <div class="estado"><mat-spinner diameter="40"></mat-spinner><p>Cargando eventos...</p></div>
+    <div class="estado">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Cargando eventos de administradores...</p>
+    </div>
   } @else if (error()) {
-    <div class="estado error" role="alert"><mat-icon>error_outline</mat-icon><p>{{ error() }}</p></div>
+    <div class="estado estado-error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-button type="button" (click)="cargar()">Reintentar</button>
+    </div>
   } @else {
     <app-tabla [datos]="eventos()" [columnas]="columnas" [filtros]="filtros"></app-tabla>
   }

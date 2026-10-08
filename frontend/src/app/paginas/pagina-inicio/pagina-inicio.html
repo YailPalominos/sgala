@@ -101,13 +101,13 @@
           </b>
           }
 
-          @if(dispositivo.tipo=='G'){
+          <!-- @if(dispositivo.tipo=='G'){
           Almacenamiento:
           <b [style.color]="colorBateria(51)">
             {{ 51 ?? '-' }}%
           </b>
           {{ '103 U GB de 200 T GB 73 GB'}}
-          }
+          } -->
         </p>
       </div>
 
@@ -120,6 +120,18 @@
         <span matTooltip="Editar dispositivo">
           <button mat-icon-button color="primary" (click)="editarDispositivo(dispositivo)">
             <mat-icon>edit</mat-icon>
+          </button>
+        </span>
+
+        <span matTooltip="Conectar con el dispositivo via bluetooth">
+          <button mat-icon-button color="primary" (click)="conectar(dispositivo)">
+            <mat-icon>bluetooth</mat-icon>
+          </button>
+        </span>
+
+        <span matTooltip="Configurar el dispositivo">
+          <button mat-icon-button color="primary" (click)="editarDispositivo(dispositivo)">
+            <mat-icon>settings</mat-icon>
           </button>
         </span>
 

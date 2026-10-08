@@ -1,5 +1,6 @@
-<main class="pagina-admin">
-  <app-navegacion-administracion titulo="Usuarios"></app-navegacion-administracion>
+<main class="pagina">
+
+  <app-menu></app-menu>
 
   <form class="filtros-formulario" [formGroup]="formularioFiltros" (ngSubmit)="buscar()">
     <mat-accordion class="filtros-acordeon" multi>
@@ -49,11 +50,6 @@
     </mat-accordion>
   </form>
 
-  @if (cargando()) {
-    <div class="estado"><mat-spinner diameter="40"></mat-spinner><p>Cargando usuarios...</p></div>
-  } @else if (error()) {
-    <div class="estado error" role="alert"><mat-icon>error_outline</mat-icon><p>{{ error() }}</p></div>
-  } @else {
-    <app-tabla [datos]="usuarios()" [columnas]="columnas" [filtros]="filtros"></app-tabla>
-  }
+  <app-tabla [datos]="usuarios()" [columnas]="columnas" [filtros]="filtros"></app-tabla>
+
 </main>

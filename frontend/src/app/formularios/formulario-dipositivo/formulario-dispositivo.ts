@@ -5,14 +5,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { NgxMaskDirective } from 'ngx-mask';
 import { Notificador } from '../../recursos/notificador';
 import { ServicioDispositivo } from '../../servicios/servicio-dispositivo';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
 import { Formulario } from '../../recursos/dialogo.formulario';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
-import { DialogoConexion } from '../../dialogos/dilogo-conexion/dialogo-conexion';
-
 
 @Component({
   selector: 'formulario-dispositivo',
@@ -23,8 +20,7 @@ import { DialogoConexion } from '../../dialogos/dilogo-conexion/dialogo-conexion
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatIconModule,
-    NgxMaskDirective
+    MatIconModule
   ],
   templateUrl: './formulario-dispositivo.html',
   styles: [`
@@ -53,11 +49,7 @@ export class FormularioDispositivo extends Formulario {
       Validators.required,
       Validators.maxLength(25),
       Validators.pattern(/^[a-zA-Z0-9]+(?: [a-zA-Z0-9]+)*$/)
-    ]),
-    telefono: new FormControl('', [
-      Validators.required,
-      Validators.pattern(/^[0-9]{10}$/)
-    ]),
+    ])
   });
 
 
@@ -122,22 +114,4 @@ export class FormularioDispositivo extends Formulario {
       }
     });
   }
-
-
-  public async conectar(): Promise<void> {
-    this.dialogoServicio.abrir({
-      referencia: DialogoConexion,
-      titulo: 'Conexión',
-      icono: 'bluetooth_connected',
-      largo: 'l30%,m50%,c100%',
-      desactivarAutocerrado: true,
-      parametros: {
-        titulo: 'Crear dispositivo',
-        mensaje: '¿Está seguro de actualizar el dispositivo?'
-      },
-      datos: this.datos,
-      alFinalizar: this.finalizarConfirmacion.bind(this)
-    });
-  }
-
 }

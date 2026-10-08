@@ -17,6 +17,7 @@ import { FormularioDispositivo } from '../../formularios/formulario-dipositivo/f
 import { DialogoValidacion } from '../../dialogos/dilogo-validacion/dialogo-validacion';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
 import { DialogoAlarmas } from '../../dialogos/dialogo-alarmas/dialogo-alarmas';
+import { DialogoConexion } from '../../dialogos/dilogo-conexion/dialogo-conexion';
 
 @Component({
   selector: 'app-panel',
@@ -25,14 +26,14 @@ import { DialogoAlarmas } from '../../dialogos/dialogo-alarmas/dialogo-alarmas';
     CommonModule,
     MatToolbarModule,
     MatButtonModule,
-    MatIconModule,
     MatCardModule,
     MatProgressSpinnerModule,
     MatChipsModule,
     MatTooltipModule,
     MatFormFieldModule,
     MatInputModule,
-    MatMenuModule
+    MatMenuModule,
+    MatIconModule
   ],
   templateUrl: './pagina-inicio.html',
   styleUrl: './pagina-inicio.scss',
@@ -288,16 +289,16 @@ export class PaginaInicio implements OnInit {
     });
   }
 
-  public finalizarAgregarDispositivo(resultado?: string) {
-    if (resultado != undefined) {
+  public finalizarAgregarDispositivo(respuesta: any) {
+    if (respuesta.resultado != undefined) {
       this.dialogoServicio.abrir({
         referencia: FormularioDispositivo,
         titulo: 'Dispositivo',
         icono: 'view_carousel',
         largo: 'l35%,m55%,c100%',
         desactivarAutocerrado: true,
-        parametros: 'A',
-        datos: { clave: resultado }
+        parametros: 'C',
+        datos: { clave: respuesta.resultado }
       });
     }
   }
@@ -458,5 +459,27 @@ export class PaginaInicio implements OnInit {
 
     return '#F44336'; // Rojo
   }
+
+
+
+
+
+
+
+  public async conectar(dispositivo: any): Promise<void> {
+    this.dialogoServicio.abrir({
+      referencia: DialogoConexion,
+      titulo: 'Conexión',
+      icono: 'bluetooth_connected',
+      largo: 'l30%,m50%,c100%',
+      desactivarAutocerrado: true,
+      parametros: {
+        titulo: 'Crear dispositivo',
+        mensaje: '¿Está seguro de actualizar el dispositivo?'
+      },
+      datos: dispositivo
+    });
+  }
+
 
 }

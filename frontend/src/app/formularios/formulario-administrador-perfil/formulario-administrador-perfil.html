@@ -1,58 +1,85 @@
-<h2 class="titulo">Mi perfil de administrador</h2>
+<h2 class="titulo">
+  {{ parametros=='C'?'Crear ':"Actualizar" }}
+</h2>
 
 <mat-dialog-content>
   @if (error) {
-    <p class="error" role="alert">{{ error }}</p>
+  <p class="error" role="alert">{{ error }}</p>
   }
   @if (cargando()) {
-    <div class="cargando"><mat-spinner diameter="32"></mat-spinner></div>
+  <div class="cargando"><mat-spinner diameter="32"></mat-spinner></div>
   } @else {
-    <form id="formularioAdministradorPerfil" [formGroup]="formulario" (ngSubmit)="preparar()">
-      <mat-form-field appearance="outline" class="c100 m50 g50">
-        <mat-label>Nombres</mat-label>
-        <input matInput formControlName="nombres" maxlength="50" autocomplete="given-name" />
-        <mat-icon matPrefix>badge</mat-icon>
-        @if (formulario.controls.nombres.hasError('required')) {
-          <mat-error>Los nombres son obligatorios.</mat-error>
+  <form id="formularioAdministradorPerfil" [formGroup]="formulario" (ngSubmit)="preparar()">
+    <mat-form-field appearance="outline" class="c100 m50 g50">
+      <mat-label>Nombres</mat-label>
+      <input matInput formControlName="nombres" maxlength="50" autocomplete="given-name" />
+      <mat-icon matPrefix>badge</mat-icon>
+      @if (formulario.controls.nombres.hasError('required')) {
+      <mat-error>Los nombres son obligatorios.</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="c100 m50 g50">
+      <mat-label>Apellidos</mat-label>
+      <input matInput formControlName="apellidos" maxlength="50" autocomplete="family-name" />
+      <mat-icon matPrefix>badge</mat-icon>
+      @if (formulario.controls.apellidos.hasError('required')) {
+      <mat-error>Los apellidos son obligatorios.</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="c100 m50 g50">
+      <mat-label>Correo electrónico</mat-label>
+      <input matInput type="email" formControlName="direccionCorreoElectronico" maxlength="100" autocomplete="email" />
+      <mat-icon matPrefix>email</mat-icon>
+      @if (formulario.controls.direccionCorreoElectronico.hasError('email')) {
+      <mat-error>Ingresa un correo electrónico válido.</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="c100 m50 g50">
+      <mat-label>Alias</mat-label>
+      <input matInput formControlName="alias" maxlength="15" autocomplete="username" />
+      <mat-icon matPrefix>person</mat-icon>
+      @if (formulario.controls.alias.hasError('required')) {
+      <mat-error>El alias es obligatorio.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="c100 m50 g50">
+      <mat-label>Teléfono</mat-label>
+      <input matInput formControlName="telefono" autocomplete="off" mask="0000000000" />
+      <mat-icon matPrefix>phone</mat-icon>
+      @if (formulario.controls.telefono.hasError('pattern')) {
+      <mat-error>Ingresa un número de teléfono válido de 10 dígitos.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="c100 m100 g100">
+      <mat-label>Tema</mat-label>
+      <mat-icon matPrefix>palette</mat-icon>
+      <mat-select [value]="temaServicio.temaActivo()" (selectionChange)="cambiarTema($event.value)">
+        @for (tema of temas; track tema.clave) {
+        <mat-option [value]="tema.clave">{{ tema.nombre }}</mat-option>
         }
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="c100 m50 g50">
-        <mat-label>Apellidos</mat-label>
-        <input matInput formControlName="apellidos" maxlength="50" autocomplete="family-name" />
-        <mat-icon matPrefix>badge</mat-icon>
-        @if (formulario.controls.apellidos.hasError('required')) {
-          <mat-error>Los apellidos son obligatorios.</mat-error>
-        }
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="c100 m50 g50">
-        <mat-label>Correo electrónico</mat-label>
-        <input matInput type="email" formControlName="direccionCorreoElectronico" maxlength="100" autocomplete="email" />
-        <mat-icon matPrefix>email</mat-icon>
-        @if (formulario.controls.direccionCorreoElectronico.hasError('email')) {
-          <mat-error>Ingresa un correo electrónico válido.</mat-error>
-        }
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="c100 m50 g50">
-        <mat-label>Alias</mat-label>
-        <input matInput formControlName="alias" maxlength="15" autocomplete="username" />
-        <mat-icon matPrefix>person</mat-icon>
-        @if (formulario.controls.alias.hasError('required')) {
-          <mat-error>El alias es obligatorio.</mat-error>
-        }
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="c100 m100 g100">
-        <mat-label>Nueva contraseña (opcional)</mat-label>
-        <input matInput type="password" formControlName="contrasena" maxlength="255" autocomplete="new-password" />
-        <mat-icon matPrefix>lock</mat-icon>
-      </mat-form-field>
-    </form>
+      </mat-select>
+    </mat-form-field>
+  </form>
   }
 </mat-dialog-content>
 
 <mat-dialog-actions>
-  <button mat-flat-button color="primary" type="submit" form="formularioAdministradorPerfil"
-    [disabled]="cargando() || !puedeEnviar()">
-    <mat-icon>save</mat-icon>
-    Actualizar
-  </button>
+
+  <div class="c100 m50 g50">
+    <button mat-raised-button type="button" style="background-color:#0059b6; color:white" (click)="restablecer()"
+      matTooltip="Cambiar contraseña">
+      <mat-icon>lock_reset</mat-icon>
+      Restablecer
+    </button>
+  </div>
+
+  <div class="c100 m50 g50">
+    <button mat-flat-button color="primary" type="submit" form="formularioAdministradorPerfil"
+      [disabled]="cargando() || !puedeEnviar()">
+      <mat-icon>save</mat-icon>
+      Actualizar
+    </button>
+  </div>
 </mat-dialog-actions>

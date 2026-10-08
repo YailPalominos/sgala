@@ -1,8 +1,9 @@
-<h2 class="titulo">Crear pre-dispositivo</h2>
+<h2 class="titulo">
+  {{ parametros=='C'?'Crear ':"Actualizar" }}
+</h2>
 
 <mat-dialog-content>
   <form id="formPreDispositivo" [formGroup]="formulario" (ngSubmit)="preparar()">
-    <p>Selecciona el tipo e ingresa sus cualidades opcionales.</p>
 
     <mat-form-field appearance="outline" class="c100 m50 g50">
       <mat-label>Tipo</mat-label>
@@ -14,7 +15,7 @@
       </mat-select>
       <mat-icon matPrefix>devices</mat-icon>
       @if (formulario.controls.tipo.hasError('required')) {
-        <mat-error>Selecciona el tipo de pre-dispositivo.</mat-error>
+      <mat-error>Selecciona el tipo de pre-dispositivo.</mat-error>
       }
     </mat-form-field>
 
@@ -23,7 +24,7 @@
       <input matInput formControlName="cualidades" maxlength="100" placeholder="LOC,ALA,COC" />
       <mat-icon matPrefix>tune</mat-icon>
       @if (formulario.controls.cualidades.hasError('maxlength')) {
-        <mat-error>Las cualidades no pueden superar los 100 caracteres.</mat-error>
+      <mat-error>Las cualidades no pueden superar los 100 caracteres.</mat-error>
       }
     </mat-form-field>
   </form>

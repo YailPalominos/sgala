@@ -1,42 +1,11 @@
-import { prisma, ejecutarConSesion } from '../../recursos/prisma';
-import { obtenerSesion } from '@/interceptores/solicitud';
+import { ErrorHttp } from '@/interceptores/error.middleware';
+import { prisma } from '../../recursos/prisma';
 import { crearEvento } from '@/recursos/evento';
+import { Usuario } from '@prisma/client';
+import { obtenerPreUsuarioPorIdentificador } from '../redis/pre-usuarios.redis';
 
-export interface Usuario {
-  id: number;
-  clave: string;
-  alias: string;
-  direccionCorreoElectronico: string;
-  contrasena: string;
-  telefono: string;
-  estatus: boolean;
-}
-
-export interface DatosCrearUsuario {
-  alias: string;
-  direccionCorreoElectronico: string;
-  contrasena: string;
-  telefono: string;
-  idPreUsuario: number;
-}
-
-export interface DatosActualizarUsuario {
-  idUsuario: number;
-  alias: string;
-  direccionCorreoElectronico: string;
-  telefono: string
-}
-
-export interface UsuarioAdministrativo {
-  id: number;
-  alias: string;
-  direccionCorreoElectronico: string;
-  telefono: string | null;
-  estatus: boolean;
-}
-
-export async function obtenerListaAdministrativa(): Promise<UsuarioAdministrativo[]> {
-  return prisma.$queryRaw<UsuarioAdministrativo[]>`
+export async function obtenerListaAdministrativa(): Promise<any[]> {
+  return prisma.$queryRaw<any[][]>`
     DECLARE @consulta NVARCHAR(MAX);
     IF COL_LENGTH('dbo.usuarios', 'telefono') IS NOT NULL
       SET @consulta = N'
@@ -62,96 +31,31 @@ export async function obtenerListaAdministrativa(): Promise<UsuarioAdministrativ
   `;
 }
 
-export async function buscarPorClave(clave: string): Promise<any | null> {
-  const registros = await prisma.$queryRaw<any[]>`
-      SELECT
-        pu.id AS idPreUsuario,
-        u.alias,
-        u.direccion_correo_electronico AS direccionCorreoElectronico,
-        u.telefono
-      FROM pre_usuarios pu
-      LEFT JOIN usuarios u
-        ON u.id_pre_usuario = pu.id
-      WHERE pu.clave = TRY_CONVERT(uniqueidentifier, ${clave});
-    `;
-
-  if (registros.length === 0) {
-    throw new Error('La clave del pre usuario no existe.');
-  }
-
-  const registro = registros[0];
-
-  // La clave existe pero todavía no está vinculada
-  if (!registro.alias) {
-    return null;
-  }
-
-  // La clave ya tiene un usuario asociado
-  return {
-    telefono: registro.telefono,
-    alias: registro.alias,
-    direccionCorreoElectronico: registro.direccionCorreoElectronico
-  };
-}
-
-export async function obtenerIdPreUsuarioPorClave(clave: string): Promise<number> {
-  const registros = await prisma.$queryRaw<any[]>`
-      SELECT
-        pu.id AS idPreUsuario,
-        u.id AS idUsuario
-      FROM pre_usuarios pu
-      LEFT JOIN usuarios u
-        ON u.id_pre_usuario = pu.id
-      WHERE pu.clave = TRY_CONVERT(uniqueidentifier, ${clave});
-    `;
-
-  if (registros.length === 0) {
-    throw new Error('La clave del pre usuario no existe.');
-  }
-
-  const registro = registros[0];
-
-  if (registro.idUsuario) {
-    throw new Error('La clave del pre usuario ya está siendo utilizada.');
-  }
-
-  return registro.idPreUsuario;
-}
-
-export async function crearUsuario(
-  datos: DatosCrearUsuario
-): Promise<void> {
-
-  const sesion = obtenerSesion();
-
-  const usuario = await ejecutarConSesion(sesion?.idUsuario ?? 0, async (tx) => {
-    return tx.usuarios.create({
-      data: {
-        alias: datos.alias,
-        direccion_correo_electronico: datos.direccionCorreoElectronico,
-        contrasena: datos.contrasena,
-        id_pre_usuario: datos.idPreUsuario,
-        telefono: datos.telefono,
-        estatus: true
-      }
-    });
+export async function crearUsuario(datos: any): Promise<void> {
+  const usuario = await prisma.usuario.create({
+    data: {
+      clave: crypto.randomUUID(),
+      alias: datos.alias,
+      direccionCorreoElectronico: datos.direccionCorreoElectronico,
+      contrasena: datos.contrasena,
+      telefono: datos.telefono,
+      estatus: true
+    }
   });
-
-  crearEvento(
-    'Creó el registro de Usuario',
-    usuario
-  );
+  crearEvento('Creó el registro de Usuario', usuario);
 }
 
 export async function buscarPorIdentificador(identificador: string): Promise<Usuario> {
-  const registros = await prisma.$queryRaw<Usuario[]>`
-    SELECT * FROM usuarios
-    WHERE alias = ${identificador}
-       OR direccion_correo_electronico = ${identificador}
-       OR telefono = ${identificador}
-  `;
+  const usuario = await prisma.usuario.findFirst({
+    where: {
+      OR: [
+        { alias: identificador },
+        { direccionCorreoElectronico: identificador },
+        { telefono: identificador }
+      ]
+    }
+  });
 
-  const usuario = registros[0];
 
   if (!usuario) {
     throw new Error('Usuario no encontrado.');
@@ -164,52 +68,123 @@ export async function buscarPorIdentificador(identificador: string): Promise<Usu
   return usuario;
 }
 
+export async function obtenerUsuarioPorId(id: number): Promise<Usuario> {
+  const usuario = await prisma.usuario.findUnique({
+    where: { id }
+  });
+
+  if (!usuario) {
+    throw new Error('Usuario no encontrado.');
+  }
+
+  if (!usuario.estatus) {
+    throw new Error('Usuario inactivo, contacte al administrador.');
+  }
+
+  return usuario;
+}
+
 /**
  * Busca si ya existe un usuario con el alias, correo o teléfono indicado.
- *
- * @param identificador - Alias, correo electrónico o teléfono.
- * @returns El usuario encontrado o null si no existe.
  */
-export async function buscarExistentePorIdentificador(identificador: string): Promise<Usuario | null> {
-
-  const registros = await prisma.$queryRaw<Usuario[]>`
-      SELECT *
-      FROM usuarios
-      WHERE alias = ${identificador}
-         OR direccion_correo_electronico = ${identificador}
-         OR telefono = ${identificador}
-    `;
-
-  return registros[0] ?? null;
+export async function buscarExistentePorIdentificador(
+  identificador: string
+): Promise<Usuario | null> {
+  return prisma.usuario.findFirst({
+    where: {
+      OR: [
+        { alias: identificador },
+        { direccionCorreoElectronico: identificador },
+        { telefono: identificador }
+      ]
+    }
+  });
 }
 
 export async function actualizarContrasena(idUsuario: number, hashContrasena: string): Promise<void> {
-  await prisma.usuarios.update({
+  await prisma.usuario.update({
     where: { id: idUsuario },
     data: { contrasena: hashContrasena }
   });
 }
 
 export async function actualizarEstatus(idUsuario: number, estatus: boolean): Promise<void> {
-  await prisma.usuarios.update({
+  await prisma.usuario.update({
     where: { id: idUsuario },
     data: { estatus }
   });
 }
 
-export async function actualizar(datos: DatosActualizarUsuario): Promise<void> {
+/**
+ * Valida que el alias, correo y teléfono no estén registrados
+ */
+export async function validarNoDuplicadoActualizacion(
+  idUsuario: number,
+  alias: string,
+  direccionCorreoElectronico: string,
+  telefono: string
+): Promise<void> {
+  const comprobaciones: Array<[string, string]> = [
+    [alias, 'El alias ya está registrado. Intente con otro.'],
+    [direccionCorreoElectronico,'La dirección de correo electrónico ya está registrada.' ],
+    [telefono, 'El número de teléfono ya está registrado.']
+  ];
 
-  const sesion = obtenerSesion();
+  for (const [valor, mensaje] of comprobaciones) {
+    if (!valor) continue;
 
-  const usuario = await ejecutarConSesion(sesion?.idUsuario ?? 0, async (tx) => {
-    return tx.usuarios.update({
-      where: { id: datos.idUsuario },
-      data: {
-        alias: datos.alias,
-        direccion_correo_electronico: datos.direccionCorreoElectronico,
+    let enBaseDatos = await buscarExistentePorIdentificador(valor);
+
+    // Permite el registro si pertenece al mismo usuario.
+    if (enBaseDatos && enBaseDatos.id !== idUsuario) {
+      throw new ErrorHttp(409, mensaje);
+    } else {
+      enBaseDatos = null
+    }
+
+    const enRedis = await obtenerPreUsuarioPorIdentificador(valor);
+
+    if (enBaseDatos || enRedis) {
+      throw new ErrorHttp(409, mensaje);
+    }
+  }
+}
+
+
+export async function actualizar(datos: any): Promise<void> {
+  const usuarioActual = await prisma.usuario.findUnique({
+    where: {
+      clave: datos.clave
+    }
+  });
+
+  if (!usuarioActual) {
+    throw new ErrorHttp(404, 'El usuario no existe.');
+  }
+
+  await validarNoDuplicadoActualizacion(
+    usuarioActual.id,
+    datos.alias ?? usuarioActual.alias,
+    datos.direccionCorreoElectronico ??
+    usuarioActual.direccionCorreoElectronico,
+    datos.telefono ?? usuarioActual.telefono
+  );
+
+  const usuario = await prisma.usuario.update({
+    where: {
+      clave: datos.clave
+    },
+    data: {
+      ...(datos.alias !== undefined && {
+        alias: datos.alias
+      }),
+      ...(datos.direccionCorreoElectronico !== undefined && {
+        direccionCorreoElectronico: datos.direccionCorreoElectronico
+      }),
+      ...(datos.telefono !== undefined && {
         telefono: datos.telefono
-      }
-    });
+      })
+    }
   });
 
   crearEvento(

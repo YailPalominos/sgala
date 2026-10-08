@@ -20,7 +20,9 @@
             }
         </p>
 
-        <mat-form-field appearance="outline" class="c100 m50 g50">
+        <div class="c100 m25 g25"></div>
+
+        <mat-form-field appearance="outline" class="c100 m25 g25">
             <mat-label>Alias</mat-label>
             <input matInput formControlName="alias" type="tel" autocomplete="tel" />
             <mat-icon matPrefix>badge</mat-icon>
@@ -112,8 +114,8 @@
 
     @if (parametros == 'A') {
     <div class="c100 m50 g50">
-        <button mat-raised-button type="button" style="background-color:#0059b6; color:white"
-            (click)="restablecer()" matTooltip="Cambiar contraseña">
+        <button mat-raised-button type="button" style="background-color:#0059b6; color:white" (click)="restablecer()"
+            matTooltip="Cambiar contraseña">
             <mat-icon>lock_reset</mat-icon>
             Restablecer
         </button>

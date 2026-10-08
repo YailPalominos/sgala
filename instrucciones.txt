@@ -11,3 +11,10 @@ Para correr el proyecto
 
 
 https://192.168.1.5:4200/acceder?tipo=administrador
+https://10.1.33.98:4200/acceder?tipo=administrador
+
+
+https://10.1.33.98:4200/confirmar?codigoVerificacion=7f3a9c21-6d84-4b17-a2e5-91c8f0d4637b
+
+
+analistainnovacionti28lem@gmail.com

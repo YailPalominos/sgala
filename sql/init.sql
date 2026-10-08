@@ -18,6 +18,7 @@ CREATE TABLE usuarios (
   alias VARCHAR(50) UNIQUE NOT NULL,
   direccion_correo_electronico VARCHAR(100) UNIQUE NOT NULL,
   contrasena VARCHAR(255) NOT NULL,
+  telefono VARCHAR(20) NOT NULL,
   estatus BIT NOT NULL DEFAULT 1
 );
 GO
@@ -31,6 +32,7 @@ BEGIN
     apellidos VARCHAR(50) NOT NULL,
     direccion_correo_electronico VARCHAR(100) NOT NULL,
     contrasena VARCHAR(255) NOT NULL,
+    telefono VARCHAR(20) NOT NULL,
     estatus BIT NOT NULL,
     alias VARCHAR(15) NOT NULL,
     permisos VARCHAR(500) NULL,
@@ -57,8 +59,7 @@ CREATE TABLE dispositivos (
   id INT IDENTITY(1,1) PRIMARY KEY,
   id_usuario INT NOT NULL REFERENCES usuarios(id),
   id_pre_dispositivo INT UNIQUE NOT NULL REFERENCES pre_dispositivos(id),
-  alias VARCHAR(100) NULL,
-  telefono VARCHAR(20) NULL
+  alias VARCHAR(100) NULL
 );
 GO
 
@@ -79,51 +80,42 @@ CREATE INDEX ix_localizaciones_dispositivo
   ON localizaciones(id_dispositivo);
 GO
 
--- Tabla de auditoría de registros (INSERT) — alimentada por triggers
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'registros') AND type = 'U')
-CREATE TABLE registros (
-  id INT IDENTITY(1,1) PRIMARY KEY,
-  tabla VARCHAR(100) NOT NULL,
-  fecha DATETIME NOT NULL DEFAULT GETDATE(),
-  id_registro INT NOT NULL,
-  datos NVARCHAR(MAX) NOT NULL,  -- JSON
-  CONSTRAINT ck_registros_datos_json CHECK (ISJSON(datos) = 1)
-);
-GO
-
-CREATE INDEX ix_registros_tabla ON registros(tabla);
-CREATE INDEX ix_registros_fecha ON registros(fecha);
-CREATE INDEX ix_registros_id_registro ON registros(id_registro);
-GO
-
--- Tabla de auditoría de actualizaciones (UPDATE) — alimentada por triggers
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'actualizaciones') AND type = 'U')
-CREATE TABLE actualizaciones (
-  id INT IDENTITY(1,1) PRIMARY KEY,
-  tabla VARCHAR(100) NOT NULL,
-  fecha DATETIME NOT NULL DEFAULT GETDATE(),
-  id_registro INT NOT NULL,
-  datos NVARCHAR(MAX) NOT NULL,  -- JSON
-  CONSTRAINT ck_actualizaciones_datos_json CHECK (ISJSON(datos) = 1)
-);
-GO
-
-CREATE INDEX ix_actualizaciones_tabla ON actualizaciones(tabla);
-CREATE INDEX ix_actualizaciones_fecha ON actualizaciones(fecha);
-CREATE INDEX ix_actualizaciones_id_registro ON actualizaciones(id_registro);
-GO
-
 -- Tabla de eventos del sistema (acciones de usuarios desde el backend)
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'eventos') AND type = 'U')
 CREATE TABLE eventos (
   id INT IDENTITY(1,1) PRIMARY KEY,
   fecha DATETIME NOT NULL DEFAULT GETDATE(),
-  accion VARCHAR(500) NOT NULL,
+  descripcion VARCHAR(500) NOT NULL,
   id_usuario INT NULL REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 GO
 
 CREATE INDEX ix_eventos_id_usuario ON eventos(id_usuario);
+GO
+
+-- Tabla única de auditoría (historial de registros)
+-- Reemplaza a las antiguas tablas "registros" y "actualizaciones".
+-- tipo: 'C' = creación (INSERT), 'A' = actualización (UPDATE)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'historial_registros') AND type = 'U')
+CREATE TABLE historial_registros (
+  id INT IDENTITY(1,1) PRIMARY KEY,
+  tabla VARCHAR(100) NOT NULL,
+  fecha DATETIME NOT NULL DEFAULT GETDATE(),
+  id_registro INT NOT NULL,
+  datos NVARCHAR(MAX) NOT NULL,  -- JSON
+  tipo CHAR(1) NOT NULL,
+  id_evento INT NOT NULL,
+  CONSTRAINT ck_historial_registros_datos_json CHECK (ISJSON(datos) = 1),
+  CONSTRAINT ck_historial_registros_tipo CHECK (tipo IN ('A', 'C')),
+  CONSTRAINT fk_historial_registros_evento
+    FOREIGN KEY (id_evento) REFERENCES eventos(id)
+);
+GO
+
+CREATE INDEX ix_historial_registros_tabla ON historial_registros(tabla);
+CREATE INDEX ix_historial_registros_fecha ON historial_registros(fecha);
+CREATE INDEX ix_historial_registros_id_registro ON historial_registros(id_registro);
+CREATE INDEX ix_historial_registros_id_evento ON historial_registros(id_evento);
 GO
 
 -- Historial de acciones realizadas por administradores
@@ -163,12 +155,63 @@ BEGIN
 END
 GO
 
+-- Tabla de solicitudes de ayuda/contacto
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'solicitudes') AND type = 'U')
+CREATE TABLE solicitudes (
+  id INT IDENTITY(1,1) PRIMARY KEY,
+  descripcion VARCHAR(1000) NOT NULL,
+  medio_contacto VARCHAR(50) NULL,
+  estatus BIT NOT NULL DEFAULT 1
+);
+GO
+
 
 /*==========================================================
-  TRIGGERS DE AUDITORÍA
-  - INSERT  -> registros
-  - UPDATE  -> actualizaciones
+  AUDITORÍA UNIFICADA (historial_registros)
+
+  Cada cambio en una tabla auditada inserta una fila en
+  historial_registros, enlazada al evento que lo originó
+  (id_evento) mediante el session_context.
+
+  El backend crea el evento y fija el contexto de sesión:
+    - 'idEvento'  : id del evento recién creado (preferente)
+    - 'idUsuario' : id del usuario (usado como respaldo para
+                    resolver el último evento del usuario)
+
+  tipo = 'C' en INSERT, 'A' en UPDATE.
 ==========================================================*/
+
+------------------------------------------------------------
+-- Función auxiliar: resuelve el id_evento actual.
+-- Prioridad:
+--   1) session_context 'idEvento'
+--   2) último evento del usuario en session_context 'idUsuario'
+--   3) NULL si no se puede determinar
+------------------------------------------------------------
+CREATE OR ALTER FUNCTION dbo.fn_evento_actual()
+RETURNS INT
+AS
+BEGIN
+    DECLARE @idEvento INT =
+        TRY_CONVERT(INT, CONVERT(SYSNAME, SESSION_CONTEXT(N'idEvento')));
+
+    IF @idEvento IS NOT NULL
+        RETURN @idEvento;
+
+    DECLARE @idUsuario INT =
+        TRY_CONVERT(INT, CONVERT(SYSNAME, SESSION_CONTEXT(N'idUsuario')));
+
+    IF @idUsuario IS NOT NULL
+    BEGIN
+        SELECT TOP 1 @idEvento = e.id
+        FROM eventos e
+        WHERE e.id_usuario = @idUsuario
+        ORDER BY e.id DESC;
+    END
+
+    RETURN @idEvento;
+END;
+GO
 
 ------------------------------------------------------------
 -- USUARIOS
@@ -180,11 +223,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO registros (tabla, id_registro, datos)
+    DECLARE @idEvento INT = dbo.fn_evento_actual();
+    IF @idEvento IS NULL RETURN;
+
+    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
     SELECT
         'usuarios',
         i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
+        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+        'C',
+        @idEvento
     FROM inserted i;
 END;
 GO
@@ -196,11 +244,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO actualizaciones (tabla, id_registro, datos)
+    DECLARE @idEvento INT = dbo.fn_evento_actual();
+    IF @idEvento IS NULL RETURN;
+
+    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
     SELECT
         'usuarios',
         i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
+        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+        'A',
+        @idEvento
     FROM inserted i;
 END;
 GO
@@ -215,11 +268,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO registros (tabla, id_registro, datos)
+    DECLARE @idEvento INT = dbo.fn_evento_actual();
+    IF @idEvento IS NULL RETURN;
+
+    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
     SELECT
         'pre_dispositivos',
         i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
+        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+        'C',
+        @idEvento
     FROM inserted i;
 END;
 GO
@@ -231,11 +289,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO actualizaciones (tabla, id_registro, datos)
+    DECLARE @idEvento INT = dbo.fn_evento_actual();
+    IF @idEvento IS NULL RETURN;
+
+    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
     SELECT
         'pre_dispositivos',
         i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
+        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+        'A',
+        @idEvento
     FROM inserted i;
 END;
 GO
@@ -250,11 +313,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO registros (tabla, id_registro, datos)
+    DECLARE @idEvento INT = dbo.fn_evento_actual();
+    IF @idEvento IS NULL RETURN;
+
+    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
     SELECT
         'dispositivos',
         i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
+        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+        'C',
+        @idEvento
     FROM inserted i;
 END;
 GO
@@ -266,11 +334,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO actualizaciones (tabla, id_registro, datos)
+    DECLARE @idEvento INT = dbo.fn_evento_actual();
+    IF @idEvento IS NULL RETURN;
+
+    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
     SELECT
         'dispositivos',
         i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
+        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+        'A',
+        @idEvento
     FROM inserted i;
 END;
 GO
@@ -285,11 +358,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO registros (tabla, id_registro, datos)
+    DECLARE @idEvento INT = dbo.fn_evento_actual();
+    IF @idEvento IS NULL RETURN;
+
+    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
     SELECT
         'localizaciones',
         i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
+        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+        'C',
+        @idEvento
     FROM inserted i;
 END;
 GO
@@ -301,11 +379,16 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO actualizaciones (tabla, id_registro, datos)
+    DECLARE @idEvento INT = dbo.fn_evento_actual();
+    IF @idEvento IS NULL RETURN;
+
+    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
     SELECT
         'localizaciones',
         i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)
+        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
+        'A',
+        @idEvento
     FROM inserted i;
 END;
 GO
@@ -313,9 +396,9 @@ GO
 
 /*==========================================================
   USUARIO DE APLICACIÓN (backend)
-  
+
   sgala_app — puede operar sobre tablas normales pero NO puede
-  modificar las tablas de auditoría (registros, actualizaciones, eventos).
+  modificar la tabla de auditoría (historial_registros).
   Los triggers se ejecutan con los permisos del dueño de la tabla (sa),
   por lo que siguen funcionando aunque sgala_app no tenga permiso directo.
 ==========================================================*/
@@ -343,31 +426,21 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON pre_dispositivos TO sgala_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON dispositivos TO sgala_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON localizaciones TO sgala_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON solicitudes TO sgala_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON pre_usuarios TO sgala_app;
 
-
--- Tablas de auditoría — solo lectura (INSERT lo hacen los triggers con permisos del owner)
-GRANT SELECT ON registros TO sgala_app;
-GRANT SELECT ON actualizaciones TO sgala_app;
-GRANT SELECT, INSERT ON eventos TO sgala_app;  -- el backend inserta eventos directamente
+-- Tabla de auditoría — solo lectura (el INSERT lo hacen los triggers con permisos del owner)
+GRANT SELECT ON historial_registros TO sgala_app;
+GRANT SELECT, INSERT ON eventos TO sgala_app;        -- el backend inserta eventos directamente
 GRANT SELECT, INSERT ON suscripciones TO sgala_app;  -- el backend inserta suscripciones directamente
 
--- Denegar explícitamente modificación de auditoría
-DENY INSERT, UPDATE, DELETE ON registros TO sgala_app;
-DENY INSERT, UPDATE, DELETE ON actualizaciones TO sgala_app;
+-- Denegar explícitamente modificación de la auditoría
+DENY INSERT, UPDATE, DELETE ON historial_registros TO sgala_app;
 DENY UPDATE, DELETE ON eventos TO sgala_app;
 GO
 
+-- Nota: sys.sp_set_session_context es ejecutable por public de forma
+-- predeterminada, por lo que sgala_app ya puede fijar el contexto de
+-- sesión que usan los triggers de auditoría sin necesidad de un GRANT.
 
--- Tabla de solicitudes de ayuda/contacto
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'solicitudes') AND type = 'U')
-CREATE TABLE solicitudes (
-  id INT IDENTITY(1,1) PRIMARY KEY,
-  descripcion VARCHAR(1000) NOT NULL,
-  medio_contacto VARCHAR(50) NULL,
-  estatus BIT NOT NULL DEFAULT 1
-);
-GO
 
 -- Administrador principal inicial
 IF NOT EXISTS (
@@ -381,6 +454,7 @@ BEGIN
     apellidos,
     direccion_correo_electronico,
     contrasena,
+    telefono,
     estatus,
     alias,
     permisos
@@ -390,9 +464,37 @@ BEGIN
     'Palominos Patiño',
     'yail.palominos@gmail.com',
     '12345',
+    '5634954072',
     1,
-    'yail.palominos',
+    'Yail',
     NULL
+  );
+END
+GO
+
+-- Usuario (cliente) inicial de prueba, basado en el administrador.
+-- La contraseña se guarda en texto plano ('12345') y el backend la
+-- migra a su versión cifrada en el primer inicio de sesión.
+IF NOT EXISTS (
+  SELECT 1
+  FROM dbo.usuarios
+  WHERE direccion_correo_electronico = 'yail.palominos@gmail.com'
+     OR alias = 'Yail'
+)
+BEGIN
+  INSERT INTO dbo.usuarios (
+    alias,
+    direccion_correo_electronico,
+    contrasena,
+    telefono,
+    estatus
+  )
+  VALUES (
+    'Yail',
+    'yail.palominos@gmail.com',
+    '12345',
+    '5634954072',
+    1
   );
 END
 GO

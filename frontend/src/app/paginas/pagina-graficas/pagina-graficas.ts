@@ -3,7 +3,6 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { NavegacionAdministracion } from '../../componentes/navegacion-administracion/navegacion-administracion';
 import { ServicioAdministrador } from '../../servicios/servicio-administrador';
 
 interface DispositivoGrafica {
@@ -34,7 +33,7 @@ interface DatoResumen {
 @Component({
   selector: 'app-pagina-graficas',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatProgressSpinnerModule, NavegacionAdministracion],
+  imports: [CommonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './pagina-graficas.html',
   styleUrl: './pagina-graficas.scss'
 })

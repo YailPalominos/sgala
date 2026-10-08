@@ -10,10 +10,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { ServicioAdministrador } from '../../servicios/servicio-administrador';
-import { NavegacionAdministracion } from '../../componentes/navegacion-administracion/navegacion-administracion';
-import { Columna, Filtros, TablaComponent } from '../../componentes/tabla/tabla.component';
+import { Notificador } from '../../recursos/notificador';
+import { Columna, TablaComponent } from '../../componentes/tabla/tabla.component';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
 import { FormularioPreDispositivo } from '../../formularios/formulario-pre-dispositivo/formulario-pre-dispositivo';
+import { Dispositivo } from '../../interfaces/dispositivo';
+import { Cargador } from '../../recursos/cargador';
 
 interface DispositivoAdministrativo {
   id: number;
@@ -48,108 +50,117 @@ interface DispositivoAdministrativo {
     MatTooltipModule,
     MatExpansionModule,
     ReactiveFormsModule,
-    NavegacionAdministracion,
-    TablaComponent
+    TablaComponent,
   ],
   templateUrl: './pagina-dispositivos.html',
   styleUrl: './pagina-dispositivos.scss'
 })
 export class PaginaDispositivos implements OnInit {
+
   private readonly administradorServicio = inject(ServicioAdministrador);
   private readonly dialogoServicio = inject(DialogoServicio);
+  private readonly notificador = inject(Notificador);
+  private readonly cargador = inject(Cargador)
 
   readonly dispositivos = signal<DispositivoAdministrativo[]>([]);
-  readonly cargando = signal(true);
-  readonly error = signal<string | null>(null);
   readonly filtrosExpandido = signal(false);
-  readonly filtros = signal<Filtros>({
-    etiqueta: '',
-    marcador: '',
-    texto: '',
-    mostrarBusqueda: false,
-    criterios: {}
-  });
-  readonly formularioFiltros = new FormGroup({
+
+  readonly filtros = new FormGroup({
     clave: new FormControl(''),
     tipoTexto: new FormControl(''),
     usuarioTexto: new FormControl(''),
     asignacionTexto: new FormControl(''),
     estatusTexto: new FormControl('')
-  });
+  })
+
   readonly columnas: Columna[] = [
     { clave: 'clave', titulo: 'Clave', formato: 'texto' },
     { clave: 'tipoTexto', titulo: 'Tipo', formato: 'texto' },
-    { clave: 'cualidades', titulo: 'Cualidades', formato: 'texto' },
-    { clave: 'estatusTexto', titulo: 'Estado', formato: 'texto' },
+    { clave: 'estatusTexto', titulo: 'Estatus', formato: 'texto' },
     { clave: 'asignacionTexto', titulo: 'Asignación', formato: 'texto' },
-    { clave: 'aliasDispositivo', titulo: 'Alias del dispositivo', formato: 'texto' },
-    { clave: 'telefono', titulo: 'Teléfono', formato: 'texto' },
     { clave: 'usuarioTexto', titulo: 'Usuario', formato: 'texto' },
-    { clave: 'fechaFinalSuscripcion', titulo: 'Fin de suscripción', formato: 'fecha' }
+    {
+      clave: 'acciones',
+      titulo: '',
+      formato: 'botones',
+      botones: [
+        {
+          icono: 'edit',
+          tooltip: () => 'Editar pre-dispositivo',
+          accion: (fila) => this.abrirFormulario(fila as Dispositivo)
+        },
+        {
+          icono: 'download',
+          tooltip: () => 'Descargar certificados',
+          accion: (fila) => this.descargarCertificados(fila as DispositivoAdministrativo)
+        }
+      ]
+    }
   ];
 
   ngOnInit(): void {
-    this.cargarDispositivos();
+    this.cargar();
   }
 
-  abrirCrear(): void {
-    this.dialogoServicio.abrir({
-      referencia: FormularioPreDispositivo,
-      titulo: 'Crear pre-dispositivo',
-      icono: 'devices',
-      largo: 'l35%,m55%,c100%',
-      desactivarAutocerrado: true,
-      alFinalizar: this.alCrearPreDispositivo.bind(this)
-    });
-  }
-
-  alCrearPreDispositivo(respuesta: any): void {
-    if (respuesta?.resultado === true) this.cargarDispositivos();
-  }
-
-  buscar(): void {
-    const criterios = Object.fromEntries(
-      Object.entries(this.formularioFiltros.getRawValue())
-        .filter(([, valor]) => Boolean(valor?.trim()))
-        .map(([clave, valor]) => [clave, valor!.trim()])
-    );
-    this.filtros.update((actual) => ({ ...actual, texto: '', criterios }));
-  }
-
-  reiniciarFiltros(): void {
-    this.formularioFiltros.reset({
-      clave: '',
-      tipoTexto: '',
-      usuarioTexto: '',
-      asignacionTexto: '',
-      estatusTexto: ''
-    });
-    this.filtros.update((actual) => ({ ...actual, texto: '', criterios: {} }));
-  }
-
-  intercalarFiltros(): void {
-    this.filtrosExpandido.update((expandido) => !expandido);
-  }
-
-  cargarDispositivos(): void {
-    this.cargando.set(true);
-    this.error.set(null);
+  private cargar(): void {
+    this.cargador.mostrar()
     this.administradorServicio.obtenerListaDispositivos().subscribe({
       next: (respuesta) => {
         this.dispositivos.set(respuesta.datos.map((dispositivo) => ({
           ...dispositivo,
           estatusTexto: dispositivo.estatus ? 'Activo' : 'Inactivo',
           asignacionTexto: dispositivo.idDispositivo ? 'Asignado' : 'Disponible',
-          usuarioTexto: dispositivo.idUsuario
-            ? `${dispositivo.aliasUsuario ?? ''} ${dispositivo.correoUsuario ?? ''}`.trim()
-            : '—'
+          usuarioTexto: dispositivo.aliasUsuario
         })));
-        this.cargando.set(false);
-      },
-      error: () => {
-        this.error.set('No fue posible cargar los pre-dispositivos. Intenta nuevamente.');
-        this.cargando.set(false);
       }
     });
   }
+
+  public abrirFormulario(dispositivo?: Dispositivo): void {
+    this.dialogoServicio.abrir({
+      referencia: FormularioPreDispositivo,
+      titulo: 'Pre dispositivo',
+      icono: 'devices',
+      largo: 'l35%,m55%,c100%',
+      desactivarAutocerrado: true,
+      parametros: dispositivo ? 'A' : 'C',
+      datos: dispositivo,
+      alFinalizar: this.alFinalizarAbrirFormulario.bind(this)
+    });
+  }
+
+  public alFinalizarAbrirFormulario(respuesta: any): void {
+    if (respuesta?.resultado === true) this.cargar();
+  }
+
+  public descargarCertificados(dispositivo: DispositivoAdministrativo): void {
+    this.administradorServicio.descargarCertificados(dispositivo.clave).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = `certificados-${dispositivo.clave}.zip`;
+        enlace.click();
+        URL.revokeObjectURL(url);
+        this.notificador.exitoso('Certificados descargados.');
+      },
+      error: () => {
+        this.notificador.error('No fue posible descargar los certificados.');
+      }
+    });
+  }
+
+  public reiniciarFiltros(): void {
+    this.filtros.reset()
+    this.buscar()
+  }
+
+  public buscar(): void {
+    this.cargar()
+  }
+
+  public intercalarFiltros(): void {
+    this.filtrosExpandido.update((expandido) => !expandido);
+  }
+
 }

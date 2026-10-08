@@ -11,7 +11,6 @@ export interface EstadoDispositivoRedis {
     idUsuario: number;
     alias: string;
     cualidades: string;
-    telefono: string;
     estatusConexion: boolean | null;
     localizacion: {
         latitud: number;
@@ -577,7 +576,6 @@ export async function actualizarDatosDispositivo(
 
         const campos = [
             'alias',
-            'telefono',
             'estatusAlarma',
             'estatusCortaCorriente',
             'fechaFinalSuscripcion',

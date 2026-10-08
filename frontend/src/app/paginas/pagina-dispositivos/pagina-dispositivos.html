@@ -1,17 +1,16 @@
-<main class="pagina-dispositivos">
-  <app-navegacion-administracion
-    titulo="Dispositivos">
-  </app-navegacion-administracion>
+<!-- <main class="pagina"> -->
 
-  <form class="filtros-formulario" [formGroup]="formularioFiltros" (ngSubmit)="buscar()">
+  <form class="filtros-formulario" [formGroup]="filtros" (ngSubmit)="buscar()">
     <mat-accordion class="filtros-acordeon" multi>
       <mat-expansion-panel class="panel-filtros-fijos" expanded disabled hideToggle>
         <div class="campos-filtros-principales">
-          <mat-form-field appearance="outline" class="c100 m50 g50">
+
+          <mat-form-field appearance="outline" class="c100 m50 g30">
             <mat-label>Clave</mat-label>
             <input matInput formControlName="clave" />
           </mat-form-field>
-          <mat-form-field appearance="outline" class="c100 m50 g50">
+
+          <mat-form-field appearance="outline" class="c100 m50 g30">
             <mat-label>Tipo</mat-label>
             <mat-select formControlName="tipoTexto">
               <mat-option value="">Todos</mat-option>
@@ -21,38 +20,43 @@
               <mat-option value="Dispositivo">Dispositivo</mat-option>
             </mat-select>
           </mat-form-field>
-          <div class="acciones-filtros" aria-label="Acciones de filtros">
-            <button mat-mini-fab class="fab-tema" type="button" aria-label="Reiniciar filtros"
-              matTooltip="Reiniciar filtros" (click)="reiniciarFiltros()">
-              <mat-icon>restart_alt</mat-icon>
-            </button>
-            <button mat-mini-fab class="fab-tema" type="submit" aria-label="Buscar" matTooltip="Buscar">
-              <mat-icon>search</mat-icon>
-            </button>
+
+          <mat-form-field appearance="outline" class="c100 m50 g20">
+            <mat-label>Estado</mat-label>
+            <mat-select formControlName="estatusTexto">
+              <mat-option value="">Todos</mat-option>
+              <mat-option value="Activo">Activo</mat-option>
+              <mat-option value="Inactivo">Inactivo</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="acciones-filtros c100 m100 g20" aria-label="Acciones de filtros">
             <button mat-mini-fab class="fab-tema" type="button" aria-label="Crear pre-dispositivo"
-              matTooltip="Crear pre-dispositivo" (click)="abrirCrear()">
+              matTooltip="Crear pre-dispositivo" (click)="abrirFormulario()">
               <mat-icon>add</mat-icon>
             </button>
             <button mat-mini-fab class="fab-tema" type="button"
               [attr.aria-label]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
-              [matTooltip]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
-              (click)="intercalarFiltros()">
-              <mat-icon>filter_list</mat-icon>
+              [matTooltip]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'" (click)="intercalarFiltros()">
+              <mat-icon>{{filtrosExpandido()?'keyboard_arrow_up':'keyboard_arrow_down'}}</mat-icon>
+            </button>
+            <button mat-mini-fab class="fab-tema" type="button" aria-label="Reiniciar filtros"
+              matTooltip="Reiniciar filtros" (click)="reiniciarFiltros()">
+              <mat-icon>restart_alt</mat-icon>
+            </button>
+
+            <button mat-mini-fab class="fab-tema" type="submit" aria-label="Buscar" matTooltip="Buscar"
+              (click)="buscar()">
+              <mat-icon>search</mat-icon>
             </button>
           </div>
         </div>
       </mat-expansion-panel>
 
-      <mat-expansion-panel
-        class="panel-filtros-variables"
-        [expanded]="filtrosExpandido()"
-        (opened)="filtrosExpandido.set(true)"
-        (closed)="filtrosExpandido.set(false)"
-        hideToggle>
-        <mat-expansion-panel-header
-          class="encabezado-filtros-oculto"
-          (click)="$event.preventDefault(); $event.stopPropagation()"
-          aria-hidden="true">
+      <mat-expansion-panel class="panel-filtros-variables" [expanded]="filtrosExpandido()"
+        (opened)="filtrosExpandido.set(true)" (closed)="filtrosExpandido.set(false)" hideToggle>
+        <mat-expansion-panel-header class="encabezado-filtros-oculto"
+          (click)="$event.preventDefault(); $event.stopPropagation()" aria-hidden="true">
           <mat-panel-title></mat-panel-title>
         </mat-expansion-panel-header>
         <div class="campos-filtros-adicionales">
@@ -68,35 +72,12 @@
               <mat-option value="Asignado">Asignado</mat-option>
             </mat-select>
           </mat-form-field>
-          <mat-form-field appearance="outline" class="c100 m50 g50">
-            <mat-label>Estado</mat-label>
-            <mat-select formControlName="estatusTexto">
-              <mat-option value="">Todos</mat-option>
-              <mat-option value="Activo">Activo</mat-option>
-              <mat-option value="Inactivo">Inactivo</mat-option>
-            </mat-select>
-          </mat-form-field>
         </div>
       </mat-expansion-panel>
     </mat-accordion>
   </form>
 
-  @if (cargando()) {
-    <div class="estado">
-      <mat-spinner diameter="40"></mat-spinner>
-      <p>Cargando pre-dispositivos...</p>
-    </div>
-  } @else if (error()) {
-    <div class="estado estado-error" role="alert">
-      <mat-icon>error_outline</mat-icon>
-      <p>{{ error() }}</p>
-      <button mat-button type="button" (click)="cargarDispositivos()">Reintentar</button>
-    </div>
-  } @else {
-    <app-tabla
-      [datos]="dispositivos()"
-      [columnas]="columnas"
-      [filtros]="filtros">
-    </app-tabla>
-  }
-</main>
+  <app-tabla [datos]="dispositivos()" [columnas]="columnas">
+  </app-tabla>
+
+<!-- </main> -->

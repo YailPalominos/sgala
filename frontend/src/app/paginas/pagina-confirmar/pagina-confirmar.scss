@@ -1,0 +1,58 @@
+.contenedor {
+  width: 100%;
+  height: 100%;
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+mat-card {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+mat-card-header {
+  justify-content: center;
+}
+
+mat-card-title {
+  text-align: center;
+}
+
+mat-card-content {
+  padding: 20px;
+}
+
+.formulario-codigo {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.codigo {
+  width: 100%;
+}
+
+.btn-verificar {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.informacion-usuario {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.btn-volver {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.mensaje-error {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 14px;
+}

@@ -1,6 +1,7 @@
-import { Component, inject, Type, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { RUTAS_NAVEGACION_ADMINISTRADOR, RutaNavegacion } from './recursos/constantes';
 import { CargadorComponent } from './componentes/cargador/cargador.component';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,6 +23,7 @@ import { PanelLocalizaciones } from './paneles/panel-localizaciones/panel-locali
 import { MatBadgeModule } from '@angular/material/badge';
 import { PanelEventos } from './paneles/panel-eventos/panel-eventos.componente';
 import { FormularioAdministradorPerfil } from './formularios/formulario-administrador-perfil/formulario-administrador-perfil';
+import { MatSidenavModule } from '@angular/material/sidenav';
 
 export interface Notificacion {
   clave: string,
@@ -34,7 +36,19 @@ export interface Notificacion {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, CargadorComponent, MatToolbarModule, MatButtonModule, MatIconModule, MatTooltipModule, MatChipsModule, MatMenuModule, MatBadgeModule],
+  imports:
+    [
+      RouterOutlet,
+      CargadorComponent,
+      MatToolbarModule,
+      MatButtonModule,
+      MatIconModule,
+      MatTooltipModule,
+      MatChipsModule,
+      MatMenuModule,
+      MatBadgeModule,
+      MatSidenavModule
+    ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
@@ -48,6 +62,9 @@ export class AppComponent {
   public autenticado = false;
   public dialogoServicio = inject(DialogoServicio)
   public sesion!: Sesion
+
+  /** Rutas de navegación mostradas en el toolbar (solo administrador). */
+  public rutasNavegacion: RutaNavegacion[] = RUTAS_NAVEGACION_ADMINISTRADOR;
 
   public cargador = inject(Cargador)
   public notificador = inject(Notificador)
@@ -190,7 +207,7 @@ export class AppComponent {
     if (this.sesion.tipoCuenta === 'administrador') {
       this.dialogoServicio.abrir({
         referencia: FormularioAdministradorPerfil,
-        titulo: 'Mi perfil de administrador',
+        titulo: 'Administrador',
         icono: 'admin_panel_settings',
         largo: 'l35%,m55%,c100%',
         desactivarAutocerrado: true,
@@ -206,7 +223,10 @@ export class AppComponent {
       largo: 'l35%,m55%,c100%',
       desactivarAutocerrado: true,
       parametros: 'A',
-      datos: this.sesion,
+      datos: {
+        ...this.sesion,
+        clave: this.sesion.claveUsuario
+      },
       alFinalizar: this.finalizarActualizarUsuario.bind(this)
     });
   }
@@ -243,7 +263,6 @@ export class AppComponent {
       },
     });
   }
-
 
   public verSuscripciones(): void {
     this.dialogoServicio.abrir({
@@ -308,4 +327,7 @@ export class AppComponent {
   }
 
   //#endregion
+
+
+
 }

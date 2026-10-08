@@ -20,28 +20,14 @@ export interface EventoAdministrativo {
 
 export async function obtenerListaAdministrativa(): Promise<EventoAdministrativo[]> {
     return prisma.$queryRaw<EventoAdministrativo[]>`
-        DECLARE @consulta NVARCHAR(MAX);
-        IF COL_LENGTH('dbo.eventos', 'descripcion') IS NOT NULL
-            SET @consulta = N'
-                SELECT
-                    e.id,
-                    e.descripcion,
-                    e.fecha,
-                    u.alias AS aliasUsuario
-                FROM dbo.eventos e
-                LEFT JOIN dbo.usuarios u ON u.id = e.id_usuario
-                ORDER BY e.fecha DESC, e.id DESC;';
-        ELSE
-            SET @consulta = N'
-                SELECT
-                    e.id,
-                    e.accion AS descripcion,
-                    e.fecha,
-                    u.alias AS aliasUsuario
-                FROM dbo.eventos e
-                LEFT JOIN dbo.usuarios u ON u.id = e.id_usuario
-                ORDER BY e.fecha DESC, e.id DESC;';
-        EXEC sys.sp_executesql @consulta;
+        SELECT
+            e.id,
+            e.descripcion,
+            e.fecha,
+            u.alias AS aliasUsuario
+        FROM dbo.eventos e
+        LEFT JOIN dbo.usuarios u ON u.id = e.id_usuario
+        ORDER BY e.fecha DESC, e.id DESC;
     `;
 }
 
@@ -110,19 +96,21 @@ export async function obtenerLista(
     const where = Prisma.join(condiciones, ' AND ');
 
     const registros = await prisma.$queryRaw<Evento[]>`
-        SELECT
+      SELECT
+        CAST(
             ROW_NUMBER() OVER (
                 ORDER BY e.fecha DESC, e.id
-            ) AS id,
-            e.descripcion,
-            e.fecha,
-            h.id AS id_elemento,
-            h.tipo
-        FROM eventos e
-        LEFT JOIN historial_registros h
-            ON h.id_evento = e.id
-        WHERE ${where}
-        ORDER BY e.fecha DESC, e.id;
+            ) AS INT
+        ) AS id,
+        e.descripcion,
+        e.fecha,
+        CAST(h.id AS INT) AS id_elemento,
+        h.tipo
+    FROM eventos e
+    LEFT JOIN historial_registros h
+        ON h.id_evento = e.id
+    WHERE ${where}
+    ORDER BY e.fecha DESC, e.id;
     `;
 
     function formatearValor(valor: unknown): string {
@@ -258,8 +246,7 @@ export async function obtenerDatosElemento(
 
             case 'dispositivos':
                 return {
-                    alias: datos.alias,
-                    telefono: datos.telefono
+                    alias: datos.alias
                 };
 
             default:

@@ -1,0 +1,76 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.contenedor-menu {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 15px;
+  box-sizing: border-box;
+}
+
+nav {
+  width: 100%;
+  min-width: 320px;
+  max-width: 700px;
+
+  background: #273036 !important;
+  border-bottom: 1px solid #3d454a !important;
+  border-radius: 6px;
+
+  box-sizing: border-box;
+}
+
+/* Texto de los tabs */
+nav a.mat-mdc-tab-link {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+
+  min-width: 0;
+  padding: 14px 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 14px;
+  font-weight: 500;
+  line-height: normal;
+  text-align: center;
+  text-decoration: none;
+
+  box-sizing: border-box;
+}
+
+/* Elementos internos de Angular Material */
+nav a.mat-mdc-tab-link .mdc-tab__text-label {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+nav a.mat-mdc-tab-link:hover {
+  color: #ffffff !important;
+  // background: #7c8185 !important;
+}
+
+nav a.mat-mdc-tab-link:hover .mdc-tab__text-label {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Tab activo */
+nav a.mat-mdc-tab-link.mdc-tab--active {
+  color: #ffffff !important;
+}
+
+nav a.mat-mdc-tab-link.mdc-tab--active .mdc-tab__text-label {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Línea inferior */
+::ng-deep .mdc-tab-indicator__content--underline {
+  border-color: #ffffff !important;
+}

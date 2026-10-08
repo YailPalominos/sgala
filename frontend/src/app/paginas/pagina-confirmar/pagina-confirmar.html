@@ -1,0 +1,111 @@
+<div class="contenedor">
+
+  @if (!datos) {
+
+  <mat-card appearance="outlined" style="padding: 10px;">
+
+    <mat-card-header>
+      <mat-card-title style="text-align: center;font-size: 18px;">
+        Verificación
+      </mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content style="padding: 15px;">
+
+      <mat-form-field appearance="outline" style="width: 100%;">
+
+        <mat-label>Código de verificación</mat-label>
+
+        <input matInput type="text" [formControl]="codigo" maxlength="36" autocomplete="one-time-code" />
+
+        <mat-icon matSuffix>verified</mat-icon>
+
+        <mat-hint>
+          Ingresa el código de verificación
+        </mat-hint>
+
+        @if (codigo.hasError('required') && codigo.touched) {
+        <mat-error>
+          Ingresa el código.
+        </mat-error>
+        }
+
+        @if (codigo.hasError('pattern') && codigo.touched) {
+        <mat-error>
+          El código debe tener un formato UUID válido.
+        </mat-error>
+        }
+
+      </mat-form-field>
+
+
+      <div style="display: flex;justify-content: center;">
+        <button mat-raised-button color="primary" (click)="verificar()" [disabled]="codigo.invalid">
+          <mat-icon>search</mat-icon>
+          verificar
+        </button>
+      </div>
+
+    </mat-card-content>
+
+  </mat-card>
+
+  }
+
+  @if (datos) {
+
+  <mat-card appearance="outlined">
+
+    <mat-card-header>
+      <mat-card-title style="text-align: center;">
+        {{
+        tipo === 'usuario'
+        ? 'Nuevo usuario'
+        : tipo === 'correo'
+        ? 'Confirmar cambio de correo electrónico'
+        : tipo === 'telefono'
+        ? 'Confirmar cambio de teléfono'
+        : 'Confirmación'
+        }}
+      </mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content style="padding: 15px;">
+
+
+      <h3 style="font-size: 18px; text-align: center;">{{ tipo === 'usuario' ? 'Datos del usuario' : 'Datos a actualizar' }}</h3>
+
+      @if (datos.alias) {
+      <span>
+        Alias: <b>{{ datos.alias }}</b><br>
+      </span>
+      }
+
+      @if (datos.direccionCorreoElectronico) {
+      <span>
+        Dirección de correo electrónico:
+        <b>{{ datos.direccionCorreoElectronico }}</b><br>
+      </span>
+      }
+
+      @if (datos.telefono) {
+      <span>
+        Teléfono: <b>{{ datos.telefono }}</b>
+      </span>
+      }
+    </mat-card-content>
+
+    <mat-card-footer class="example-card-footer">
+
+    </mat-card-footer>
+
+  </mat-card>
+
+  <button mat-raised-button color="primary" class="btn-volver" (click)="confirmar()">
+    <mat-icon>check</mat-icon>
+    Confirmar
+  </button>
+
+  }
+
+</div>

@@ -1,4 +1,10 @@
 import 'dotenv/config';
+import { iniciarRegistroDeConsola } from './recursos/registro';
+
+// Activar el guardado automático de todos los logs del sistema
+// (equivalente a configurar el logging al arrancar la aplicación).
+iniciarRegistroDeConsola();
+
 import express from 'express';
 import { manejadorErrores } from './interceptores/error.middleware';
 import { middlewareSesion } from './interceptores/sesion.middleware';
@@ -22,7 +28,11 @@ const puerto = entorno.PUERTO_API
 
 const app = express();
 
-const permitidos = ['https://192.168.1.5:4200', 'https://localhost:4200'];
+const permitidos = [
+  'https://192.168.1.5:4200',
+  'https://localhost:4200',
+  'https://10.1.33.98:4200',
+];
 
 app.use(cors({
   origin(origin, callback) {
@@ -49,7 +59,7 @@ app.use(
         method: 'POST'
       },
       {
-        url: /^\/api\/usuarios\/validar-clave\/[^/]+$/,
+        url: /^\/api\/usuarios\/confirmar\/[^/]+$/,
         method: 'GET'
       },
       {
@@ -62,7 +72,7 @@ app.use(
       },
       {
         url: '/api/usuarios/cambiar',
-        method: 'POST'
+        method: 'PUT'
       },
       {
         url: '/api/usuarios/crear',
@@ -71,7 +81,15 @@ app.use(
       {
         url: '/api/solicitudes/crear',
         method: 'POST'
-      }
+      },
+      {
+        url: /^\/api\/usuarios\/verificar-codigo\/(usuario|correo|telefono)\/[^/]+$/,
+        method: 'GET'
+      },
+      {
+        url: '/api/usuarios/confirmar-codigo',
+        method: 'POST'
+      },
     ]
   })
 );

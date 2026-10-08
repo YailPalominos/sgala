@@ -21,6 +21,7 @@ export interface Entorno {
   SMTP_CONTRASENA: string;
   VAPID_PUBLIC_KEY: string;
   VAPID_PRIVATE_KEY: string;
+  ENLACE_SERVIDOR: string;
 }
 
 function obtenerVariable(nombre: string): string {
@@ -51,6 +52,7 @@ function cargarEntorno(): Entorno {
     REDIS_PUERTO: parseInt(obtenerVariable('REDIS_PUERTO'), 10),
 
     DIRECTORIO: obtenerVariable('DIRECTORIO'),
+    ENLACE_SERVIDOR: obtenerVariable('ENLACE_SERVIDOR'),
 
     SMTP_HOST: obtenerVariable('SMTP_HOST'),
     SMTP_PUERTO: parseInt(obtenerVariable('SMTP_PUERTO'), 10),

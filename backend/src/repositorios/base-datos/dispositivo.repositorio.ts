@@ -7,20 +7,17 @@ export interface Dispositivo {
   idUsuario: number;
   idPreDispositivo: number;
   alias: string;
-  telefono: string | null;
   clave: string;
 }
 
 export interface DatosCrear {
   clave: string;
   alias: string;
-  telefono: string;
   idUsuario: number
 }
 
 export interface DatosActualizar {
   clave: string;
-  telefono: string;
   alias: string;
 }
 
@@ -28,7 +25,6 @@ export interface DispositivoClave {
   clave: string;
   idUsuario: number;
   alias: string;
-  telefono: string;
   tipoTexto: string;
   tipo: string;
   fechaFinalSuscripcion: Date | null;
@@ -42,7 +38,6 @@ export interface DispositivoAdministrativo {
   cualidades: string | null;
   idDispositivo: number | null;
   aliasDispositivo: string | null;
-  telefono: string | null;
   tipo: string;
   tipoTexto: string;
   idUsuario: number | null;
@@ -75,8 +70,7 @@ export async function buscarPorClave(clave: string, idUsuario: number): Promise<
         pd.id AS idPreDispositivo,
         d.id AS idDispositivo,
         d.id_usuario AS idUsuario,
-        d.alias,
-        d.telefono
+        d.alias
       FROM pre_dispositivos pd
       LEFT JOIN dispositivos d
         ON d.id_pre_dispositivo = pd.id
@@ -101,8 +95,7 @@ export async function buscarPorClave(clave: string, idUsuario: number): Promise<
 
   // La clave pertenece al usuario correcto
   return {
-    alias: registro.alias,
-    telefono: registro.telefono
+    alias: registro.alias
   };
 }
 
@@ -135,8 +128,7 @@ export async function crear(datos: DatosCrear) {
       data: {
         id_usuario: datos.idUsuario,
         id_pre_dispositivo: registro.idPreDispositivo,
-        alias: datos.alias || null as any,
-        telefono: datos.telefono || null
+        alias: datos.alias || null as any
       }
     });
   });
@@ -150,8 +142,7 @@ export async function actualizar(datos: DatosActualizar): Promise<void> {
     return tx.$executeRaw`
       UPDATE dis
       SET
-        dis.alias = ${datos.alias},
-        dis.telefono = ${datos.telefono}
+        dis.alias = ${datos.alias}
       FROM dispositivos dis
       INNER JOIN pre_dispositivos pd
         ON pd.id = dis.id_pre_dispositivo
@@ -193,7 +184,6 @@ export async function obtenerDatosDispositivos(): Promise<DispositivoClave[]> {
           prd.clave,
           sus.fecha_final AS fechaFinalSuscripcion,
           dis.alias,
-          dis.telefono,
           prd.cualidades,
           prd.tipo,
           CASE prd.tipo
@@ -228,7 +218,6 @@ export async function obtenerListaAdministrativa(): Promise<DispositivoAdministr
       prd.cualidades,
       dis.id AS idDispositivo,
       dis.alias AS aliasDispositivo,
-      dis.telefono,
       prd.tipo,
       CASE prd.tipo
         WHEN 'I' THEN 'Interruptor'
@@ -259,10 +248,14 @@ export async function obtenerListaAdministrativa(): Promise<DispositivoAdministr
 export async function crearPreDispositivo(
   datos: DatosCrearPreDispositivo
 ): Promise<PreDispositivoCreado> {
+  // La tabla tiene triggers de auditoría: SQL Server no permite OUTPUT
+  // directo sin INTO. Se redirige el OUTPUT a una variable de tabla.
   const resultado = await prisma.$queryRaw<PreDispositivoCreado[]>`
+    DECLARE @salida TABLE (id INT, clave UNIQUEIDENTIFIER);
     INSERT INTO dbo.pre_dispositivos (tipo, cualidades, estatus)
-    OUTPUT INSERTED.id AS id, INSERTED.clave AS clave
-    VALUES (${datos.tipo}, ${datos.cualidades}, 1)
+    OUTPUT INSERTED.id AS id, INSERTED.clave AS clave INTO @salida
+    VALUES (${datos.tipo}, ${datos.cualidades}, 1);
+    SELECT id, clave FROM @salida;
   `;
   return resultado[0];
 }
