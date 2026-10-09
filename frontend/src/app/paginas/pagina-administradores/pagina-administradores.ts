@@ -14,7 +14,6 @@ import { Notificador } from '../../recursos/notificador';
 import { ServicioAdministrador } from '../../servicios/servicio-administrador';
 import { Observable } from 'rxjs';
 import { Respuesta } from '../../recursos/conexion';
-import { Menu } from '../../componentes/menu/menu.component';
 
 interface Administrador {
   id: number;
@@ -41,8 +40,7 @@ interface Administrador {
     MatTooltipModule,
     MatExpansionModule,
     ReactiveFormsModule,
-    TablaComponent,
-    Menu
+    TablaComponent
   ],
   templateUrl: './pagina-administradores.html',
   styleUrl: './pagina-administradores.scss'

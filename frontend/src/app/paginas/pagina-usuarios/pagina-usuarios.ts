@@ -11,7 +11,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { Columna, Filtros, TablaComponent } from '../../componentes/tabla/tabla.component';
 import { ServicioAdministrador } from '../../servicios/servicio-administrador';
-import { Menu } from '../../componentes/menu/menu.component';
 
 interface UsuarioAdministrativo {
   id: number;
@@ -37,7 +36,6 @@ interface UsuarioAdministrativo {
     MatExpansionModule,
     ReactiveFormsModule,
     TablaComponent,
-    Menu
   ],
   templateUrl: './pagina-usuarios.html',
   styleUrl: './pagina-usuarios.scss'

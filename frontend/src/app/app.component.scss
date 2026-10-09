@@ -6,6 +6,7 @@
   flex-shrink: 0;
 
   .logo {
+    margin-left: 25px;
     height: 28px;
   }
 
@@ -49,7 +50,7 @@
   flex: 1;
   // height: auto;
   overflow: auto;
-   height: 100%;
+  height: 100%;
   background: #f5f5f5 var(--tema-fondo, url('/gris_fondo.svg')) no-repeat center center;
   background-size: cover;
 }
@@ -236,4 +237,43 @@
   .chip-titulo {
     max-width: 100px;
   }
+}
+
+
+
+
+
+
+
+
+
+
+
+mat-drawer {
+  width: 250px;
+  background-color: #fff;
+  border-right: 1px solid #ccc;
+}
+
+:host ::ng-deep .mat-drawer-inner-container {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.ruta-activa {
+  background-color: rgba(63, 81, 181, 0.12);
+  border-radius: 4px;
+}
+
+mat-nav-list {
+
+  width: 230px;
+}
+
+mat-nav-list a {
+  padding: 0;
+  margin: 4px 0px;
 }

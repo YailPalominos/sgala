@@ -10,6 +10,7 @@ export interface Sesion {
   direccionCorreoElectronico: string;
   claveSocket: string;
   telefono: string;
+  permisos: string
 }
 
 @Injectable({ providedIn: 'root' })
@@ -25,6 +26,9 @@ export class Autenticador {
     private router: Router
   ) { }
 
+  public estaAutenticado(): boolean {
+    return this.autenticadoSubject.value;
+  }
 
   private existeSesion(): boolean {
     const datos = localStorage.getItem(this.claveSesion);
@@ -32,6 +36,7 @@ export class Autenticador {
   }
 
   public guardarSesion(sesion: Sesion): void {
+    sesion.permisos = "CLI:INI,TAB,OBL"
     localStorage.setItem(this.claveSesion, JSON.stringify(sesion));
     this.autenticadoSubject.next(true);
   }
@@ -57,5 +62,25 @@ export class Autenticador {
     localStorage.removeItem(this.claveSesion);
     this.autenticadoSubject.next(false);
   }
+
+  public obtenerPermisosPorClave(claveBusqueda: string): string[] {
+    const permisosCadena = this.obtenerSesion()?.permisos;
+
+    if (!permisosCadena) {
+      return [];
+    }
+
+    for (const seccion of permisosCadena.split(';')) {
+      const [clave, permisos] = seccion.split(':').map(valor => valor.trim());
+      if (clave === claveBusqueda) {
+        return permisos
+          ? permisos.split(',').map(permiso => permiso.trim()).filter(Boolean)
+          : [];
+      }
+    }
+
+    return [];
+  }
+
 
 }

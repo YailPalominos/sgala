@@ -66,18 +66,35 @@ export interface RutaNavegacion {
   nombre: string;
   clave: string;
   icono: string;
+  permiso: string;
 }
 
 /**
  * Rutas de administración mostradas en el menú de navegación del toolbar.
  * Todas requieren una sesión de administrador.
  */
-export const RUTAS_NAVEGACION_ADMINISTRADOR: RutaNavegacion[] = [
-  { ruta: '/dispositivos', nombre: 'Dispositivos', clave: 'DIP:OBL', icono: 'devices' },
-  { ruta: '/usuarios', nombre: 'Usuarios', clave: 'DIP:OBL', icono: 'group' },
-  { ruta: '/eventos', nombre: 'Eventos', clave: 'DIP:OBL', icono: 'event_note' },
-  { ruta: '/eventos-administradores', nombre: 'Eventos admin.', clave: 'EVA:OBL', icono: 'admin_panel_settings' },
-  { ruta: '/graficas', nombre: 'Gráficas', clave: 'GRA:OBL', icono: 'bar_chart' },
-  { ruta: '/administradores', nombre: 'Administradores', clave: 'ADM:OBL', icono: 'manage_accounts' },
-  { ruta: '/solicitudes', nombre: 'Solicitudes', clave: 'SOL:OBL', icono: 'assignment' }
+export const rutasAdministrador: RutaNavegacion[] = [
+  { ruta: '/dispositivos', nombre: 'Dispositivos', clave: 'DIP', permiso: "OBL", icono: 'devices' },
+  { ruta: '/usuarios', nombre: 'Usuarios', clave: 'DIP', permiso: "OBL", icono: 'group' },
+  { ruta: '/suscripciones-administradores', nombre: 'Eventos admin.', clave: 'EVA', permiso: "OBL", icono: 'hourglass_top' },
+  { ruta: '/eventos-administradores', nombre: 'Eventos admin.', clave: 'EVA', permiso: "OBL", icono: 'event' },
+  { ruta: '/graficas', nombre: 'Gráficas', clave: 'GRA', permiso: "OBL", icono: 'bar_chart' },
+  { ruta: '/administradores', nombre: 'Administradores', clave: 'ADM', permiso: "OBL", icono: 'manage_accounts' },
+  { ruta: '/solicitudes', nombre: 'Solicitudes', clave: 'SOL', permiso: "OBL", icono: 'assignment' },
 ];
+
+export const rutasUsuario: RutaNavegacion[] = [
+  { ruta: '/inicio', nombre: 'Inicio', clave: 'CLI', permiso: "INI", icono: 'home' },
+  { ruta: '/tablero', nombre: 'Tablero', clave: 'CLI', permiso: "TAB", icono: 'dashboard' },
+  { ruta: '/suscripciones', nombre: 'Suscripciones', clave: 'CLI', permiso: "OBL", icono: 'hourglass_top' },
+  { ruta: '/eventos', nombre: 'Eventos', clave: 'CLI', permiso: "OBL", icono: 'event' },
+];
+
+export function obtenerClavePorRuta(ruta: string): string | null {
+  const rutaNormalizada = `/${ruta.replace(/^\/+|\/+$/g, '')}`;
+
+  const opcion = [...rutasAdministrador, ...rutasUsuario]
+    .find((opcion: RutaNavegacion) => opcion.ruta === rutaNormalizada);
+
+  return opcion?.clave ?? null;
+}

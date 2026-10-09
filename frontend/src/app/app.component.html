@@ -1,27 +1,15 @@
 @if(autenticado){
 <mat-toolbar class="toolbar-inicio">
 
-    @if (sesion.tipoCuenta === 'administrador') {
-    <button mat-icon-button matTooltip="Menu" color="accent">
+    <button mat-icon-button matTooltip="Menu" color="accent" (click)="drawer.toggle()">
         <mat-icon>menu</mat-icon>
     </button>
-    }
 
     <img [src]="temaServicio.rutaImagen('logo.svg')" alt="SGALA" class="logo" />
 
-    <h2 style="height: 10px; font-weight:bold;margin-bottom: 17px;">Dispositivos</h2>
+    <h2 style="height: 10px; font-weight:bold;margin-bottom: 17px;">{{ruta}}</h2>
 
     <span style="flex: 1;"></span>
-
-    @if (sesion.tipoCuenta !== 'administrador') {
-
-    <button mat-icon-button matTooltip="Suscripciones" color="accent" (click)="verSuscripciones()">
-        <mat-icon>hourglass_top</mat-icon>
-    </button>
-
-    <button mat-icon-button matTooltip="Eventos" color="accent" (click)="verEventos()">
-        <mat-icon>event</mat-icon>
-    </button>
 
     <button mat-icon-button [matMenuTriggerFor]="menuNotificaciones" [matBadge]="totalNotificacionesPendientes || null"
         matBadgeSize="large">
@@ -57,7 +45,7 @@
         </div>
         }
     </mat-menu>
-    }
+
 
     <button mat-icon-button (click)="actualizarUsuario()">
         <mat-icon>person</mat-icon>
@@ -83,18 +71,27 @@
 </mat-toolbar>
 }
 
-<!-- <mat-drawer-container class="example-container" autosize>
+<mat-drawer-container autosize>
 
-  <mat-drawer #drawer class="example-sidenav" mode="side">
+    <mat-drawer #drawer mode="over">
+        <mat-nav-list>
+            @for (opcion of rutasNavegacion; track opcion.ruta) {
+            <a mat-list-item [routerLink]="opcion.ruta" routerLinkActive="ruta-activa" (click)="drawer.close()">
 
-    <menu></menu>
-  </mat-drawer> -->
-<div class="router-container">
-    <router-outlet />
-</div>
-<!-- 
+                <mat-icon matListItemIcon>{{ opcion.icono }}</mat-icon>
+
+                <span matListItemTitle>{{ opcion.nombre }}</span>
+            </a>
+            }
+        </mat-nav-list>
+    </mat-drawer>
+    
+    <div class="router-container">
+        <router-outlet />
+    </div>
+
 </mat-drawer-container>
- -->
+
 
 @if(autenticado){
 <div class="contenedor-dialogos">

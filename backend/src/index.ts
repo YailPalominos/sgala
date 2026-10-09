@@ -28,11 +28,7 @@ const puerto = entorno.PUERTO_API
 
 const app = express();
 
-const permitidos = [
-  'https://192.168.1.5:4200',
-  'https://localhost:4200',
-  'https://10.1.33.98:4200',
-];
+const permitidos = ['https://localhost:6000'];
 
 app.use(cors({
   origin(origin, callback) {

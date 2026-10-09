@@ -1,7 +1,7 @@
-import { Component, inject, ChangeDetectorRef } from '@angular/core';
-import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
+import { Component, inject, ChangeDetectorRef, ViewChild } from '@angular/core';
+import { Router, RouterOutlet, NavigationEnd, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { RUTAS_NAVEGACION_ADMINISTRADOR, RutaNavegacion } from './recursos/constantes';
+import { RutaNavegacion, rutasAdministrador, rutasUsuario } from './recursos/constantes';
 import { CargadorComponent } from './componentes/cargador/cargador.component';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,12 +18,10 @@ import { Autenticador, Sesion } from './recursos/autenticador';
 import { Notificador } from './recursos/notificador';
 import { TemaServicio } from './recursos/tema.servicio';
 import { DialogoConfirmacion } from './dialogos/dialogo-confirmacion/dialogo-confirmacion';
-import { PanelSuscripciones } from './paneles/panel-suscripciones/panel-suscripciones.componente';
-import { PanelLocalizaciones } from './paneles/panel-localizaciones/panel-localizaciones.componente';
 import { MatBadgeModule } from '@angular/material/badge';
-import { PanelEventos } from './paneles/panel-eventos/panel-eventos.componente';
 import { FormularioAdministradorPerfil } from './formularios/formulario-administrador-perfil/formulario-administrador-perfil';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatDrawer, MatSidenavModule } from '@angular/material/sidenav';
+import { MatListModule } from '@angular/material/list';
 
 export interface Notificacion {
   clave: string,
@@ -47,7 +45,11 @@ export interface Notificacion {
       MatChipsModule,
       MatMenuModule,
       MatBadgeModule,
-      MatSidenavModule
+      MatSidenavModule,
+      MatListModule,
+
+      RouterLink,
+      RouterLinkActive
     ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
@@ -63,8 +65,7 @@ export class AppComponent {
   public dialogoServicio = inject(DialogoServicio)
   public sesion!: Sesion
 
-  /** Rutas de navegación mostradas en el toolbar (solo administrador). */
-  public rutasNavegacion: RutaNavegacion[] = RUTAS_NAVEGACION_ADMINISTRADOR;
+  public rutasNavegacion: RutaNavegacion[] = [];
 
   public cargador = inject(Cargador)
   public notificador = inject(Notificador)
@@ -77,28 +78,62 @@ export class AppComponent {
 
   private sugerenciaTemaMostrada = false;
 
+  public ruta = '-'
+  @ViewChild('drawer') drawer!: MatDrawer;
+
   //#region  Usuario
 
   ngOnInit() {
 
+
+    this.router.events
+      .pipe(filter(evento => evento instanceof NavigationEnd))
+      .subscribe((evento: NavigationEnd) => {
+        const segmento = evento.urlAfterRedirects
+          .split(/[?#]/)[0]
+          .split('/')
+          .filter(Boolean)
+          .pop();
+
+        this.ruta = segmento
+          ? segmento.charAt(0).toUpperCase() + segmento.slice(1)
+          : '-';
+      });
+      
     this.temaServicio.inicializar();
 
     this.autenticacionServicio.autenticado$
       .subscribe(valor => {
         this.autenticado = valor;
         if (valor) {
-          const sesion = this.autenticacionServicio.obtenerSesion()
+
+          const sesion = this.autenticacionServicio.obtenerSesion();
+
           if (sesion != null) {
-            this.sesion = sesion
-            if (sesion.tipoCuenta === 'administrador') {
-              this.socket.desconectar();
-              this.notificaciones = [];
-              this.totalNotificacionesPendientes = 0;
-            } else {
-              this.socket.conectar();
+            this.sesion = sesion;
+            this.socket.conectar();
+
+            const rutas = sesion.tipoCuenta === 'administrador'
+              ? rutasAdministrador
+              : rutasUsuario;
+
+            const permisos = new Set<string>();
+
+            if (typeof sesion.permisos === 'string') {
+              const [clave, ...valores] = sesion.permisos.replace(/\\/g, '').split(':');
+
+              valores.join(':').split(',').forEach(permiso => {
+                permisos.add(`${clave.trim()}:${permiso.trim()}`.trim());
+              });
             }
+
+            this.rutasNavegacion = rutas.filter(opcion =>
+              permisos.has(`${opcion.clave.trim()}:${opcion.permiso.trim()}`)
+            );
+
           }
         } else {
+          this.drawer?.close();
           this.socket.desconectar();
         }
         this.cdr.detectChanges();
@@ -126,10 +161,6 @@ export class AppComponent {
       });
   }
 
-  /**
-   * Si el mes actual tiene un tema sugerido y el usuario no ha respondido
-   * aún este mes, abre un diálogo de confirmación para aplicarlo.
-   */
   private sugerirTemaDelMes(): void {
     const sugerido = this.temaServicio.obtenerTemaSugeridoDelMes();
 
@@ -264,35 +295,35 @@ export class AppComponent {
     });
   }
 
-  public verSuscripciones(): void {
-    this.dialogoServicio.abrir({
-      referencia: PanelSuscripciones,
-      titulo: 'Suscripciones',
-      icono: 'hourglass_top',
-      largo: 'l70%,m90%,c100%',
-      desactivarAutocerrado: true,
-    });
-  }
+  // public verSuscripciones(): void {
+  //   this.dialogoServicio.abrir({
+  //     referencia: PanelSuscripciones,
+  //     titulo: 'Suscripciones',
+  //     icono: 'hourglass_top',
+  //     largo: 'l70%,m90%,c100%',
+  //     desactivarAutocerrado: true,
+  //   });
+  // }
 
-  public verEventos(): void {
-    this.dialogoServicio.abrir({
-      referencia: PanelEventos,
-      titulo: 'Eventos',
-      icono: 'event',
-      largo: 'l70%,m90%,c100%',
-      desactivarAutocerrado: true,
-    });
-  }
+  // public verEventos(): void {
+  //   this.dialogoServicio.abrir({
+  //     referencia: PanelEventos,
+  //     titulo: 'Eventos',
+  //     icono: 'event',
+  //     largo: 'l70%,m90%,c100%',
+  //     desactivarAutocerrado: true,
+  //   });
+  // }
 
-  public verHistorial(): void {
-    this.dialogoServicio.abrir({
-      referencia: PanelLocalizaciones,
-      titulo: 'Localizaciones',
-      icono: 'map_search',
-      largo: 'l70%,m90%,c100%',
-      desactivarAutocerrado: true,
-    });
-  }
+  // public verHistorial(): void {
+  //   this.dialogoServicio.abrir({
+  //     referencia: PanelLocalizaciones,
+  //     titulo: 'Localizaciones',
+  //     icono: 'map_search',
+  //     largo: 'l70%,m90%,c100%',
+  //     desactivarAutocerrado: true,
+  //   });
+  // }
 
   //#endregion
 

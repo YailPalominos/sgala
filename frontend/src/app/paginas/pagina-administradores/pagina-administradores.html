@@ -1,8 +1,6 @@
 <main class="pagina">
 
 
-  <app-menu></app-menu>
-
   @if (formularioAbierto()) {
   <section class="formulario-administrador">
     <h2>{{ idEdicion() === null ? 'Crear administrador' : 'Actualizar administrador' }}</h2>

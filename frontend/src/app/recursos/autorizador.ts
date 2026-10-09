@@ -1,36 +1,37 @@
-import { CanActivateFn } from '@angular/router';
-import { inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { map, take } from 'rxjs/operators';
+import { Injectable } from '@angular/core';
+import { ActivatedRouteSnapshot, CanActivate, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { Autenticador } from './autenticador';
+import { obtenerClavePorRuta } from './constantes';
 
-export const Autorizador: CanActivateFn = () => {
-    const autenticador = inject(Autenticador);
-    const router = inject(Router);
-    return autenticador.autenticado$.pipe(
-        take(1),
-        map(autenticado => {
-            if (autenticado) {
-                if (autenticador.obtenerSesion()?.tipoCuenta === 'administrador') {
-                    return router.createUrlTree(['/dispositivos']);
-                }
-                return true;
-            }
-            return router.createUrlTree(['/acceder']);
-        })
-    );
-};
+@Injectable({
+    providedIn: 'root'
+})
+export class Autorizador implements CanActivate {
 
-export const AutorizadorAdministrador: CanActivateFn = () => {
-    const autenticador = inject(Autenticador);
-    const router = inject(Router);
-    const sesion = autenticador.obtenerSesion();
-    if (!sesion) {
-        return router.createUrlTree(['/acceder'], {
-            queryParams: { tipo: 'administrador' }
-        });
+    constructor(
+        private autenticador: Autenticador,
+        private router: Router
+    ) { }
+
+    canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean | UrlTree {
+
+
+        if (!this.autenticador.estaAutenticado()) {
+            return this.router.createUrlTree(['/acceder'], {
+                queryParams: { returnUrl: state.url }
+            });
+        }
+
+        const ruta = state.url.split(/[?#]/)[0].replace(/^\/+|\/+$/g, '');
+
+        
+        const clave = obtenerClavePorRuta(ruta) ?? 'NA';
+
+        if (this.autenticador.obtenerPermisosPorClave(clave).length > 0) {
+            return true;
+        }
+
+        return this.router.createUrlTree(['/inicio']);
+
     }
-    return sesion.tipoCuenta === 'administrador'
-        ? true
-        : router.createUrlTree(['/inicio']);
-};
+}
