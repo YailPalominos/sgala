@@ -18,6 +18,9 @@ import { DialogoValidacion } from '../../dialogos/dilogo-validacion/dialogo-vali
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
 import { DialogoAlarmas } from '../../dialogos/dialogo-alarmas/dialogo-alarmas';
 import { DialogoConexion } from '../../dialogos/dilogo-conexion/dialogo-conexion';
+import { FormularioConfiguracion } from '../../formularios/formulario-configuracion/formulario-configuracion';
+import { ServicioDispositivo } from '../../servicios/servicio-dispositivo';
+import { Notificador } from '../../recursos/notificador';
 
 @Component({
   selector: 'app-panel',
@@ -40,8 +43,10 @@ import { DialogoConexion } from '../../dialogos/dilogo-conexion/dialogo-conexion
 })
 export class PaginaInicio implements OnInit {
 
+  private servicioDispositivo = inject(ServicioDispositivo)
   private socket = inject(Socket);
   private dialogoServicio = inject(DialogoServicio);
+  private notificador = inject(Notificador);
 
   textoBusqueda = signal('');
   cargando = signal(true);
@@ -209,16 +214,11 @@ export class PaginaInicio implements OnInit {
     });
   }
 
-  private finalizarIntercalarActivacion(respuesta?: any) {
+  private async finalizarIntercalarActivacion(respuesta?: any) {
     if (respuesta?.resultado == true) {
-      this.marcarProcesando(respuesta.datos.clave);
-      this.socket.emitir(
-        'solicitud/dispositivo',
-        {
-          clave: respuesta.datos.clave,
-          estatus: respuesta.datos.estatus
-        }
-      );
+      this.marcarProcesando(respuesta.datos.clavee);
+      await this.socket.emitir('cambiar-estatus', { clave: respuesta.datos.clave, estatus: respuesta.datos.estatus })
+      this.quitarProcesando(respuesta.datos.clave);
     }
   }
 
@@ -269,6 +269,21 @@ export class PaginaInicio implements OnInit {
       desactivarAutocerrado: true,
       parametros: 'A',
       datos: dispositivo
+    });
+  }
+
+  public async configurarDispositivo(dispositivo: Dispositivo) {
+    this.marcarProcesando(dispositivo.clave);
+    const respuesta = await this.socket.emitir('obtener-configuracion', { clave: dispositivo.clave })
+    this.quitarProcesando(dispositivo.clave);
+    this.dialogoServicio.abrir({
+      referencia: FormularioConfiguracion,
+      titulo: 'Configuración',
+      icono: 'settings',
+      largo: 'l35%,m55%,c100%',
+      desactivarAutocerrado: true,
+      parametros: 'A',
+      datos: respuesta.datos
     });
   }
 

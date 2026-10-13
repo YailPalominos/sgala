@@ -1,0 +1,130 @@
+<h2 class="titulo">
+    Interruptor
+</h2>
+<mat-dialog-content>
+    <form [formGroup]="formulario">
+
+        <section class="seccion">
+
+            <div class="titulo-seccion">
+                <h2>General</h2>
+            </div>
+
+            <mat-form-field appearance="outline" class="c100 m50 g30">
+                <mat-label>Tolerancia (minutos)</mat-label>
+                <input matInput type="number" formControlName="tolerancia" min="0" step="1"
+                    placeholder="Minutos de tolerancia">
+
+                @if (formulario.controls['tolerancia'].hasError('required')) {
+                <mat-error>La tolerancia es obligatoria.</mat-error>
+                }
+
+                @if (formulario.controls['tolerancia'].hasError('min')) {
+                <mat-error>No puede ser negativa.</mat-error>
+                }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="c100 m50 g30">
+                <mat-label>Zona horaria</mat-label>
+                <mat-select formControlName="zonaHoraria">
+                    @for (zona of zonasHorarias; track zona.valor) {
+                    <mat-option [value]="zona.valor">
+                        {{ zona.texto }}
+                    </mat-option>
+                    }
+                </mat-select>
+
+                @if (formulario.controls['zonaHoraria'].hasError('required')) {
+                <mat-error>Selecciona una zona horaria.</mat-error>
+                }
+            </mat-form-field>
+
+        </section>
+
+        <section class="seccion">
+
+            <div class="titulo-seccion">
+                <h2>GPIO Salidas/Entradas</h2>
+            </div>
+
+            <mat-form-field appearance="outline" class="c100 m50 g25">
+                <mat-label>GPIO RGB rojo</mat-label>
+                <input matInput type="number" formControlName="gpioRgbRojo" min="0" max="27" step="1">
+                @if (formulario.controls['gpioRgbRojo'].hasError('required')) {
+                <mat-error>Campo obligatorio.</mat-error>
+                }
+                @if (formulario.controls['gpioRgbRojo'].hasError('max')) {
+                <mat-error>El máximo es 27.</mat-error>
+                }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="c100 m50 g25">
+                <mat-label>GPIO RGB verde</mat-label>
+                <input matInput type="number" formControlName="gpioRgbVerde" min="0" max="27" step="1">
+                @if (formulario.controls['gpioRgbVerde'].hasError('required')) {
+                <mat-error>Campo obligatorio.</mat-error>
+                }
+                @if (formulario.controls['gpioRgbVerde'].hasError('max')) {
+                <mat-error>El máximo es 27.</mat-error>
+                }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="c100 m50 g25">
+                <mat-label>GPIO RGB azul</mat-label>
+                <input matInput type="number" formControlName="gpioRgbAzul" min="0" max="27" step="1">
+                @if (formulario.controls['gpioRgbAzul'].hasError('required')) {
+                <mat-error>Campo obligatorio.</mat-error>
+                }
+                @if (formulario.controls['gpioRgbAzul'].hasError('max')) {
+                <mat-error>El máximo es 27.</mat-error>
+                }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="c100 m50 g25">
+                <mat-label>GPIO botón</mat-label>
+                <input matInput type="number" formControlName="gpioBoton" min="0" max="27" step="1">
+                @if (formulario.controls['gpioBoton'].hasError('required')) {
+                <mat-error>Campo obligatorio.</mat-error>
+                }
+                @if (formulario.controls['gpioBoton'].hasError('max')) {
+                <mat-error>El máximo es 27.</mat-error>
+                }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="c100 m50 g25">
+                <mat-label>GPIO relevador</mat-label>
+                <input matInput type="number" formControlName="gpioRelevador" min="0" max="27" step="1">
+                @if (formulario.controls['gpioRelevador'].hasError('required')) {
+                <mat-error>Campo obligatorio.</mat-error>
+                }
+                @if (formulario.controls['gpioRelevador'].hasError('max')) {
+                <mat-error>El máximo es 27.</mat-error>
+                }
+            </mat-form-field>
+
+        </section>
+
+
+        <section class="seccion">
+
+            <div class="titulo-seccion">
+                <h2>Eventos</h2>
+            </div>
+
+            <app-tabla [datos]=" eventos" [columnas]="columnas" class="c100 m100 g80" style="height: auto;">
+            </app-tabla>
+
+        </section>
+
+    </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="center">
+
+    <div class="c100 m100 g35">
+        <button mat-raised-button color="primary" type="button" (click)="preparar()">
+            <mat-icon>save</mat-icon>
+            Actualizar
+        </button>
+    </div>
+</mat-dialog-actions>

@@ -130,14 +130,15 @@
         </span>
 
         <span matTooltip="Configurar el dispositivo">
-          <button mat-icon-button color="primary" (click)="editarDispositivo(dispositivo)">
+          <button mat-icon-button color="primary" (click)="configurarDispositivo(dispositivo)"
+            [disabled]="dispositivo.estatusConexion == true?false:true">
             <mat-icon>settings</mat-icon>
           </button>
         </span>
 
         @if (tieneCualidad(dispositivo, 'COC')) {
-        <span
-          [matTooltip]="(dispositivo.estatusCortaCorriente==false ? 'Activar corta corriente' : 'Desactivar corta corriente')">
+        <span [matTooltip]=" (dispositivo.estatusCortaCorriente==false ? 'Activar corta corriente'
+            : 'Desactivar corta corriente' )">
 
           <button mat-icon-button
             [disabled]="(dispositivo.estatusConexion == true&&dispositivo.estatusEncendida==true)?false:true"

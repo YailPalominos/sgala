@@ -1,13 +1,30 @@
 .toolbar-inicio {
   background: white;
   color: var(--tema-primary, #424242);
-  border-bottom: 2px solid var(--tema-primary, #424242);
-  height: 60px;
+
+  height: 70px;
   flex-shrink: 0;
+  box-sizing: border-box;
+
+  /* Apariencia de tarjeta */
+  margin: 5px;
+  width: calc(100% - 10px);
+
+  border: 1px solid #d6dadd;
+  // border-top: 3px solid var(--tema-primary, #424242);
+  // border-bottom: 3px solid var(--tema-primary, #424242);
+  border-radius: 12px;
+
+  /* Sombra sutil */
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 
   .logo {
     margin-left: 25px;
     height: 28px;
+  }
+
+  h2 {
+    font-size: 19px !important;
   }
 
   .navegacion-toolbar {
@@ -32,6 +49,8 @@
     ::ng-deep a.activo .mdc-button__label {
       color: #fff;
     }
+
+
   }
 
   button {
@@ -39,16 +58,38 @@
   }
 }
 
+@media (max-width: 599px) {
+  .toolbar-inicio {
+    height: 50px;
+    margin: 8px;
+    width: calc(100% - 16px);
+    padding: 0 8px;
+    border-radius: 10px;
+
+    .logo {
+      height: 22px;
+      margin-left: 12px;
+    }
+
+    h2 {
+      font-size: 14px !important;
+    }
+
+
+  }
+}
+
+
 :host {
   display: flex;
   flex-direction: column;
   height: 100vh;
   min-width: 320px;
+  overflow: hidden;
 }
 
 .router-container {
   flex: 1;
-  // height: auto;
   overflow: auto;
   height: 100%;
   background: #f5f5f5 var(--tema-fondo, url('/gris_fondo.svg')) no-repeat center center;
@@ -136,17 +177,6 @@
   }
 }
 
-
-
-// .notificador {
-
-//   min-width: 350px !important;
-//   max-width: 600px !important;
-//   width: max-content;
-
-
-// }
-
 .estado {
   width: 15px;
   height: 15px;
@@ -206,19 +236,6 @@
 
 @media (max-width: 599px) {
 
-  .toolbar-inicio {
-    height: 50px;
-    padding: 0 8px;
-
-    .logo {
-      height: 22px;
-    }
-
-    h2 {
-      font-size: 14px !important;
-    }
-  }
-
   .contenedor-dialogos {
     bottom: 5px;
     left: 5px;
@@ -276,4 +293,16 @@ mat-nav-list {
 mat-nav-list a {
   padding: 0;
   margin: 4px 0px;
+}
+
+
+
+// Elimianr despues
+.router-container {
+scrollbar-width: none;
+-ms-overflow-style: none;
+}
+
+.router-container::-webkit-scrollbar {
+display: none;
 }

@@ -60,8 +60,6 @@ export class PaginaAdministradores implements OnInit {
     etiqueta: '',
     marcador: '',
     texto: '',
-    mostrarBusqueda: false,
-    criterios: {}
   });
   readonly formularioFiltros = new FormGroup({
     alias: new FormControl(''),

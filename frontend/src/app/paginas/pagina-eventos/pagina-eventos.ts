@@ -49,8 +49,6 @@ export class PaginaEventos implements OnInit {
     etiqueta: '',
     marcador: '',
     texto: '',
-    mostrarBusqueda: false,
-    criterios: {}
   });
   readonly formularioFiltros = new FormGroup({
     accion: new FormControl(''),

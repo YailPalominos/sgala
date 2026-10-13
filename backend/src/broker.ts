@@ -176,6 +176,8 @@ export async function conectar(claveDispositivo: string) {
 export async function desconectar(claveDispositivo: string) {
   try {
 
+
+
     await actualizarEstatusConexion(claveDispositivo, false);
 
     await actualizarDatosDispositivo(claveDispositivo, {
@@ -191,51 +193,52 @@ export async function desconectar(claveDispositivo: string) {
 
     const dispositivo = await obtenerDispositivo(claveDispositivo);
 
+
     await crearEventoSistema(
       dispositivo.idUsuario,
       `Alarma dispositivo clave:"${claveDispositivo}" sin conexión."`
     );
 
-    // const claveAlarmaDesconexion = crypto.randomUUID();
+    const claveAlarmaDesconexion = crypto.randomUUID();
 
-    // await agregarAlarma(claveDispositivo, {
-    //   clave: claveAlarmaDesconexion,
-    //   descripcion: `Dispositivo sin conexión`,
-    //   fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
-    // });
+    await agregarAlarma(claveDispositivo, {
+      clave: claveAlarmaDesconexion,
+      descripcion: `Dispositivo sin conexión`,
+      fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+    });
 
-    // await enviarDispositivoActualizado(claveDispositivo)
+    await enviarDispositivoActualizado(claveDispositivo)
 
-    // await agregarNotificacion(
-    //   dispositivo.idUsuario,
-    //   {
-    //     clave: crypto.randomUUID(),
-    //     descripcion: `Dispositivo '${dispositivo.alias}' sin conexión.`,
-    //     fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    //     atendida: null,
-    //     claveDispositivo: dispositivo.clave,
-    //     claveAlarma: claveAlarmaDesconexion,
-    //     origen: 'conexion'
-    //   }
-    // );
+    await agregarNotificacion(
+      dispositivo.idUsuario,
+      {
+        clave: crypto.randomUUID(),
+        descripcion: `Dispositivo '${dispositivo.alias}' sin conexión.`,
+        fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        atendida: null,
+        claveDispositivo: dispositivo.clave,
+        claveAlarma: claveAlarmaDesconexion,
+        origen: 'conexion'
+      }
+    );
 
-    // await enviarNotificacionUsuario(dispositivo.idUsuario);
+    await enviarNotificacionUsuario(dispositivo.idUsuario);
 
-    // const suscripciones = await obtenerSuscripciones(dispositivo.idUsuario);
+    const suscripciones = await obtenerSuscripciones(dispositivo.idUsuario);
 
-    // for (const suscripcion of suscripciones) {
-    //   await enviarWebPush(
-    //     suscripcion,
-    //     'SICVA',
-    //     `Dispositivo '${dispositivo.alias}' sin conexión.`,
-    //     {
-    //       tipo: 'sin-conexion',
-    //       claveDispositivo: dispositivo.clave,
-    //       alias: dispositivo.alias
-    //     },
-    //     dispositivo.idUsuario
-    //   );
-    // }
+    for (const suscripcion of suscripciones) {
+      await enviarWebPush(
+        suscripcion,
+        'SICVA',
+        `Dispositivo '${dispositivo.alias}' sin conexión.`,
+        {
+          tipo: 'sin-conexion',
+          claveDispositivo: dispositivo.clave,
+          alias: dispositivo.alias
+        },
+        dispositivo.idUsuario
+      );
+    }
 
   } catch (error) {
     console.error(
@@ -439,8 +442,83 @@ export async function onPublicacion(claveDispositivo: string, topico: string, pa
  *
  * Timeout de 10 segundos.
  */
-export async function enviarSolicitudDispositivo(claveDispositivo: string, datos: Record<string, any>): Promise<{ estatus: boolean; mensaje: string }> {
+// export async function enviarSolicitudDispositivo(claveDispositivo: string, datos: Record<string, any>): Promise<{ estatus: boolean; mensaje: string }> {
+//   return new Promise((resolve, reject) => {
+
+//     const timeout = setTimeout(() => {
+//       aedesInstance.removeListener('publish', listener);
+//       reject(new Error('Tiempo de espera agotado. El dispositivo no respondió.'));
+//     }, 10_000);
+
+//     const listener = (packet: any, cliente: any) => {
+//       if (!cliente) return;
+
+//       const topico = packet.topic;
+
+//       if (topico !== `respuestas/${claveDispositivo.toUpperCase()}`) {
+//         return;
+//       }
+
+//       clearTimeout(timeout);
+//       aedesInstance.removeListener('publish', listener);
+
+//       try {
+//         const respuesta = JSON.parse(packet.payload.toString('utf8'));
+//         console.log('📥 Respuesta dispositivo:', { dispositivo: claveDispositivo, respuesta });
+//         resolve({
+//           estatus: respuesta.estatus === true,
+//           mensaje: respuesta.mensaje || ''
+//         });
+//       } catch {
+//         resolve({ estatus: false, mensaje: 'Respuesta inválida del dispositivo.' });
+//       }
+//     };
+
+//     aedesInstance.addListener('publish', listener);
+
+//     const { clave, ...datosDispositivo } = datos;
+
+//     const payload = Buffer.from(
+//       JSON.stringify(datosDispositivo)
+//     );
+//     const topico = `solicitudes/${claveDispositivo.toUpperCase()}`;
+
+//     aedesInstance.publish(
+//       {
+//         cmd: 'publish',
+//         topic: topico,
+//         payload,
+//         qos: 0,
+//         retain: false,
+//         dup: false
+//       },
+//       (error) => {
+//         if (error) {
+//           clearTimeout(timeout);
+//           aedesInstance.removeListener('publish', listener);
+//           reject(new Error('Error enviando solicitud MQTT.'));
+//         } else {
+//           // console.log('📤 Solicitud enviada:', { dispositivo: claveDispositivo, datos }, "> " + topico);
+//         }
+//       }
+//     );
+
+//   });
+// }
+
+
+
+
+/**
+ * Envía una solicitud MQTT a un dispositivo y espera su respuesta.
+ */
+export async function enviarSolicitudDispositivo(claveDispositivo: string, topico: 'obtener-datos' | 'actualizar-estatus' | 'obtener-configuracion' | 'actualizar-configuracion', datos?: any): Promise<{
+  estatus: boolean;
+  mensaje: string;
+  datos?: any
+}> {
   return new Promise((resolve, reject) => {
+    const topicoRespuesta = `respuestas/${claveDispositivo.toUpperCase()}`;
 
     const timeout = setTimeout(() => {
       aedesInstance.removeListener('publish', listener);
@@ -448,42 +526,40 @@ export async function enviarSolicitudDispositivo(claveDispositivo: string, datos
     }, 10_000);
 
     const listener = (packet: any, cliente: any) => {
-      if (!cliente) return;
-
-      const topico = packet.topic;
-
-      if (topico !== `respuestas/${claveDispositivo.toUpperCase()}`) {
-        return;
-      }
+      if (!cliente || packet.topic !== topicoRespuesta) return;
 
       clearTimeout(timeout);
       aedesInstance.removeListener('publish', listener);
 
       try {
         const respuesta = JSON.parse(packet.payload.toString('utf8'));
-        console.log('📥 Respuesta dispositivo:', { dispositivo: claveDispositivo, respuesta });
+
         resolve({
           estatus: respuesta.estatus === true,
-          mensaje: respuesta.mensaje || ''
+          mensaje: respuesta.mensaje || '',
+          datos: respuesta.datos ?? {}
         });
       } catch {
-        resolve({ estatus: false, mensaje: 'Respuesta inválida del dispositivo.' });
+        resolve({
+          estatus: false,
+          mensaje: 'Respuesta inválida del dispositivo.'
+        });
       }
     };
 
     aedesInstance.addListener('publish', listener);
 
-    const { clave, ...datosDispositivo } = datos;
-
     const payload = Buffer.from(
-      JSON.stringify(datosDispositivo)
+      JSON.stringify(datos ?? {}),
+      'utf8'
     );
-    const topico = `solicitudes/${claveDispositivo.toUpperCase()}`;
+
+    const topicoFinal = 'solicitud/' + topico + '/' + claveDispositivo.toLocaleLowerCase()
 
     aedesInstance.publish(
       {
         cmd: 'publish',
-        topic: topico,
+        topic: topicoFinal,
         payload,
         qos: 0,
         retain: false,
@@ -494,14 +570,12 @@ export async function enviarSolicitudDispositivo(claveDispositivo: string, datos
           clearTimeout(timeout);
           aedesInstance.removeListener('publish', listener);
           reject(new Error('Error enviando solicitud MQTT.'));
-        } else {
-          // console.log('📤 Solicitud enviada:', { dispositivo: claveDispositivo, datos }, "> " + topico);
         }
       }
     );
-
   });
 }
+
 
 export async function iniciarConexiones() {
   try {

@@ -1,6 +1,6 @@
 <div class="contenedor">
 
-  @if (filtros!=undefined && filtros().mostrarBusqueda !== false) {
+  @if (filtros!=undefined) {
   <div class="barra-acciones">
     <mat-form-field appearance="outline" class="buscar-input">
       <mat-label>{{filtros().etiqueta}}</mat-label>
@@ -8,7 +8,7 @@
       <mat-icon matPrefix>search</mat-icon>
     </mat-form-field>
     @for (boton of filtros().botones; track boton) {
-    <button mat-raised-button color="primary" (click)="boton.accion()">
+    <button mat-raised-button color="primary" (click)="boton.accion?.()">
       @if (boton.icono) {
       <mat-icon>{{ boton.icono }}</mat-icon>
       }
@@ -19,26 +19,106 @@
   }
 
   <section class="contenedor-secundario">
-    <table mat-table [dataSource]="dataSource" matSort>
+    <table mat-table [dataSource]="dataSource" matSort [multiTemplateDataRows]="tieneExpansion">
+
+      <!-- Columna de selección (checkbox). Solo se define cuando el modo de
+           selección está activo. -->
+      @if (mostrarSeleccion) {
+      <ng-container matColumnDef="seleccion" sticky>
+        <th mat-header-cell *matHeaderCellDef class="columna-seleccion">
+          <mat-checkbox (change)="alternarTodasSeleccion()" [checked]="todasSeleccionadas()"
+            [indeterminate]="algunaSeleccionada()">
+          </mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let fila" class="columna-seleccion">
+          <mat-checkbox (click)="$event.stopPropagation()" (change)="alternarSeleccionFila(fila)"
+            [checked]="estaSeleccionada(fila)">
+          </mat-checkbox>
+        </td>
+      </ng-container>
+      }
+
       @for (columna of columnas; track columna.clave) {
-      <ng-container [matColumnDef]="columna.clave">
-        <th mat-header-cell *matHeaderCellDef>
+      <ng-container [matColumnDef]="columna.clave" [stickyEnd]="columna.formato === 'botones'">
+        <th mat-header-cell *matHeaderCellDef [style]="estiloEncabezado(columna)"
+          [class.columna-acciones]="columna.formato === 'botones'">
+          @if (columna.formato === 'botones') {
+          <span class="encabezado-acciones">
+            <span class="encabezado-titulo">{{ columna.titulo }}</span>
+            @for (boton of botonesPorPosicion(columna, 'encabezado'); track boton) {
+            @if (boton.tipo === 'expandible') {
+            <span [matTooltip]="tooltipExpansion(true)">
+              <button mat-raised-button color="primary" (click)="alternarTodas()" class="boton-icono">
+                <mat-icon>{{ iconoExpansion(true) }}</mat-icon>
+              </button>
+            </span>
+            } @else {
+            <span [matTooltip]="boton.tooltip?.(undefined) ?? ''">
+              <button mat-raised-button color="primary" (click)="boton.accion?.()" class="boton-icono"
+                [disabled]="!(boton.estado?.(undefined) ?? true)" [style]="boton.estilos?.(undefined)">
+                <mat-icon>{{ boton.icono }}</mat-icon>
+                @if (boton.texto) {
+                {{ boton.texto }}
+                }
+              </button>
+            </span>
+            }
+            }
+          </span>
+          } @else {
           {{ columna.titulo }}
+          }
         </th>
 
-        <td mat-cell *matCellDef="let fila" [style]="columna.estilos">
+        <td mat-cell *matCellDef="let fila" [style]="estiloCelda(fila, columna)"
+          [class.columna-acciones]="columna.formato === 'botones'">
           @if (columna.formato === 'botones') {
-          @for (boton of columna.botones; track boton) {
-          @if (!boton.visible || boton.visible(fila)) {
+          @for (boton of botonesPorPosicion(columna, 'fila'); track boton) {
+          @if (boton.tipo === 'expandible') {
+          <span [matTooltip]="tooltipExpansion(false, fila)">
+            <button mat-raised-button color="accent" class="boton-icono"
+              (click)="$event.stopPropagation(); alternarFila(fila)">
+              <mat-icon>{{ iconoExpansion(false, fila) }}</mat-icon>
+            </button>
+          </span>
+          } @else if (!boton.visible || boton.visible(fila)) {
           <span [matTooltip]="boton.tooltip?.(fila) ?? ''">
-            <button mat-icon-button color="accent" (click)="boton.accion(fila)" class="boton-icono"
-            [attr.aria-label]="boton.tooltip?.(fila) ?? boton.icono"
-            [disabled]="boton.estado?.(fila) ?? false" [style]="boton.estilos?.(fila)">
+            <button mat-raised-button color="accent" (click)="boton.accion?.(fila)" class="boton-icono"
+              [disabled]="!(boton.estado?.(fila) ?? true)" [style]="boton.estilos?.(fila)">
               <mat-icon>{{ boton.icono }}</mat-icon>
+              @if (boton.texto) {
+              {{ boton.texto }}
+              }
             </button>
           </span>
           }
           }
+          } @else if (formatoCelda(fila, columna) === 'entrada') {
+          @let ctrlEntrada = controlCelda(fila, columna);
+          <mat-form-field appearance="outline" class="celda-editable"
+            [class.celda-invalida]="ctrlEntrada.touched && ctrlEntrada.invalid" (click)="$event.stopPropagation()">
+            @if (validacionCelda(fila, columna)?.mascara) {
+            <input matInput [formControl]="ctrlEntrada" [mask]="validacionCelda(fila, columna)!.mascara!"
+              [showMaskTyped]="true" [thousandSeparator]="validacionCelda(fila, columna)?.separadorMiles ?? ','"
+              [decimalMarker]="validacionCelda(fila, columna)?.separadorDecimal ?? '.'"
+              [dropSpecialCharacters]="!(validacionCelda(fila, columna)?.conservarSeparadores ?? false)"
+              (input)="normalizarEntrada(ctrlEntrada, columna, fila)" />
+            } @else {
+            <input matInput [formControl]="ctrlEntrada" (input)="normalizarEntrada(ctrlEntrada, columna, fila)" />
+            }
+          </mat-form-field>
+          } @else if (columna.formato === 'check') {
+          <mat-checkbox [checked]="!!fila[columna.clave]"
+            (change)="editarCelda(fila, columna.clave, $event.checked ? 1 : 0)" (click)="$event.stopPropagation()">
+          </mat-checkbox>
+          } @else if (columna.formato === 'fecha-editable') {
+          @let ctrlFecha = controlCelda(fila, columna);
+          <mat-form-field appearance="outline" class="celda-editable"
+            [class.celda-invalida]="ctrlFecha.touched && ctrlFecha.invalid" (click)="$event.stopPropagation()">
+            <input matInput [matDatepicker]="picker" [formControl]="ctrlFecha" (click)="picker.open()" readonly />
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+          </mat-form-field>
           } @else {
           {{ formatearCelda(fila, columna) }}
           }
@@ -46,8 +126,30 @@
 
       </ng-container>
       }
+
+      @if (tieneExpansion) {
+      <ng-container matColumnDef="detalle-expandible">
+        <td mat-cell *matCellDef="let fila" [attr.colspan]="columnasKeys.length" class="celda-detalle">
+          @if (contenidoDetalle) {
+          <ng-container *ngTemplateOutlet="
+            contenidoDetalle;
+            context: { $implicit: fila }
+          " />
+          }
+        </td>
+
+      </ng-container>
+      }
+
       <tr mat-header-row *matHeaderRowDef="columnasKeys; sticky: true"></tr>
-      <tr mat-row *matRowDef="let row; columns: columnasKeys"></tr>
+      <tr mat-row *matRowDef="let row; columns: columnasKeys" (click)="seleccionarFila(row)"
+        (dblclick)="deseleccionarFila()" [class.seleccionada]="row === filaSeleccionada"
+        [class.fila-expandida]="estaExpandida(row)"></tr>
+
+      @if (tieneExpansion) {
+      <tr mat-row *matRowDef="let row; columns: ['detalle-expandible']; when: estaExpandidaFn" class="fila-detalle">
+      </tr>
+      }
 
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [attr.colspan]="columnasKeys.length" style="padding: 16px; text-align: center;">
@@ -57,7 +159,13 @@
     </table>
   </section>
 
+  @if (mostrarPaginador) {
   <div class="pie-pagina">
+    <button mat-icon-button class="boton-exportar" (click)="exportarExcel()" matTooltip="Descargar a Excel"
+      aria-label="Descargar a Excel">
+      <mat-icon>table_chart</mat-icon>
+    </button>
     <mat-paginator showFirstLastButtons [pageSizeOptions]="[50, 250, 1000]"></mat-paginator>
   </div>
+  }
 </div>

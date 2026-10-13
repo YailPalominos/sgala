@@ -5,6 +5,7 @@ import asyncHandler from 'express-async-handler';
 import { enviarDispositivoActualizado } from '../socket'
 import { actualizarDatosDispositivo } from '@/repositorios/redis/dispositivo.redis';
 import { ErrorHttp } from '@/interceptores/error.middleware';
+import { enviarSolicitudDispositivo } from '@/broker';
 export const dispositivoRouter = Router();
 
 /**
@@ -87,6 +88,41 @@ dispositivoRouter.get('/obtener-lista',
     respuesta.status(200).json({
       mensaje: 'Localizaciones obtenidas exitosamente.',
       datos
+    });
+  })
+);
+
+
+
+/**
+ * Obtiene la configuración del dipositivo (Fisico)
+ */
+dispositivoRouter.get('/obtener-configuracion/:clave',
+  asyncHandler(async (solicitud, respuesta) => {
+    const { clave } = solicitud.params;
+
+    const resultado = await enviarSolicitudDispositivo(clave, 'obtener-configuracion');
+
+    console.log(resultado)
+    respuesta.status(200).json({
+      mensaje: 'Configuración obtenida exitosamente.',
+      datos: {}
+    });
+  })
+);
+
+
+/**
+ * Actualiza la configuración del dipositivo (Fisico)
+ */
+dispositivoRouter.put('/actualizar-configuracion',
+  asyncHandler(async (solicitud, respuesta) => {
+    const datos = solicitud.body
+
+    await enviarSolicitudDispositivo(datos.clave, 'actualizar-configuracion');
+
+    respuesta.status(200).json({
+      mensaje: 'Configuración actualizada exitosamente.',
     });
   })
 );

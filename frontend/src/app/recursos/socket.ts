@@ -132,7 +132,7 @@ export class Socket {
       }
     });
 
-    this.socketCliente.on('error/dispositivo', (datos: any) => {
+    this.socketCliente.on('error/solicitud', (datos: any) => {
       this.notificador.error(datos?.mensaje || 'Error en la solicitud al dispositivo.');
       this.errorDispositivoSubject.next(datos);
     });
@@ -187,26 +187,31 @@ export class Socket {
   }
 
   /**
- * Envía un evento al servidor Socket.io.
- * @param evento Nombre del evento.
- * @param datos Datos a enviar.
- */
-  emitir<T = any>(
+   * Emite un evento al servidor Socket.IO y espera su respuesta.
+   * @param evento Nombre del evento.
+   * @param datos Datos que se enviarán.
+   * @returns Promesa con la respuesta del servidor.
+   */
+  emitir<TRespuesta = any>(
     evento: string,
-    datos?: T
-  ): void {
+    datos?: unknown
+  ): Promise<TRespuesta> {
 
-    if (!this.socketCliente?.connected) {
-      console.error(
-        '❌ Socket no conectado'
+    return new Promise<TRespuesta>((resolve, reject) => {
+
+      if (!this.socketCliente?.connected) {
+        reject(new Error('Socket no conectado'));
+        return;
+      }
+
+      this.socketCliente.emit(
+        evento,
+        datos,
+        (respuesta: TRespuesta) => {
+          resolve(respuesta);
+        }
       );
-      return;
-    }
 
-    this.socketCliente.emit(
-      evento,
-      datos
-    );
-
+    });
   }
 }

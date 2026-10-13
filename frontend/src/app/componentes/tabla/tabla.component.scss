@@ -2,21 +2,23 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
 }
 
 .contenedor {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
   width: 100%;
-  padding: 10px 1.5% 10px 1.5%;
+  height: calc(100% - 40px);
+  min-height: 0;
+  padding: 0 1.5%;
   box-sizing: border-box;
-  height: 100%;
 }
 
 .barra-acciones {
@@ -31,10 +33,7 @@
     flex: 1;
     max-width: 50%;
     min-width: 400px;
-
-    ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-      display: none;
-    }
+    margin: 0;
   }
 }
 
@@ -42,7 +41,6 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-
   background: #fff;
   border: 1px solid #a5a4a4;
   border-radius: 12px;
@@ -52,7 +50,7 @@
     table-layout: auto;
 
     th {
-      background: linear-gradient(135deg, var(--tema-primary, #3e474d) 0%, var(--tema-secondary, #273036) 100%);
+      background-color: #3e474d;
       color: white !important;
       font-size: 12px;
       font-weight: 600;
@@ -89,6 +87,14 @@
   border-left: 1px solid #a5a4a4;
   border-right: 1px solid #a5a4a4;
 
+  /* El botón de exportar queda a la izquierda y empuja el paginador a la
+     derecha. */
+  .boton-exportar {
+    margin-right: auto;
+    margin-left: 8px;
+    color: var(--sicva-primary, #1976d2);
+  }
+
   ::ng-deep .mat-mdc-paginator {
     font-size: 12px;
     height: 40px;
@@ -98,15 +104,62 @@
       min-height: 40px;
       padding: 0 8px;
     }
-
-    .mat-mdc-form-field {
-      width: 60px;
-    }
   }
+}
+
+tr[mat-row] {
+  cursor: pointer;
 }
 
 tr:hover {
   background: whitesmoke;
+}
+
+// Fila seleccionada (resaltada) al hacer click.
+// Usa la paleta activa del tema (variables --sicva-*).
+tr.seleccionada,
+tr.seleccionada:hover {
+  background: color-mix(in srgb, var(--sicva-primary) 16%, var(--sicva-surface, #fff));
+  box-shadow: inset 3px 0 0 0 var(--sicva-primary);
+
+  td {
+    color: var(--sicva-text, #162027);
+    font-weight: 600;
+  }
+}
+
+// Columna de acciones fija a la derecha (sticky end).
+// El fondo debe ser opaco para que el contenido que se desplaza
+// por debajo no se transparente al hacer scroll horizontal.
+// Se refuerza position/right/z-index para que la columna quede realmente
+// anclada a la derecha y no se desalinee al aparecer/desaparecer la barra de
+// scroll vertical o al recalcular anchos con table-layout: auto.
+td.columna-acciones {
+  background: var(--sicva-surface, #fff);
+  position: sticky !important;
+  right: 0 !important;
+  z-index: 1;
+}
+
+// El header sticky conserva el fondo oscuro del encabezado
+// para que no se transparente el contenido al hacer scroll.
+// z-index mayor para quedar por encima de las celdas de datos sticky.
+th.columna-acciones {
+  background: linear-gradient(135deg, var(--sicva-primary) 0%, var(--sicva-secondary) 100%) !important;
+  position: sticky !important;
+  right: 0 !important;
+  z-index: 3;
+}
+
+// La celda de acciones sigue el resaltado de la fila seleccionada
+// y del hover para que se vea uniforme.
+tr:hover td.columna-acciones {
+  background: whitesmoke;
+}
+
+tr.seleccionada td.columna-acciones,
+tr.seleccionada:hover td.columna-acciones {
+  background: color-mix(in srgb, var(--sicva-primary) 16%, var(--sicva-surface, #fff));
 }
 
 .boton-icono {
@@ -115,8 +168,7 @@ tr:hover {
   height: 40px;
   padding: 0 !important;
 
-  /* Color acorde al tema seleccionado. */
-  background-color: var(--tema-primary, #424242) !important;
+  background-color: #424242 !important;
   color: white !important;
   border: 1px solid #ffffff !important;
   border-radius: 8px;
@@ -130,11 +182,6 @@ tr:hover {
 
   .mat-icon {
     margin: 0;
-    color: white !important;
-  }
-
-  &:disabled .mat-icon {
-    color: #757575 !important;
   }
 }
 
@@ -152,4 +199,111 @@ tr:hover {
       width: 100%;
     }
   }
+}
+
+
+/* Encabezado de una columna de acciones: título + botones de encabezado. */
+.encabezado-acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.encabezado-titulo {
+  white-space: nowrap;
+}
+
+/* Celdas editables (formato 'entrada' y 'fecha-editable'): input compacto
+   dentro de la celda de la tabla, sin borde outline, solo una raya inferior. */
+.celda-editable {
+  width: 100%;
+  min-width: 120px;
+  font-size: 12px;
+
+  // Quita el espacio para mensajes de error/hint bajo el input.
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  // Compacta el alto del campo dentro de la fila.
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    padding: 0 4px;
+    background: transparent;
+  }
+
+  ::ng-deep .mat-mdc-form-field-infix {
+    min-height: 32px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    width: auto;
+  }
+
+  // Elimina el recuadro (outline) del campo: sin lados ni esquinas.
+  ::ng-deep .mdc-notched-outline__leading,
+  ::ng-deep .mdc-notched-outline__notch,
+  ::ng-deep .mdc-notched-outline__trailing {
+    border: none !important;
+  }
+
+  // Deja solo una raya inferior gris bajo el contenido.
+  ::ng-deep .mat-mdc-form-field-flex {
+    border-bottom: 1px solid #9e9e9e;
+  }
+}
+
+/* Cuando el campo fue tocado y es invalido, la raya inferior se pone roja. */
+.celda-editable.celda-invalida {
+  ::ng-deep .mat-mdc-form-field-flex {
+    border-bottom: 2px solid #d32f2f;
+  }
+
+  ::ng-deep input {
+    caret-color: #d32f2f;
+  }
+}
+
+
+
+/* ============================================================
+   Fila de detalle expandible (botones tipo 'expandible').
+   La celda ocupa todo el ancho de la tabla y muestra el HTML
+   de fila.contenido. La fila de la cabecera de datos pierde el
+   borde inferior cuando está expandida para unirse al detalle.
+   ============================================================ */
+.fila-detalle .celda-detalle {
+  padding: 0;
+  border-bottom-width: 1px;
+}
+
+.detalle-expandible {
+  padding: 12px 24px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
+tr.fila-expandida td {
+  border-bottom-color: transparent;
+}
+
+/* ============================================================
+   Columna de selección (checkbox). Centrada horizontal y
+   verticalmente, ancho compacto.
+   ============================================================ */
+.columna-seleccion {
+  width: 48px;
+  max-width: 48px;
+  text-align: center;
+  padding: 0 8px !important;
+
+  .mat-mdc-checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+th.columna-seleccion,
+td.columna-seleccion {
+  vertical-align: middle;
 }

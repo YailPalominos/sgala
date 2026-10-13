@@ -74,65 +74,108 @@ async function manejarConexion(socket: Socket): Promise<void> {
       }
     });
 
-    socket.on('solicitud/dispositivo', async (datos) => {
+    socket.on('cambiar-estatus', async (datos, responder) => {
       try {
-        const respuesta = await enviarSolicitudDispositivo(
-          datos.clave,
-          datos
-        );
 
-        if (!respuesta.estatus) {
-          socket.emit('error/dispositivo', {
-            mensaje: respuesta.mensaje || 'El dispositivo rechazó la solicitud.'
-          });
-          return;
-        }
+        // const respuesta = await enviarSolicitudDispositivo(datos.clave, 'actualizar-estatus', datos);
 
-        if ('estatusAlarma' in datos) {
-          if (datos.estatusAlarma == true) {
-            const claveAlarmaUsuario = crypto.randomUUID();
+        const respuesta = {
+          mensaje: 'Configuración obtenida exitosamente.',
+        };
 
-            await redisRepositorio.agregarAlarma(
-              datos.clave,
-              {
-                clave: claveAlarmaUsuario,
-                descripcion: 'Alarma generada por usuario',
-                fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
-              }
-            );
+        const resultado = {
+          estatus: true,
+          mensaje: respuesta.mensaje,
+        };
 
-            const dispositivo = await redisRepositorio.obtenerDispositivo(datos.clave);
+        // if ('estatusAlarma' in datos) {
+        //   if (datos.estatusAlarma == true) {
+        //     const claveAlarmaUsuario = crypto.randomUUID();
 
-            await agregarNotificacion(
-              dispositivo.idUsuario,
-              {
-                clave: crypto.randomUUID(),
-                descripcion: `Alarma activada en '${dispositivo.alias}' por usuario.`,
-                fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-                atendida: null,
-                claveDispositivo: dispositivo.clave,
-                claveAlarma: claveAlarmaUsuario,
-                origen: 'alarma'
-              }
-            );
+        //     await redisRepositorio.agregarAlarma(
+        //       datos.clave,
+        //       {
+        //         clave: claveAlarmaUsuario,
+        //         descripcion: 'Alarma generada por usuario',
+        //         fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
+        //       }
+        //     );
 
-            await crearEventoSistema(
-              dispositivo.idUsuario,
-              `Alarma dispositivo clave:"${datos.clave}" activada por usuario con la clave de alarma:"${claveAlarmaUsuario}"`
-            );
+        const dispositivo = await redisRepositorio.obtenerDispositivo(datos.clave);
 
-            await enviarNotificacionUsuario(dispositivo.idUsuario);
-          }
-        }
+        //     await agregarNotificacion(
+        //       dispositivo.idUsuario,
+        //       {
+        //         clave: crypto.randomUUID(),
+        //         descripcion: `Alarma activada en '${dispositivo.alias}' por usuario.`,
+        //         fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        //         atendida: null,
+        //         claveDispositivo: dispositivo.clave,
+        //         claveAlarma: claveAlarmaUsuario,
+        //         origen: 'alarma'
+        //       }
+        //     );
+
+        //     await crearEventoSistema(
+        //       dispositivo.idUsuario,
+        //       `Alarma dispositivo clave:"${datos.clave}" activada por usuario con la clave de alarma:"${claveAlarmaUsuario}"`
+        //     );
+
+        await enviarNotificacionUsuario(dispositivo.idUsuario);
+        //   }
+        // }
+
+
+        responder(resultado);
 
       } catch (error) {
-        socket.emit('error/dispositivo',
-          {
-            mensaje: error instanceof Error ? error.message : 'Error al procesar la solicitud del dispositivo.'
-          }
-        );
+        responder({
+          estatus: false,
+          mensaje: error instanceof Error
+            ? error.message
+            : 'Error al procesar la solicitud.'
+        });
       }
     });
+
+
+    socket.on('obtener-configuracion', async (datos, responder) => {
+      try {
+
+        console.log(datos)
+
+        // const respuesta = await enviarSolicitudDispositivo(datos.clave, 'obtener-configuracion');
+
+
+        const respuesta = {
+          mensaje: 'Configuración obtenida exitosamente.',
+          datos: {
+            gpio: 1
+          }
+        };
+
+        const resultado = {
+          estatus: true,
+          mensaje: respuesta.mensaje,
+          datos: respuesta.datos
+        };
+
+
+        responder(resultado);
+
+
+      } catch (error) {
+        responder({
+          estatus: false,
+          mensaje: error instanceof Error
+            ? error.message
+            : 'Error al procesar la solicitud.'
+        });
+      }
+    });
+
+
+
 
     socket.on('solicitud/alarma', async (datos) => {
       try {
