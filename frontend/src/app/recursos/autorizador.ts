@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivate, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { Autenticador } from './autenticador';
-import { obtenerClavePorRuta } from './constantes';
+import { obtenerClavePorRuta, rutasAdministrador, rutasUsuario } from './constantes';
 
 @Injectable({
     providedIn: 'root'
@@ -31,7 +31,15 @@ export class Autorizador implements CanActivate {
             return true;
         }
 
-        return this.router.createUrlTree(['/inicio']);
+        const rutas = this.autenticador.obtenerSesion()?.tipoCuenta === 'administrador'
+            ? rutasAdministrador
+            : rutasUsuario;
+        const rutaPermitida = rutas.find(opcion =>
+            this.autenticador.obtenerPermisosPorClave(opcion.clave)
+                .includes(opcion.permiso)
+        )?.ruta;
+
+        return this.router.createUrlTree([rutaPermitida ?? '/acceder']);
 
     }
 }

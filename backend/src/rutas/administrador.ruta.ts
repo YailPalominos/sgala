@@ -116,7 +116,8 @@ administradorRouter.post(
       administrador.alias,
       -administrador.id,
       '',
-      'administrador'
+      'administrador',
+      administrador.permisos ?? undefined
     );
     await eventoAdministradorRepositorio.registrar(
       administrador.id,

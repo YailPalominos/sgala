@@ -10,13 +10,16 @@ export interface Sesion {
   direccionCorreoElectronico: string;
   claveSocket: string;
   telefono: string;
-  permisos: string
+  permisos?: string
 }
 
 @Injectable({ providedIn: 'root' })
 export class Autenticador {
 
   private readonly claveSesion = 'sesion';
+  private readonly permisosAdministradorPorDefecto =
+    'DIP:OBL;EVA:OBL;GRA:OBL;ADM:OBL;SOL:OBL';
+  private readonly permisosUsuarioPorDefecto = 'CLI:INI,TAB,OBL';
 
   private autenticadoSubject = new BehaviorSubject<boolean>(this.existeSesion());
   public autenticado$ = this.autenticadoSubject.asObservable();
@@ -36,7 +39,7 @@ export class Autenticador {
   }
 
   public guardarSesion(sesion: Sesion): void {
-    sesion.permisos = "CLI:INI,TAB,OBL"
+    this.aplicarPermisosPorDefecto(sesion);
     localStorage.setItem(this.claveSesion, JSON.stringify(sesion));
     this.autenticadoSubject.next(true);
   }
@@ -48,7 +51,26 @@ export class Autenticador {
       return null;
     }
 
-    return JSON.parse(datos) as Sesion;
+    const sesion = JSON.parse(datos) as Sesion;
+    if (this.aplicarPermisosPorDefecto(sesion)) {
+      localStorage.setItem(this.claveSesion, JSON.stringify(sesion));
+    }
+    return sesion;
+  }
+
+  private aplicarPermisosPorDefecto(sesion: Sesion): boolean {
+    const permisosAnteriores = sesion.permisos;
+
+    if (
+      sesion.tipoCuenta === 'administrador' &&
+      (!sesion.permisos || sesion.permisos === this.permisosUsuarioPorDefecto)
+    ) {
+      sesion.permisos = this.permisosAdministradorPorDefecto;
+    } else if (!sesion.permisos) {
+      sesion.permisos = this.permisosUsuarioPorDefecto;
+    }
+
+    return permisosAnteriores !== sesion.permisos;
   }
 
   public eliminarSesion(): void {

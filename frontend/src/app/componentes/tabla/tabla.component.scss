@@ -49,8 +49,9 @@
     width: 100%;
     table-layout: auto;
 
-    th {
-      background-color: #3e474d;
+    th.mat-mdc-header-cell {
+      background-color: var(--tema-primary, #4a4a4a) !important;
+      background-image: none !important;
       color: white !important;
       font-size: 12px;
       font-weight: 600;
@@ -141,11 +142,9 @@ td.columna-acciones {
   z-index: 1;
 }
 
-// El header sticky conserva el fondo oscuro del encabezado
-// para que no se transparente el contenido al hacer scroll.
-// z-index mayor para quedar por encima de las celdas de datos sticky.
+// El encabezado de acciones conserva el mismo color del tema que el resto
+// de los encabezados al desplazarse horizontalmente.
 th.columna-acciones {
-  background: linear-gradient(135deg, var(--sicva-primary) 0%, var(--sicva-secondary) 100%) !important;
   position: sticky !important;
   right: 0 !important;
   z-index: 3;
@@ -168,7 +167,7 @@ tr.seleccionada:hover td.columna-acciones {
   height: 40px;
   padding: 0 !important;
 
-  background-color: #424242 !important;
+  background-color: var(--tema-primary, #4a4a4a) !important;
   color: white !important;
   border: 1px solid #ffffff !important;
   border-radius: 8px;

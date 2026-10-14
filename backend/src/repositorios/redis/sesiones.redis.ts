@@ -19,6 +19,7 @@ export interface SesionRedis {
     alias: string;
     direccionCorreoElectronico: string;
     telefono: string;
+    permisos?: string;
     claveSocket?: string;
 }
 
@@ -98,7 +99,8 @@ export async function crearSesion(
     alias: string,
     idUsuario: number,
     telefono: string,
-    tipoCuenta: 'usuario' | 'administrador' = 'usuario'
+    tipoCuenta: 'usuario' | 'administrador' = 'usuario',
+    permisos?: string
 ): Promise<SesionRedis> {
 
     try {
@@ -113,6 +115,7 @@ export async function crearSesion(
             alias,
             direccionCorreoElectronico,
             telefono,
+            permisos,
             claveSocket: undefined
         };
 

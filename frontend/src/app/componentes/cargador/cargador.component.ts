@@ -13,6 +13,7 @@ import { Cargador, NOMBRE_SPINNER } from '../../recursos/cargador';
       size="large"
       color="#616161"
       bdColor="rgba(223, 223, 223, 0.7)"
+      [zIndex]="9000"
       [fullScreen]="true">
 
       <div class="cargador-contenido">

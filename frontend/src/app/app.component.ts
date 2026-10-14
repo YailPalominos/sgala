@@ -117,18 +117,9 @@ export class AppComponent {
               ? rutasAdministrador
               : rutasUsuario;
 
-            const permisos = new Set<string>();
-
-            if (typeof sesion.permisos === 'string') {
-              const [clave, ...valores] = sesion.permisos.replace(/\\/g, '').split(':');
-
-              valores.join(':').split(',').forEach(permiso => {
-                permisos.add(`${clave.trim()}:${permiso.trim()}`.trim());
-              });
-            }
-
             this.rutasNavegacion = rutas.filter(opcion =>
-              permisos.has(`${opcion.clave.trim()}:${opcion.permiso.trim()}`)
+              this.autenticador.obtenerPermisosPorClave(opcion.clave)
+                .includes(opcion.permiso)
             );
 
           }

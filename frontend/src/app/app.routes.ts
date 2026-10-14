@@ -29,6 +29,7 @@ export const routes: Routes = [
   { path: 'inicio', component: PaginaInicio, canActivate: [Autorizador] },
   { path: 'tablero', component: PaginaTablero, canActivate: [Autorizador] },
   { path: 'suscripciones', component: PaginaSolicitudes, canActivate: [Autorizador] },
+  { path: 'solicitudes', component: PaginaSolicitudes, canActivate: [Autorizador] },
   { path: 'eventos', component: PaginaEventos, canActivate: [Autorizador] },
   { path: 'dispositivos', component: PaginaDispositivos, canActivate: [Autorizador] },
   { path: 'usuarios', component: PaginaUsuarios, canActivate: [Autorizador] },
