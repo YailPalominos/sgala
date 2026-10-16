@@ -67,7 +67,7 @@ export class DialogoAyuda extends Formulario {
     ]),
   });
 
-  iniciar() {
+  override iniciar() {
 
     this.formulario.get('pregunta')?.valueChanges.subscribe(valor => {
 

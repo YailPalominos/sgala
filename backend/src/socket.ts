@@ -74,59 +74,38 @@ async function manejarConexion(socket: Socket): Promise<void> {
       }
     });
 
+
     socket.on('cambiar-estatus', async (datos, responder) => {
       try {
+        const respuesta = await Promise.race([
+          enviarSolicitudDispositivo(
+            datos.clave,
+            'actualizar-estatus',
+            datos
+          ),
 
-        // const respuesta = await enviarSolicitudDispositivo(datos.clave, 'actualizar-estatus', datos);
+          new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(
+                new Error(
+                  'El dispositivo no respondió dentro del tiempo esperado.'
+                )
+              );
+            }, 12000);
+          })
+        ]);
 
-        const respuesta = {
-          mensaje: 'Configuración obtenida exitosamente.',
-        };
+        if (respuesta.estatus === false) {
+          throw new Error(respuesta.mensaje);
+        }
 
-        const resultado = {
-          estatus: true,
-          mensaje: respuesta.mensaje,
-        };
-
-        // if ('estatusAlarma' in datos) {
-        //   if (datos.estatusAlarma == true) {
-        //     const claveAlarmaUsuario = crypto.randomUUID();
-
-        //     await redisRepositorio.agregarAlarma(
-        //       datos.clave,
-        //       {
-        //         clave: claveAlarmaUsuario,
-        //         descripcion: 'Alarma generada por usuario',
-        //         fecha: dayjs().format('YYYY-MM-DD HH:mm:ss')
-        //       }
-        //     );
-
-        const dispositivo = await redisRepositorio.obtenerDispositivo(datos.clave);
-
-        //     await agregarNotificacion(
-        //       dispositivo.idUsuario,
-        //       {
-        //         clave: crypto.randomUUID(),
-        //         descripcion: `Alarma activada en '${dispositivo.alias}' por usuario.`,
-        //         fecha: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-        //         atendida: null,
-        //         claveDispositivo: dispositivo.clave,
-        //         claveAlarma: claveAlarmaUsuario,
-        //         origen: 'alarma'
-        //       }
-        //     );
-
-        //     await crearEventoSistema(
-        //       dispositivo.idUsuario,
-        //       `Alarma dispositivo clave:"${datos.clave}" activada por usuario con la clave de alarma:"${claveAlarmaUsuario}"`
-        //     );
+        const dispositivo = await redisRepositorio.obtenerDispositivo(
+          datos.clave
+        );
 
         await enviarNotificacionUsuario(dispositivo.idUsuario);
-        //   }
-        // }
 
-
-        responder(resultado);
+        responder(respuesta);
 
       } catch (error) {
         responder({
@@ -137,32 +116,31 @@ async function manejarConexion(socket: Socket): Promise<void> {
         });
       }
     });
-
 
     socket.on('obtener-configuracion', async (datos, responder) => {
       try {
+        const respuesta = await Promise.race([
+          enviarSolicitudDispositivo(
+            datos.clave,
+            'obtener-configuracion'
+          ),
 
-        console.log(datos)
+          new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(
+                new Error(
+                  'El dispositivo no respondió dentro del tiempo esperado.'
+                )
+              );
+            }, 12000);
+          })
+        ]);
 
-        // const respuesta = await enviarSolicitudDispositivo(datos.clave, 'obtener-configuracion');
+        if (respuesta.estatus === false) {
+          throw new Error(respuesta.mensaje);
+        }
 
-
-        const respuesta = {
-          mensaje: 'Configuración obtenida exitosamente.',
-          datos: {
-            gpio: 1
-          }
-        };
-
-        const resultado = {
-          estatus: true,
-          mensaje: respuesta.mensaje,
-          datos: respuesta.datos
-        };
-
-
-        responder(resultado);
-
+        responder(respuesta);
 
       } catch (error) {
         responder({
@@ -174,60 +152,99 @@ async function manejarConexion(socket: Socket): Promise<void> {
       }
     });
 
-
-
-
-    socket.on('solicitud/alarma', async (datos) => {
+    socket.on('actualizar-configuracion', async (datos, responder) => {
       try {
+        const respuesta = await Promise.race([
+          enviarSolicitudDispositivo(
+            datos.clave,
+            'actualizar-configuracion',
+            datos
+          ),
 
-        await redisRepositorio.eliminarAlarma(
-          datos.claveDispositivo,
-          datos.claveAlarma
-        );
+          new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(
+                new Error(
+                  'El dispositivo no respondió dentro del tiempo esperado.'
+                )
+              );
+            }, 12000);
+          })
+        ]);
 
-        await eliminarNotificacionPorAlarma(
-          id,
-          datos.claveAlarma,
-          datos.claveDispositivo,
-          datos.descripcion?.includes('sin conexión') ? 'conexion' : 'alarma'
-        );
+        if (respuesta.estatus === false) {
+          throw new Error(respuesta.mensaje);
+        }
 
-        await crearEventoSistema(
-          id,
-          `Alarma dispositivo clave:"${datos.claveDispositivo}" ${datos.descripcion || ''} desactivada con la clave de alarma:"${datos.claveAlarma}"`
-        );
-
-        await enviarDispositivoActualizado(datos.claveDispositivo);
-        await enviarNotificacionUsuario(id);
-
-      } catch (error) {
-        socket.emit('error/dispositivo',
-          {
-            mensaje: error instanceof Error ? error.message : 'Error al procesar la alarma.'
-          }
-        );
-      }
-    });
-
-    socket.on('solicitud/notificacion', async (datos) => {
-      try {
-        await redisRepositorio.cambiarAtencionNotificacion(
-          id,
+        const dispositivo = await redisRepositorio.obtenerDispositivo(
           datos.clave
         );
-        await enviarNotificacionUsuario(id);
-      } catch (error) {
-        socket.emit(
-          'error/notificacion',
-          {
-            mensaje: error instanceof Error
-              ? error.message
-              : 'Error al procesar la notificación.'
-          }
-        );
 
+        await enviarNotificacionUsuario(dispositivo.idUsuario);
+
+        responder(respuesta);
+
+      } catch (error) {
+        responder({
+          estatus: false,
+          mensaje: error instanceof Error
+            ? error.message
+            : 'Error al procesar la solicitud.'
+        });
       }
     });
+
+    // socket.on('desactivar-alarma', async (datos, responder) => {
+    //   try {
+
+    //     await redisRepositorio.eliminarAlarma(
+    //       datos.claveDispositivo,
+    //       datos.claveAlarma
+    //     );
+
+    //     await eliminarNotificacionPorAlarma(
+    //       id,
+    //       datos.claveAlarma,
+    //       datos.claveDispositivo,
+    //       datos.descripcion?.includes('sin conexión') ? 'conexion' : 'alarma'
+    //     );
+
+    //     await crearEventoSistema(
+    //       id,
+    //       `Alarma dispositivo clave:"${datos.claveDispositivo}" ${datos.descripcion || ''} desactivada con la clave de alarma:"${datos.claveAlarma}"`
+    //     );
+
+    //     await enviarDispositivoActualizado(datos.claveDispositivo);
+    //     await enviarNotificacionUsuario(id);
+
+    //   } catch (error) {
+    //     socket.emit('error/dispositivo',
+    //       {
+    //         mensaje: error instanceof Error ? error.message : 'Error al procesar la alarma.'
+    //       }
+    //     );
+    //   }
+    // });
+
+    // socket.on('cambiar-atencion-notificacion', async (datos, responder) => {
+    //   try {
+    //     await redisRepositorio.cambiarAtencionNotificacion(
+    //       id,
+    //       datos.clave
+    //     );
+    //     await enviarNotificacionUsuario(id);
+    //   } catch (error) {
+    //     socket.emit(
+    //       'error/notificacion',
+    //       {
+    //         mensaje: error instanceof Error
+    //           ? error.message
+    //           : 'Error al procesar la notificación.'
+    //       }
+    //     );
+
+    //   }
+    // });
 
   } catch (error) {
     console.log(error)

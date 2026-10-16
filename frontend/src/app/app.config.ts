@@ -36,6 +36,7 @@ import { DialogoResolucion } from './dialogos/dialogo-resolucion/dialogo-resoluc
 import { PaginaDispositivos } from './paginas/pagina-dispositivos/pagina-dispositivos';
 import { FormularioPreUsuario } from './formularios/formulario-pre-usuario/formulario-pre-usuario';
 import { FormularioConfiguracion } from './formularios/formulario-configuracion/formulario-configuracion';
+import { FormularioEvento } from './formularios/formulario-evento/formulario-evento';
 
 export const clases = new InjectionToken<Type<any>[]>('clases');
 
@@ -66,6 +67,7 @@ export const appConfig: ApplicationConfig = {
         FormularioAdministradorPerfil,
         FormularioPreUsuario,
         FormularioUsuario,
+        FormularioEvento,
         PanelSuscripciones,
         PanelLocalizaciones,
         PanelEventos,

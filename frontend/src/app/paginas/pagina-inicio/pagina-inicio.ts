@@ -216,7 +216,7 @@ export class PaginaInicio implements OnInit {
 
   private async finalizarIntercalarActivacion(respuesta?: any) {
     if (respuesta?.resultado == true) {
-      this.marcarProcesando(respuesta.datos.clavee);
+      this.marcarProcesando(respuesta.datos.clave);
       await this.socket.emitir('cambiar-estatus', { clave: respuesta.datos.clave, estatus: respuesta.datos.estatus })
       this.quitarProcesando(respuesta.datos.clave);
     }
@@ -276,6 +276,9 @@ export class PaginaInicio implements OnInit {
     this.marcarProcesando(dispositivo.clave);
     const respuesta = await this.socket.emitir('obtener-configuracion', { clave: dispositivo.clave })
     this.quitarProcesando(dispositivo.clave);
+    if (respuesta.estatus == false) {
+      return
+    }
     this.dialogoServicio.abrir({
       referencia: FormularioConfiguracion,
       titulo: 'Configuración',
@@ -283,8 +286,24 @@ export class PaginaInicio implements OnInit {
       largo: 'l35%,m55%,c100%',
       desactivarAutocerrado: true,
       parametros: 'A',
-      datos: respuesta.datos
+      datos: {
+        ...respuesta.datos,
+        clave: dispositivo.clave
+      },
+      alFinalizar: this.finalizarConfigurarDipositivo.bind(this)
     });
+  }
+
+  private async finalizarConfigurarDipositivo(respuesta?: any) {
+    if (respuesta?.resultado !== undefined) {
+      this.marcarProcesando(respuesta.datos.clave);
+      await this.socket.emitir(
+        'actualizar-configuracion',
+        respuesta.datos,
+      );
+      this.notificador.advertencia("Configuración actualizada el dispositivo se reiniciara.")
+      this.quitarProcesando(respuesta.datos.clave);
+    }
   }
 
   public filtrar(evento: Event): void {

@@ -8,15 +8,9 @@ import { TemaServicio } from '../../recursos/tema.servicio';
   selector: 'app-pagina-solicitudes',
   standalone: true,
   imports: [MatButtonModule, MatIconModule],
-  templateUrl: './pagina-solicitudes.html',
-  styleUrl: './pagina-solicitudes.scss',
+  templateUrl: './pagina-solicitudes.html'
 })
 export class PaginaSolicitudes {
 
-  private router = inject(Router);
-  public temaServicio = inject(TemaServicio);
 
-  volver(): void {
-    this.router.navigate(['/acceder']);
-  }
 }

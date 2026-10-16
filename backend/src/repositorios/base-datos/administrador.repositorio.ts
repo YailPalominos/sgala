@@ -6,7 +6,7 @@ export interface Administrador {
   nombres: string;
   apellidos: string;
   direccionCorreoElectronico: string;
-  telefono: string | null;
+  telefono: string;
   estatus: boolean;
   alias: string;
   permisos: string | null;
@@ -81,23 +81,26 @@ export async function obtenerConContrasena(
 
 export async function buscarPorIdentificador(
   identificador: string
-): Promise<AdministradorConContrasena | null> {
-  const administradores = await prisma.$queryRaw<AdministradorConContrasena[]>`
-    SELECT
-      id,
-      nombres,
-      apellidos,
-      direccion_correo_electronico AS "direccionCorreoElectronico",
-      telefono,
-      contrasena,
-      estatus,
-      alias,
-      permisos
-    FROM dbo.administradores
-    WHERE alias = ${identificador}
-       OR direccion_correo_electronico = ${identificador}
-  `;
-  return administradores[0] ?? null;
+): Promise<Administrador> {
+  const administrador = await prisma.administrador.findFirst({
+    where: {
+      OR: [
+        { alias: identificador },
+        { direccionCorreoElectronico: identificador },
+        { telefono: identificador }
+      ]
+    }
+  });
+
+  if (!administrador) {
+    throw new Error('Administrador no encontrado.');
+  }
+
+  if (administrador.estatus != true) {
+    throw new Error('Administrador inactivo contacte al administrador.');
+  }
+
+  return administrador;
 }
 
 export async function existeIdentificador(

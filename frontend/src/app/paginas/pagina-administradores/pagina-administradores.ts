@@ -42,8 +42,7 @@ interface Administrador {
     ReactiveFormsModule,
     TablaComponent
   ],
-  templateUrl: './pagina-administradores.html',
-  styleUrl: './pagina-administradores.scss'
+  templateUrl: './pagina-administradores.html'
 })
 export class PaginaAdministradores implements OnInit {
   private readonly servicio = inject(ServicioAdministrador);
@@ -56,10 +55,17 @@ export class PaginaAdministradores implements OnInit {
   readonly idEdicion = signal<number | null>(null);
   readonly error = signal<string | null>(null);
   readonly filtrosExpandido = signal(false);
-  readonly filtros = signal<Filtros>({
+  readonly filtrosDefecto = signal<Filtros>({
     etiqueta: '',
     marcador: '',
     texto: '',
+    botones: [
+      {
+        icono: 'add',
+        texto: 'Crear',
+        // accion: () => this.abrirFormulario()
+      }
+    ]
   });
   readonly formularioFiltros = new FormGroup({
     alias: new FormControl(''),
@@ -146,26 +152,6 @@ export class PaginaAdministradores implements OnInit {
     this.error.set(null);
   }
 
-  buscar(): void {
-    this.filtros.update((actual) => ({
-      ...actual,
-      texto: '',
-      criterios: Object.fromEntries(
-        Object.entries(this.formularioFiltros.getRawValue())
-          .filter(([, valor]) => Boolean(valor?.trim()))
-          .map(([clave, valor]) => [clave, valor!.trim()])
-      )
-    }));
-  }
-
-  reiniciarFiltros(): void {
-    this.formularioFiltros.reset({
-      alias: '',
-      direccionCorreoElectronico: '',
-      estadoTexto: ''
-    });
-    this.filtros.update((actual) => ({ ...actual, texto: '', criterios: {} }));
-  }
 
   cargar(): void {
     this.cargando.set(true);

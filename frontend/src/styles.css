@@ -162,7 +162,17 @@ textarea,
 .mat-mdc-card,
 .mat-mdc-dialog-container,
 .mat-mdc-menu-content,
-h1, h2, h3, h4, h5, h6, p, span, div, label, a {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+div,
+label,
+a {
   font-family: "Noto Sans", "Helvetica Neue", sans-serif;
 }
 
@@ -532,16 +542,16 @@ form {
 }
 
 /* Cada mat-form-field ocupa el 100% por defecto (una columna) */
-form > mat-form-field {
+form>mat-form-field {
   width: 100%;
 }
 
 /* Elementos que no son campos ocupan todo el ancho (texto, toggles, etc.) */
-form > p,
-form > mat-slide-toggle,
-form > .toggle-notificaciones,
-form > mat-card,
-form > div:not([class*="c"]):not([class*="m"]):not([class*="g"]) {
+form>p,
+form>mat-slide-toggle,
+form>.toggle-notificaciones,
+form>mat-card,
+form>div:not([class*="c"]):not([class*="m"]):not([class*="g"]) {
   width: 100%;
 }
 
@@ -564,39 +574,87 @@ form > div:not([class*="c"]):not([class*="m"]):not([class*="g"]) {
 }
 
 /* Valores por defecto (sin container query): 100% */
-form > .c100, form > .c50, form > .c33,
-form > .m100, form > .m50, form > .m33,
-form > .g100, form > .g50, form > .g33,
-.mat-mdc-dialog-actions > .c100, .mat-mdc-dialog-actions > .c50, .mat-mdc-dialog-actions > .c33,
-.mat-mdc-dialog-actions > .m100, .mat-mdc-dialog-actions > .m50, .mat-mdc-dialog-actions > .m33,
-.mat-mdc-dialog-actions > .g100, .mat-mdc-dialog-actions > .g50, .mat-mdc-dialog-actions > .g33 {
+form>.c100,
+form>.c50,
+form>.c33,
+form>.m100,
+form>.m50,
+form>.m33,
+form>.g100,
+form>.g50,
+form>.g33,
+.mat-mdc-dialog-actions>.c100,
+.mat-mdc-dialog-actions>.c50,
+.mat-mdc-dialog-actions>.c33,
+.mat-mdc-dialog-actions>.m100,
+.mat-mdc-dialog-actions>.m50,
+.mat-mdc-dialog-actions>.m33,
+.mat-mdc-dialog-actions>.g100,
+.mat-mdc-dialog-actions>.g50,
+.mat-mdc-dialog-actions>.g33 {
   width: 100%;
 }
 
 /* Contenedor chico */
 @container formulario (max-width: 399px) {
-  form > .c100, .mat-mdc-dialog-actions > .c100 { width: 100% !important; }
-  form > .c50,  .mat-mdc-dialog-actions > .c50  { width: calc(50% - 8px) !important; }
-  form > .c33,  .mat-mdc-dialog-actions > .c33  { width: calc(33.333% - 11px) !important; }
+
+  form>.c100,
+  .mat-mdc-dialog-actions>.c100 {
+    width: 100% !important;
+  }
+
+  form>.c50,
+  .mat-mdc-dialog-actions>.c50 {
+    width: calc(50% - 8px) !important;
+  }
+
+  form>.c33,
+  .mat-mdc-dialog-actions>.c33 {
+    width: calc(33.333% - 11px) !important;
+  }
 }
 
 /* Contenedor mediano */
 @container formulario (min-width: 400px) and (max-width: 699px) {
-  form > .m100, .mat-mdc-dialog-actions > .m100 { width: 100% !important; }
-  form > .m50,  .mat-mdc-dialog-actions > .m50  { width: calc(50% - 8px) !important; }
-  form > .m33,  .mat-mdc-dialog-actions > .m33  { width: calc(33.333% - 11px) !important; }
+
+  form>.m100,
+  .mat-mdc-dialog-actions>.m100 {
+    width: 100% !important;
+  }
+
+  form>.m50,
+  .mat-mdc-dialog-actions>.m50 {
+    width: calc(50% - 8px) !important;
+  }
+
+  form>.m33,
+  .mat-mdc-dialog-actions>.m33 {
+    width: calc(33.333% - 11px) !important;
+  }
 }
 
 /* Contenedor grande */
 @container formulario (min-width: 700px) {
-  form > .g100, .mat-mdc-dialog-actions > .g100 { width: 100% !important; }
-  form > .g50,  .mat-mdc-dialog-actions > .g50  { width: calc(50% - 8px) !important; }
-  form > .g33,  .mat-mdc-dialog-actions > .g33  { width: calc(33.333% - 11px) !important; }
+
+  form>.g100,
+  .mat-mdc-dialog-actions>.g100 {
+    width: 100% !important;
+  }
+
+  form>.g50,
+  .mat-mdc-dialog-actions>.g50 {
+    width: calc(50% - 8px) !important;
+  }
+
+  form>.g33,
+  .mat-mdc-dialog-actions>.g33 {
+    width: calc(33.333% - 11px) !important;
+  }
 }
 
 /* El wrapper interno de Material llena todo el ancho del mat-form-field */
-form > mat-form-field .mat-mdc-text-field-wrapper,
-form > mat-form-field .mat-mdc-form-field-infix {
+form>mat-form-field .mat-mdc-text-field-wrapper,
+form>mat-form-field .mat-mdc-form-field-infix {
   width: auto;
 }
 
@@ -620,13 +678,13 @@ form > mat-form-field .mat-mdc-form-field-infix {
   box-sizing: border-box;
 }
 
-.mat-mdc-dialog-actions > div {
+.mat-mdc-dialog-actions>div {
   display: flex;
   justify-content: center;
 }
 
-.mat-mdc-dialog-actions > div button,
-.mat-mdc-dialog-actions > button {
+.mat-mdc-dialog-actions>div button,
+.mat-mdc-dialog-actions>button {
   width: 100%;
 }
 
@@ -669,7 +727,7 @@ button.boton-inactivo {
 
 /* El host del componente inyectado llena toda la altura disponible
    y organiza su contenido en columna. */
-.dialogo-contenedor > :not(.barra-dialogo):not(.resize) {
+.dialogo-contenedor> :not(.barra-dialogo):not(.resize) {
   flex: 1 1 auto !important;
   min-height: 0 !important;
   display: flex !important;
@@ -760,5 +818,84 @@ button.boton-inactivo .mat-icon {
     max-width: none;
     padding: 0 4px;
     justify-content: flex-start;
+  }
+}
+
+
+.titulo-seccion {
+  width: 100%;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  background-color: #c62828;
+  border-radius: 6px;
+  box-sizing: border-box;
+  text-align: center;
+
+  h2 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+}
+
+.seccion {
+  width: 100%;
+  margin-bottom: 24px;
+  box-sizing: border-box;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.filtros {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  margin: 10px;
+
+  mat-accordion {
+    width: 86%;
+    display: flex;
+    flex-wrap: wrap;
+
+    .panel-contraido {
+      display: none !important;
+    }
+
+    mat-expansion-panel {
+      width: 100%;
+      padding: 20px;
+
+      mat-expansion-panel-content {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        padding: 0 !important;
+      }
+
+      .mat-expansion-panel-body {
+        padding: 0 !important;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+    }
+
   }
 }

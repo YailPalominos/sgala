@@ -1,4 +1,7 @@
 .toolbar-inicio {
+
+  
+
   background: white;
   color: var(--tema-primary, #424242);
 
@@ -112,10 +115,14 @@ mat-drawer-container {
   background-size: cover;
 }
 
+
 :host ::ng-deep .router-container > router-outlet + * {
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
   box-sizing: border-box;
 }
 

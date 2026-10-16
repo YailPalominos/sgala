@@ -44,7 +44,11 @@ export abstract class Formulario extends Dialogo {
             );
             this.hayCambios.set(false);
         });
+        // Ejecutar la función de la clase hija
+        this.iniciar();
     }
+
+    protected iniciar(): void {}
 
     private verificarCambios(): void {
         const estadoActual = JSON.stringify(

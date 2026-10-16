@@ -2,14 +2,20 @@
 
   <div class="login-contenedor">
 
+    <footer class="login-footer">
+      <span class="login-version">
+        © 2026 Lioyabra · Versión {{ version }}
+      </span>
+    </footer>
 
     <div class="login-lateral">
       <div class="login-info" (click)="abrirInformacion()" matTooltip="Ver información del sistema">
         <img class="login-logo" [src]="temaServicio.rutaImagen('logo_sgala.svg')" alt="Logo SGALA" />
-        <span class="login-estacion">Sistema de Gestión de Acción, Localización y Alarma</span>
         <p class="login-titulo">SGALA</p>
+        <span class="login-estacion">Sistema de Gestión de Acción, Localización y Alarma</span>
+
       </div>
-      <span class="login-version">© 2026 Lioyabra · Versión {{ version }}</span>
+
 
       <div class="login-acciones-lateral">
         <button mat-flat-button class="login-submit login-submit-secundario" type="button"

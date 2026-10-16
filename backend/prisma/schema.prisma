@@ -15,12 +15,37 @@ model Usuario {
   telefono                   String         @db.VarChar(20)
   estatus                    Boolean        @default(true, map: "DF__usuarios__estatu__398D8EEE")
   clave                      String         @unique @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  permisos                   String?        @db.VarChar(500)
 
   dispositivos dispositivos[]
   eventos      eventos[]
 
   @@map("usuarios")
 }
+
+model Administrador {
+  id                           Int                          @id(map: "PK_administradores") @default(autoincrement())
+  nombres                      String                       @db.VarChar(50)
+  apellidos                    String                       @db.VarChar(50)
+  direccionCorreoElectronico   String                       @unique(map: "UQ__administradores__0CE270AF62E7D7C6") @map("direccion_correo_electronico") @db.VarChar(100)
+  contrasena                   String                       @db.VarChar(255)
+  telefono                     String                       @db.VarChar(20)
+  estatus                      Boolean
+  alias                        String                       @db.VarChar(15)
+  permisos                     String?                      @db.VarChar(500)
+  clave                        String                       @unique @default(dbgenerated("newid()")) @db.UniqueIdentifier
+
+  eventos_administradores      eventos_administradores[]
+
+  @@map("administradores")
+}
+
+
+
+
+
+
+
 
 model pre_dispositivos {
   id          Int           @id(map: "PK__pre_disp__3213E83F10C90AD3") @default(autoincrement())
@@ -96,26 +121,17 @@ model suscripciones {
   tipo           String   @db.Char(100)
 }
 
-model administradores {
-  id                           Int                       @id(map: "PK_administradores") @default(autoincrement())
-  nombres                      String                    @db.VarChar(50)
-  apellidos                    String                    @db.VarChar(50)
-  direccion_correo_electronico String                    @db.VarChar(100)
-  contrasena                   String                    @db.VarChar(255)
-  telefono                     String                    @db.VarChar(20)
-  estatus                      Boolean
-  alias                        String                    @db.VarChar(15)
-  permisos                     String?                   @db.VarChar(500)
-  eventos_administradores      eventos_administradores[]
-}
 
 model eventos_administradores {
-  id               Int             @id(map: "PK__eventos___3213E83FE00A5D31") @default(autoincrement())
-  fecha            DateTime        @default(now(), map: "DF__eventos_a__fecha__5441852A") @db.DateTime
-  accion           String          @db.VarChar(500)
+  id               Int           @id(map: "PK__eventos___3213E83FE00A5D31") @default(autoincrement())
+  fecha            DateTime      @default(now(), map: "DF__eventos_a__fecha__5441852A") @db.DateTime
+  accion           String        @db.VarChar(500)
   id_administrador Int
-  administradores  administradores @relation(fields: [id_administrador], references: [id], onDelete: Cascade, map: "FK__eventos_a__id_ad__5535A963")
+
+  administrador    Administrador @relation(fields: [id_administrador], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([fecha(sort: Desc), id(sort: Desc)], map: "ix_eventos_administradores_fecha")
   @@index([id_administrador], map: "ix_eventos_administradores_id_administrador")
+
+  @@map("eventos_administradores")
 }

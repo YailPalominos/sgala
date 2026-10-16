@@ -35,8 +35,7 @@ interface EventoAdministrador {
     ReactiveFormsModule,
     TablaComponent
   ],
-  templateUrl: './pagina-eventos-administradores.html',
-  styleUrl: './pagina-eventos-administradores.scss'
+  templateUrl: './pagina-eventos-administradores.html'
 })
 export class PaginaEventosAdministradores implements OnInit {
   private readonly servicio = inject(ServicioAdministrador);

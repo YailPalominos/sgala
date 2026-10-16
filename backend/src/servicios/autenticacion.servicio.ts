@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
-import * as usuarioRepo from '../repositorios/base-datos/usuario.repositorio';
-import * as administradorRepo from '../repositorios/base-datos/administrador.repositorio';
+import * as usuarioRepositorio from '../repositorios/base-datos/usuario.repositorio';
+import * as administradorRepositorio from '../repositorios/base-datos/administrador.repositorio';
 import { enviarCorreoRecuperacion, enviarCorreoBienvenida, enviarCorreoConfirmacion } from './correo.servicio';
 import { ErrorHttp } from '../interceptores/error.middleware';
 import { crear as crearEvento } from '../repositorios/base-datos/evento.repositorio'
@@ -13,6 +13,7 @@ import {
   PreUsuarioRedis
 } from '@/repositorios/redis/pre-usuarios.redis';
 import { obtenerDatosPreCambioPorCodigo } from '@/repositorios/redis/pre-cambios.redis';
+import { Administrador, Usuario } from '@prisma/client';
 
 export interface DatosUsuarioRegistro {
   clave: string;
@@ -60,11 +61,7 @@ function generarContrasenaProvisional(alias: string): string {
  * Valida que ni la base de datos ni los pre-usuarios en Redis tengan ya
  * registrado el alias, correo o teléfono indicado.
  */
-async function validarNoDuplicado(
-  alias: string,
-  direccionCorreoElectronico: string,
-  telefono: string
-): Promise<void> {
+async function validarNoDuplicado(alias: string, direccionCorreoElectronico: string, telefono: string): Promise<void> {
 
   const comprobaciones: Array<[string, string]> = [
     [alias, 'El alias ya está registrado. Intente con otro.'],
@@ -73,7 +70,7 @@ async function validarNoDuplicado(
   ];
 
   for (const [valor, mensaje] of comprobaciones) {
-    const enBaseDatos = await usuarioRepo.buscarExistentePorIdentificador(valor);
+    const enBaseDatos = await usuarioRepositorio.buscarExistentePorIdentificador(valor);
     const enRedis = await obtenerPreUsuarioPorIdentificador(valor);
     if (enBaseDatos || enRedis) {
       throw new ErrorHttp(409, mensaje);
@@ -122,9 +119,9 @@ export async function confirmar(clave: string): Promise<void> {
   }
 
   // Revalidar que no se haya registrado el mismo dato mientras tanto.
-  const aliasEnBd = await usuarioRepo.buscarExistentePorIdentificador(preUsuario.alias);
-  const correoEnBd = await usuarioRepo.buscarExistentePorIdentificador(preUsuario.direccionCorreoElectronico);
-  const telefonoEnBd = await usuarioRepo.buscarExistentePorIdentificador(preUsuario.telefono);
+  const aliasEnBd = await usuarioRepositorio.buscarExistentePorIdentificador(preUsuario.alias);
+  const correoEnBd = await usuarioRepositorio.buscarExistentePorIdentificador(preUsuario.direccionCorreoElectronico);
+  const telefonoEnBd = await usuarioRepositorio.buscarExistentePorIdentificador(preUsuario.telefono);
   if (aliasEnBd || correoEnBd || telefonoEnBd) {
     await eliminarPreUsuario(clave);
     throw new ErrorHttp(409, 'Los datos ya fueron registrados por otra cuenta.');
@@ -132,7 +129,7 @@ export async function confirmar(clave: string): Promise<void> {
 
   const contrasenaProvisional = generarContrasenaProvisional(preUsuario.alias);
 
-  await usuarioRepo.crearUsuario({
+  await usuarioRepositorio.crearUsuario({
     alias: preUsuario.alias,
     direccionCorreoElectronico: preUsuario.direccionCorreoElectronico,
     telefono: preUsuario.telefono,
@@ -156,32 +153,41 @@ export async function confirmar(clave: string): Promise<void> {
  * Si la contraseña coincide en plano → es provisional, debe cambiarla.
  * Si coincide con bcrypt → sesión normal.
  */
-export async function autenticar(identificador: string, contrasena: string): Promise<any> {
+export async function autenticar(identificador: string, contrasena: string, esAdministrador: boolean): Promise<any> {
 
-  let usuario
+  let usuario: any
   try {
-    usuario = await usuarioRepo.buscarPorIdentificador(identificador);
-  } catch (error: any) {
 
-    if (error.message === 'Usuario no encontrado.') {
-      throw new ErrorHttp(
-        404,
-        error.message
-      );
+    const repositorio = esAdministrador == true
+      ? administradorRepositorio
+      : usuarioRepositorio;
+
+    usuario = await repositorio.buscarPorIdentificador(
+      identificador
+    );
+
+    if (usuario == null) {
+      throw new Error("No fue posible realizar la busqueda del usuario o administrador")
     }
 
-    if (error.message === 'Usuario inactivo contacte al administrador.') {
-      throw new ErrorHttp(
-        403,
-        error.message
-      );
+  } catch (error: any) {
+
+    const tipo = esAdministrador ? 'Administrador' : 'Usuario';
+
+    if (error.message === `${tipo} no encontrado.`) {
+      throw new ErrorHttp(404, error.message);
+    }
+
+    if (error.message === `${tipo} inactivo contacte al administrador.`) {
+      throw new ErrorHttp(403, error.message);
     }
 
     throw new ErrorHttp(
       500,
-      'Error interno al consultar usuario'
+      `Error interno al consultar ${tipo.toLowerCase()}`
     );
   }
+
 
   // Detectar si la contraseña almacenada es un hash bcrypt
   const esBcrypt = /^\$2[aby]?\$\d{1,2}\$.{53}$/.test(usuario.contrasena);
@@ -193,7 +199,15 @@ export async function autenticar(identificador: string, contrasena: string): Pro
       throw new ErrorHttp(400, 'Credenciales inválidas');
     }
 
-    const sesion = await crearSesion(usuario.clave, usuario.direccionCorreoElectronico, usuario.alias, usuario.id, usuario.telefono);
+    const sesion = await crearSesion(
+      usuario.clave,
+      usuario.direccionCorreoElectronico,
+      usuario.alias,
+      usuario.id,
+      usuario.telefono,
+      (esAdministrador == false ? "usuario" : "administrador"),
+      usuario.permisos
+    );
 
     await crearEvento('Inicio sesión.')
     return {
@@ -202,7 +216,8 @@ export async function autenticar(identificador: string, contrasena: string): Pro
         claveUsuario: sesion.claveUsuario,
         alias: sesion.alias,
         direccionCorreoElectronico: sesion.direccionCorreoElectronico,
-        telefono: sesion.telefono
+        telefono: sesion.telefono,
+        tipoCuenta: (esAdministrador == false ? "usuario" : "administrador")
       },
       requiereCambioContrasena: false
     };
@@ -212,17 +227,21 @@ export async function autenticar(identificador: string, contrasena: string): Pro
       throw new ErrorHttp(400, 'Credenciales inválidas');
     }
     await crearEvento('Inicio sesión pero requiere cambiar su contraseña.')
-    return { idUsuario: usuario.id, requiereCambioContrasena: true };
+    return esAdministrador
+      ? { idAdministrador: usuario.id, requiereCambioContrasena: true }
+      : { idUsuario: usuario.id, requiereCambioContrasena: true };
   }
 
 }
+
+
 
 /**
  * Verifica que la identidad
  */
 export async function verificarIdentidad(identificador: string): Promise<any> {
   try {
-    const usuario = await usuarioRepo.buscarPorIdentificador(identificador);
+    const usuario = await usuarioRepositorio.buscarPorIdentificador(identificador);
     return { telefono: usuario.telefono, direccionCorreoElectronico: usuario.direccionCorreoElectronico }
   } catch {
     throw new ErrorHttp(404, 'No existe un usuario con el identificador proporcionado.');
@@ -235,7 +254,7 @@ export async function verificarIdentidad(identificador: string): Promise<any> {
 export async function solicitarRecuperacion(identificador: string, tipo: string): Promise<void> {
   let usuario
   try {
-    usuario = await usuarioRepo.buscarPorIdentificador(identificador);
+    usuario = await usuarioRepositorio.buscarPorIdentificador(identificador);
   } catch (error: any) {
     throw new ErrorHttp(401, error);
   }
@@ -267,12 +286,12 @@ export async function cambiarContrasena(llave: string, nuevaContrasena: string):
   // El administrador usa idUsuario negativo (-administrador.id).
   // En ese caso se actualiza la tabla de administradores.
   if (recuperacion.idUsuario < 0) {
-    await administradorRepo.actualizarContrasena(
+    await administradorRepositorio.actualizarContrasena(
       Math.abs(recuperacion.idUsuario),
       contrasenaHash
     );
   } else {
-    await usuarioRepo.actualizarContrasena(recuperacion.idUsuario, contrasenaHash);
+    await usuarioRepositorio.actualizarContrasena(recuperacion.idUsuario, contrasenaHash);
   }
 
   await eliminarLlaveRecuperacion(llave);

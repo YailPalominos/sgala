@@ -1,0 +1,76 @@
+<h2 class="titulo">
+    @if (parametros === 'C') {
+    Nuevo
+    } @else {
+    Editar
+    }
+</h2>
+<mat-dialog-content>
+    <form id="formulario" [formGroup]="formulario" (ngSubmit)="preparar()">
+
+        <mat-form-field appearance="outline" class="ancho-completo">
+            <mat-label>Tipo de evento</mat-label>
+            <mat-select formControlName="tipo" (selectionChange)="actualizarValidaciones()">
+                <mat-option value="R">Repetible</mat-option>
+                <mat-option value="U">Único</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        @if (formulario.controls.tipo.value !== undefined) {
+        @if (formulario.controls.tipo.value === 'R') {
+        <mat-form-field appearance="outline" class="ancho-completo">
+            <mat-label>Día de la semana</mat-label>
+            <mat-select formControlName="dia">
+                @for (dia of dias; track dia.valor) {
+                <mat-option [value]="dia.valor">
+                    {{ dia.texto }}
+                </mat-option>
+                }
+            </mat-select>
+        </mat-form-field>
+
+
+        } @else {
+        <mat-form-field appearance="outline" class="ancho-completo">
+            <mat-label>Fecha</mat-label>
+            <input matInput type="date" formControlName="fecha">
+            @if (formulario.controls.fecha.hasError('required')) {
+            <mat-error>La fecha es obligatoria.</mat-error>
+            }
+        </mat-form-field>
+
+        }
+        }
+
+        <mat-form-field appearance="outline" class="ancho-completo">
+            <mat-label>Hora</mat-label>
+            <input matInput type="time" step="60" formControlName="hora">
+            @if (formulario.controls.hora.hasError('required')) {
+            <mat-error>La hora es obligatoria.</mat-error>
+            }
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="ancho-completo">
+            <mat-label>Acción</mat-label>
+            <mat-select formControlName="accion">
+                <mat-option value="A">Activación</mat-option>
+                <mat-option value="D">Desactivación</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+
+    </form>
+</mat-dialog-content>
+
+<mat-dialog-actions>
+
+    <div class="c100 m50 g50">
+        <button mat-raised-button color="primary" type="submit" form="formulario"
+            [class.boton-inactivo]="!puedeEnviar()">
+            <mat-icon>
+                {{ parametros === 'C' ? 'add' : 'edit' }}
+            </mat-icon>
+            {{ parametros === 'C' ? 'Crear' : 'Actualizar' }}
+        </button>
+    </div>
+
+</mat-dialog-actions>

@@ -186,15 +186,11 @@ export class Socket {
     return obj;
   }
 
-  /**
-   * Emite un evento al servidor Socket.IO y espera su respuesta.
-   * @param evento Nombre del evento.
-   * @param datos Datos que se enviarán.
-   * @returns Promesa con la respuesta del servidor.
-   */
+
   emitir<TRespuesta = any>(
     evento: string,
-    datos?: unknown
+    datos?: unknown,
+    timeoutMs = 15000
   ): Promise<TRespuesta> {
 
     return new Promise<TRespuesta>((resolve, reject) => {
@@ -204,14 +200,54 @@ export class Socket {
         return;
       }
 
+      let finalizado = false;
+
+      const temporizador = setTimeout(() => {
+        if (finalizado) return;
+
+        finalizado = true;
+
+        reject(
+          new Error(
+            `Tiempo de espera agotado para el evento "${evento}" (${timeoutMs} ms).`
+          )
+        );
+      }, timeoutMs);
+
       this.socketCliente.emit(
         evento,
         datos,
         (respuesta: TRespuesta) => {
-          resolve(respuesta);
+          if (finalizado) return;
+
+          finalizado = true;
+          clearTimeout(temporizador);
+
+          try {
+            if (
+              respuesta !== null &&
+              typeof respuesta === 'object' &&
+              'estatus' in respuesta &&
+              respuesta.estatus === false
+            ) {
+              const error =
+                'mensaje' in respuesta &&
+                  typeof respuesta.mensaje === 'string'
+                  ? respuesta.mensaje
+                  : 'El servidor rechazó la solicitud.'
+              this.notificador.error(error)
+            }
+
+            resolve(respuesta);
+
+          } catch (error) {
+            reject(error);
+          }
         }
       );
 
     });
   }
+
+
 }

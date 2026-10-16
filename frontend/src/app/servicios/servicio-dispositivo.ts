@@ -28,15 +28,4 @@ export class ServicioDispositivo {
         return this.conexion.get<any>(`${this.ruta}/obtener-lista`, filtros);
     }
 
-    //#region  Dispositivo fisico
-
-    public obtenerConfiguracion(clave: string): Observable<Respuesta<void>> {
-        return this.conexion.get<void>(`${this.ruta}/obtener-configuracion/${clave}`);
-    }
-
-    public actualizarConfiguracion(datos: any): Observable<Respuesta<void>> {
-        return this.conexion.put<void>(`${this.ruta}/actualizar-configuracion`, datos);
-    }
-
-    //#endregion
 }

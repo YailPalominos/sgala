@@ -3,6 +3,7 @@ import asyncHandler from 'express-async-handler';
 import bcrypt from 'bcrypt';
 import * as administradorRepositorio from '../repositorios/base-datos/administrador.repositorio';
 import * as eventoAdministradorRepositorio from '../repositorios/base-datos/evento-administrador.repositorio';
+import * as autenticacionServicio from '../servicios/autenticacion.servicio';
 import {
   crearPreDispositivo,
   obtenerListaAdministrativa
@@ -15,7 +16,6 @@ import { obtenerListaAdministrativa as obtenerListaEventos } from '../repositori
 import { ErrorHttp } from '../interceptores/error.middleware';
 import {
   actualizarPerfilSesion,
-  crearSesion,
   crearLlaveRecuperacion,
   eliminarSesion
 } from '@/repositorios/redis/sesiones.redis';
@@ -24,11 +24,7 @@ export const administradorRouter = Router();
 
 const saltRounds = 10;
 
-function requiereAdministrador(
-  solicitud: Request,
-  _: Response,
-  siguiente: NextFunction
-): void {
+function requiereAdministrador(solicitud: Request, _: Response, siguiente: NextFunction): void {
   if (solicitud.sesion.tipoCuenta !== 'administrador') {
     siguiente(new ErrorHttp(403, 'Se requiere una sesión de administrador.'));
     return;
@@ -61,73 +57,22 @@ function validarDatosAdministrador(datos: Record<string, unknown>): void {
   }
 }
 
-administradorRouter.post(
-  '/autenticar',
-  asyncHandler(async (solicitud, respuesta) => {
-    if (
-      solicitud.body === null ||
-      typeof solicitud.body !== 'object' ||
-      Array.isArray(solicitud.body)
-    ) {
-      throw new ErrorHttp(400, 'Las credenciales no son válidas.');
-    }
-    const { identificador, contraseña } = solicitud.body;
-    if (typeof identificador !== 'string' || typeof contraseña !== 'string') {
-      throw new ErrorHttp(400, 'Identificador y contraseña son requeridos.');
-    }
 
-    const administrador = await administradorRepositorio.buscarPorIdentificador(identificador);
+administradorRouter.post('/autenticar', asyncHandler(async (solicitud, respuesta) => {
+  const { identificador, contraseña } = solicitud.body;
+  const resultado = await autenticacionServicio.autenticar(identificador, contraseña, true);
 
-    if (!administrador || !administrador.estatus) {
-      throw new ErrorHttp(401, 'Credenciales inválidas.');
+  console.log(resultado)
+  if (resultado.requiereCambioContrasena) {
+    if (resultado.idAdminitrador === undefined) {
+      throw new Error('idAdminitrador no definido para cambio de contraseña.');
     }
-
-    const esBcrypt = /^\$2[aby]?\$\d{1,2}\$.{53}$/.test(administrador.contrasena);
-    const contrasenaValida = esBcrypt
-      ? await bcrypt.compare(contraseña, administrador.contrasena)
-      : contraseña === administrador.contrasena;
-    if (!contrasenaValida) {
-      throw new ErrorHttp(401, 'Credenciales inválidas.');
-    }
-
-    // Si la contraseña está en texto plano, es provisional: se exige
-    // cambiarla antes de entrar (igual que el flujo del usuario).
-    // Se responde 202 con una llave de recuperación. El administrador
-    // usa idUsuario negativo (-administrador.id) para identificarlo.
-    if (!esBcrypt) {
-      const claveLlaveRecuperacion = await crearLlaveRecuperacion(
-        -administrador.id,
-        'A'
-      );
-      await eventoAdministradorRepositorio.registrar(
-        administrador.id,
-        'Inició sesión pero requiere cambiar su contraseña.'
-      );
-      respuesta.status(202).json({
-        mensaje: 'Debe cambiar su contraseña',
-        datos: claveLlaveRecuperacion
-      });
-      return;
-    }
-
-    const sesion = await crearSesion(
-      `administrador:${administrador.id}`,
-      administrador.direccionCorreoElectronico,
-      administrador.alias,
-      -administrador.id,
-      '',
-      'administrador',
-      administrador.permisos ?? undefined
-    );
-    await eventoAdministradorRepositorio.registrar(
-      administrador.id,
-      'Inició sesión como administrador.'
-    );
-    respuesta.status(200).json({
-      datos: sesion,
-      mensaje: 'Autenticación de administrador exitosa.'
-    });
-  })
+    const claveLLaveRecuperacion = await crearLlaveRecuperacion(resultado.idUsuario, 'A');
+    respuesta.status(202).json({ mensaje: 'Debe cambiar su contraseña', datos: claveLLaveRecuperacion });
+  } else {
+    respuesta.status(200).json({ datos: resultado.sesion, mensaje: 'Inicio de sesión exitoso' });
+  }
+})
 );
 
 administradorRouter.use(requiereAdministrador);
@@ -143,11 +88,6 @@ administradorRouter.get(
   })
 );
 
-/**
- * Descarga los certificados del cliente de un dispositivo como un ZIP
- * que contiene: ca.crt, cliente.key y cliente.crt.
- * La clave es el UUID del pre-dispositivo con el que se generaron.
- */
 administradorRouter.get(
   '/dispositivos/descargar-certificados/:clave',
   asyncHandler(async (solicitud, respuesta) => {

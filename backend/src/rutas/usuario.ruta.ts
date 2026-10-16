@@ -46,7 +46,7 @@ autenticacionRouter.get('/confirmar/:clave',
 autenticacionRouter.post('/iniciar-sesion',
   asyncHandler(async (solicitud, respuesta) => {
     const { identificador, contraseña } = solicitud.body;
-    const resultado = await autenticacionServicio.autenticar(identificador, contraseña);
+    const resultado = await autenticacionServicio.autenticar(identificador, contraseña, false);
     if (resultado.requiereCambioContrasena) {
       if (resultado.idUsuario === undefined) {
         throw new Error('idUsuario no definido para cambio de contraseña.');

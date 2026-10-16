@@ -50,6 +50,12 @@ export class PaginaUsuarios implements OnInit {
     etiqueta: '',
     marcador: '',
     texto: '',
+    botones: [
+      {
+        icono: 'add',
+        texto: 'Crear'
+      }
+    ]
   });
   readonly formularioFiltros = new FormGroup({
     alias: new FormControl(''),

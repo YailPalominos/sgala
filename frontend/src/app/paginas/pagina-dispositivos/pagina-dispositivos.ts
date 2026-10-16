@@ -16,6 +16,7 @@ import { DialogoServicio } from '../../recursos/dialogo.servicio';
 import { FormularioPreDispositivo } from '../../formularios/formulario-pre-dispositivo/formulario-pre-dispositivo';
 import { Dispositivo } from '../../interfaces/dispositivo';
 import { Cargador } from '../../recursos/cargador';
+import { Filtros } from '../../componentes/filtros/filtros.component';
 
 interface DispositivoAdministrativo {
   id: number;
@@ -52,8 +53,7 @@ interface DispositivoAdministrativo {
     ReactiveFormsModule,
     TablaComponent,
   ],
-  templateUrl: './pagina-dispositivos.html',
-  styleUrl: './pagina-dispositivos.scss'
+  templateUrl: './pagina-dispositivos.html'
 })
 export class PaginaDispositivos implements OnInit {
 
@@ -72,6 +72,19 @@ export class PaginaDispositivos implements OnInit {
     asignacionTexto: new FormControl(''),
     estatusTexto: new FormControl('')
   })
+
+  readonly filtrosDefecto = signal<any>({
+    etiqueta: '',
+    marcador: '',
+    texto: '',
+    botones: [
+      {
+        icono: 'add',
+        texto: 'Crear',
+        accion: () => this.abrirFormulario()
+      }
+    ]
+  });
 
   readonly columnas: Columna[] = [
     { clave: 'clave', titulo: 'Clave', formato: 'texto' },
