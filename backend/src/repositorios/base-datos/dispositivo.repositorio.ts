@@ -47,7 +47,7 @@ export interface DispositivoAdministrativo {
 }
 
 export interface DatosCrearPreDispositivo {
-  tipo: 'I' | 'T' | 'C' | 'D';
+  tipo: 'I' | 'T' | 'C' | 'D' | 'M' | 'Y';
   cualidades: string | null;
 }
 
@@ -246,18 +246,24 @@ export async function obtenerListaAdministrativa(): Promise<DispositivoAdministr
 }
 
 export async function crearPreDispositivo(
-  datos: DatosCrearPreDispositivo
-): Promise<PreDispositivoCreado> {
-  // La tabla tiene triggers de auditoría: SQL Server no permite OUTPUT
-  // directo sin INTO. Se redirige el OUTPUT a una variable de tabla.
-  const resultado = await prisma.$queryRaw<PreDispositivoCreado[]>`
+  datos: any
+): Promise<string> {
+  const resultado = await prisma.$queryRaw<{ clave: string }[]>`
     DECLARE @salida TABLE (id INT, clave UNIQUEIDENTIFIER);
+
     INSERT INTO dbo.pre_dispositivos (tipo, cualidades, estatus)
-    OUTPUT INSERTED.id AS id, INSERTED.clave AS clave INTO @salida
+    OUTPUT INSERTED.id, INSERTED.clave
+      INTO @salida (id, clave)
     VALUES (${datos.tipo}, ${datos.cualidades}, 1);
-    SELECT id, clave FROM @salida;
+
+    SELECT clave FROM @salida;
   `;
-  return resultado[0];
+
+  if (!resultado.length) {
+    throw new Error('No se pudo crear el pre-dispositivo.');
+  }
+
+  return resultado[0].clave;
 }
 
 

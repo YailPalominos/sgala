@@ -23,6 +23,24 @@ CREATE TABLE usuarios (
 );
 GO
 
+IF COL_LENGTH('dbo.usuarios', 'permisos') IS NULL
+BEGIN
+  ALTER TABLE dbo.usuarios ADD permisos VARCHAR(500) NULL;
+END;
+GO
+
+IF COL_LENGTH('dbo.usuarios', 'clave') IS NULL
+BEGIN
+  ALTER TABLE dbo.usuarios ADD clave UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_usuarios_clave DEFAULT NEWID();
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_usuarios_clave')
+BEGIN
+  CREATE UNIQUE INDEX UQ_usuarios_clave ON dbo.usuarios(clave);
+END;
+GO
+
 -- Tabla de administradores del sistema
 IF OBJECT_ID(N'dbo.administradores', N'U') IS NULL
 BEGIN
@@ -39,6 +57,18 @@ BEGIN
     CONSTRAINT PK_administradores PRIMARY KEY CLUSTERED (id)
   );
 END
+GO
+
+IF COL_LENGTH('dbo.administradores', 'clave') IS NULL
+BEGIN
+  ALTER TABLE dbo.administradores ADD clave UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_administradores_clave DEFAULT NEWID();
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_administradores_clave')
+BEGIN
+  CREATE UNIQUE INDEX UQ_administradores_clave ON dbo.administradores(clave);
+END;
 GO
 
 -- Tabla de pre-dispositivos (registrados antes de vincular a un usuario)
@@ -61,6 +91,12 @@ CREATE TABLE dispositivos (
   id_pre_dispositivo INT UNIQUE NOT NULL REFERENCES pre_dispositivos(id),
   alias VARCHAR(100) NULL
 );
+GO
+
+IF COL_LENGTH('dbo.dispositivos', 'telefono') IS NULL
+BEGIN
+  ALTER TABLE dbo.dispositivos ADD telefono VARCHAR(20) NULL;
+END;
 GO
 
 -- Tabla de localizaciones GPS registradas
@@ -102,7 +138,7 @@ CREATE TABLE historial_registros (
   tabla VARCHAR(100) NOT NULL,
   fecha DATETIME NOT NULL DEFAULT GETDATE(),
   id_registro INT NOT NULL,
-  datos NVARCHAR(MAX) NOT NULL,  -- JSON
+  datos NVARCHAR(MAX) NOT NULL,
   tipo CHAR(1) NOT NULL,
   id_evento INT NOT NULL,
   CONSTRAINT ck_historial_registros_datos_json CHECK (ISJSON(datos) = 1),
@@ -165,10 +201,8 @@ CREATE TABLE solicitudes (
 );
 GO
 
-
 /*==========================================================
   AUDITORÍA UNIFICADA (historial_registros)
-
   Cada cambio en una tabla auditada inserta una fila en
   historial_registros, enlazada al evento que lo originó
   (id_evento) mediante el session_context.
@@ -256,245 +290,4 @@ BEGIN
         @idEvento
     FROM inserted i;
 END;
-GO
-
-------------------------------------------------------------
--- PRE_DISPOSITIVOS
-------------------------------------------------------------
-CREATE OR ALTER TRIGGER trg_pre_dispositivos_insert
-ON pre_dispositivos
-AFTER INSERT
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @idEvento INT = dbo.fn_evento_actual();
-    IF @idEvento IS NULL RETURN;
-
-    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
-    SELECT
-        'pre_dispositivos',
-        i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
-        'C',
-        @idEvento
-    FROM inserted i;
-END;
-GO
-
-CREATE OR ALTER TRIGGER trg_pre_dispositivos_update
-ON pre_dispositivos
-AFTER UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @idEvento INT = dbo.fn_evento_actual();
-    IF @idEvento IS NULL RETURN;
-
-    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
-    SELECT
-        'pre_dispositivos',
-        i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
-        'A',
-        @idEvento
-    FROM inserted i;
-END;
-GO
-
-------------------------------------------------------------
--- DISPOSITIVOS
-------------------------------------------------------------
-CREATE OR ALTER TRIGGER trg_dispositivos_insert
-ON dispositivos
-AFTER INSERT
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @idEvento INT = dbo.fn_evento_actual();
-    IF @idEvento IS NULL RETURN;
-
-    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
-    SELECT
-        'dispositivos',
-        i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
-        'C',
-        @idEvento
-    FROM inserted i;
-END;
-GO
-
-CREATE OR ALTER TRIGGER trg_dispositivos_update
-ON dispositivos
-AFTER UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @idEvento INT = dbo.fn_evento_actual();
-    IF @idEvento IS NULL RETURN;
-
-    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
-    SELECT
-        'dispositivos',
-        i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
-        'A',
-        @idEvento
-    FROM inserted i;
-END;
-GO
-
-------------------------------------------------------------
--- LOCALIZACIONES
-------------------------------------------------------------
-CREATE OR ALTER TRIGGER trg_localizaciones_insert
-ON localizaciones
-AFTER INSERT
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @idEvento INT = dbo.fn_evento_actual();
-    IF @idEvento IS NULL RETURN;
-
-    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
-    SELECT
-        'localizaciones',
-        i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
-        'C',
-        @idEvento
-    FROM inserted i;
-END;
-GO
-
-CREATE OR ALTER TRIGGER trg_localizaciones_update
-ON localizaciones
-AFTER UPDATE
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @idEvento INT = dbo.fn_evento_actual();
-    IF @idEvento IS NULL RETURN;
-
-    INSERT INTO historial_registros (tabla, id_registro, datos, tipo, id_evento)
-    SELECT
-        'localizaciones',
-        i.id,
-        (SELECT i.* FOR JSON PATH, WITHOUT_ARRAY_WRAPPER),
-        'A',
-        @idEvento
-    FROM inserted i;
-END;
-GO
-
-
-/*==========================================================
-  USUARIO DE APLICACIÓN (backend)
-
-  sgala_app — puede operar sobre tablas normales pero NO puede
-  modificar la tabla de auditoría (historial_registros).
-  Los triggers se ejecutan con los permisos del dueño de la tabla (sa),
-  por lo que siguen funcionando aunque sgala_app no tenga permiso directo.
-==========================================================*/
-
--- Crear login a nivel de servidor
-IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'sgala_app')
-BEGIN
-  CREATE LOGIN sgala_app WITH PASSWORD = 'SgalaApp2024!', DEFAULT_DATABASE = sgala;
-END
-GO
-
-USE sgala;
-GO
-
--- Crear usuario en la base de datos
-IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'sgala_app')
-BEGIN
-  CREATE USER sgala_app FOR LOGIN sgala_app;
-END
-GO
-
--- Permisos en tablas operativas (CRUD completo)
-GRANT SELECT, INSERT, UPDATE, DELETE ON usuarios TO sgala_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON pre_dispositivos TO sgala_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON dispositivos TO sgala_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON localizaciones TO sgala_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON solicitudes TO sgala_app;
-
--- Tabla de auditoría — solo lectura (el INSERT lo hacen los triggers con permisos del owner)
-GRANT SELECT ON historial_registros TO sgala_app;
-GRANT SELECT, INSERT ON eventos TO sgala_app;        -- el backend inserta eventos directamente
-GRANT SELECT, INSERT ON suscripciones TO sgala_app;  -- el backend inserta suscripciones directamente
-
--- Denegar explícitamente modificación de la auditoría
-DENY INSERT, UPDATE, DELETE ON historial_registros TO sgala_app;
-DENY UPDATE, DELETE ON eventos TO sgala_app;
-GO
-
--- Nota: sys.sp_set_session_context es ejecutable por public de forma
--- predeterminada, por lo que sgala_app ya puede fijar el contexto de
--- sesión que usan los triggers de auditoría sin necesidad de un GRANT.
-
-
--- Administrador principal inicial
-IF NOT EXISTS (
-  SELECT 1
-  FROM dbo.administradores
-  WHERE direccion_correo_electronico = 'yail.palominos@gmail.com'
-)
-BEGIN
-  INSERT INTO dbo.administradores (
-    nombres,
-    apellidos,
-    direccion_correo_electronico,
-    contrasena,
-    telefono,
-    estatus,
-    alias,
-    permisos
-  )
-  VALUES (
-    'Braulio Yail',
-    'Palominos Patiño',
-    'yail.palominos@gmail.com',
-    '12345',
-    '5634954072',
-    1,
-    'Yail',
-    NULL
-  );
-END
-GO
-
--- Usuario (cliente) inicial de prueba, basado en el administrador.
--- La contraseña se guarda en texto plano ('12345') y el backend la
--- migra a su versión cifrada en el primer inicio de sesión.
-IF NOT EXISTS (
-  SELECT 1
-  FROM dbo.usuarios
-  WHERE direccion_correo_electronico = 'yail.palominos@gmail.com'
-     OR alias = 'Yail'
-)
-BEGIN
-  INSERT INTO dbo.usuarios (
-    alias,
-    direccion_correo_electronico,
-    contrasena,
-    telefono,
-    estatus
-  )
-  VALUES (
-    'Yail',
-    'yail.palominos@gmail.com',
-    '12345',
-    '5634954072',
-    1
-  );
-END
 GO

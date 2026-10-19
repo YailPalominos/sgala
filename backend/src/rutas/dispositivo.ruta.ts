@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { middlewareSesion } from '../interceptores/sesion.middleware';
-import { actualizar, crear, obtenerLocalizaciones, obtenerListaDispositivosUsuario, buscarPorClave } from '../repositorios/base-datos/dispositivo.repositorio';
+import { actualizar, crear, obtenerLocalizaciones, obtenerListaDispositivosUsuario, buscarPorClave, crearPreDispositivo } from '../repositorios/base-datos/dispositivo.repositorio';
 import asyncHandler from 'express-async-handler';
 import { enviarDispositivoActualizado } from '../socket'
 import { actualizarDatosDispositivo } from '@/repositorios/redis/dispositivo.redis';
 import { ErrorHttp } from '@/interceptores/error.middleware';
 import { enviarSolicitudDispositivo } from '@/broker';
+import { crearCertificado, crearCertificadoCelular } from '@/servicios/certificados.servicio';
 export const dispositivoRouter = Router();
 
 /**
@@ -33,13 +34,15 @@ dispositivoRouter.get('/validar-clave/:clave',
 /**
  * Actualiza los datos de un dispositivo del usuario autenticado.
  */
-dispositivoRouter.post('/crear', middlewareSesion,
+dispositivoRouter.post('/crear',
   asyncHandler(async (solicitud, respuesta) => {
     const datos = solicitud.body
     datos.idUsuario = solicitud.sesion.idUsuario;
-    await crear(datos);
-    await enviarDispositivoActualizado(datos.claveDispositivo)
-    respuesta.status(200).json({ mensaje: 'Dispositivo creado exitosamente.' });
+    await crear(datos)
+
+    // console.log(datos)
+    // await enviarDispositivoActualizado(datos.claveDispositivo)
+    respuesta.status(201).json({ mensaje: 'Dispositivo creado exitosamente.' });
   })
 );
 
@@ -55,7 +58,6 @@ dispositivoRouter.put('/actualizar',
     respuesta.status(200).json({ mensaje: 'Dispositivo actualizado exitosamente.' });
   })
 );
-
 
 /**
  * Obtener lista de dispositivos del usuario
@@ -92,37 +94,23 @@ dispositivoRouter.get('/obtener-lista',
   })
 );
 
-
-
 /**
- * Obtiene la configuración del dipositivo (Fisico)
+ * Obtiene los certificados para el celular
  */
-dispositivoRouter.get('/obtener-configuracion/:clave',
+dispositivoRouter.get('/obtener-certificados',
   asyncHandler(async (solicitud, respuesta) => {
-    const { clave } = solicitud.params;
 
-    const resultado = await enviarSolicitudDispositivo(clave, 'obtener-configuracion');
+    const datos = {
+      tipo: 'Y',
+      cualidades: null
+    }
 
-    console.log(resultado)
-    respuesta.status(200).json({
-      mensaje: 'Configuración obtenida exitosamente.',
-      datos: {}
-    });
-  })
-);
-
-
-/**
- * Actualiza la configuración del dipositivo (Fisico)
- */
-dispositivoRouter.put('/actualizar-configuracion',
-  asyncHandler(async (solicitud, respuesta) => {
-    const datos = solicitud.body
-
-    await enviarSolicitudDispositivo(datos.clave, 'actualizar-configuracion');
+    const clave = await crearPreDispositivo(datos);
+    const certificados = await crearCertificadoCelular(clave);
 
     respuesta.status(200).json({
-      mensaje: 'Configuración actualizada exitosamente.',
+      mensaje: 'Certificados obtenidos exitosamente.',
+      datos: certificados
     });
   })
 );

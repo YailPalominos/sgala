@@ -1,9 +1,7 @@
 # Imagen del backend (Node + TypeScript + Prisma)
-FROM node:20-slim
+FROM node:20-bookworm
 
-# openssl es requerido por Prisma
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
-
+# La variante completa incluye OpenSSL, requerido por Prisma en tiempo de ejecución.
 WORKDIR /app
 
 # Instalar dependencias (el postinstall ejecuta prisma generate)

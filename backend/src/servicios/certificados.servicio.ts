@@ -3,6 +3,7 @@ import forge from 'node-forge';
 import fs from 'fs';
 import path from 'path';
 import tls from 'tls';
+import { entorno } from '@/recursos/entorno';
 
 export interface RutasCertificadosServidor {
   directorio: string;
@@ -167,11 +168,7 @@ function crearCertificadoAutofirmado(hosts: string[]): { llavePem: string; certi
 /**
  * Crea un certificado de cliente firmado por el certificado del servidor (CA).
  */
-function crearCertificadoCliente(
-  commonName: string,
-  llaveCaPem: string,
-  certificadoCaPem: string
-): { llavePem: string; certificadoPem: string } {
+function crearCertificadoCliente(commonName: string, llaveCaPem: string, certificadoCaPem: string): { llavePem: string; certificadoPem: string } {
   const parLlaves = forge.pki.rsa.generateKeyPair(TAMANO_LLAVE);
 
   const certificadoCa = forge.pki.certificateFromPem(certificadoCaPem);
@@ -286,6 +283,7 @@ export function crearCertificado(clave?: string, directorio?: string): Certifica
 
   fs.mkdirSync(directorioCliente, { recursive: true });
 
+
   const key = path.join(directorioCliente, 'cliente.key');
   const cert = path.join(directorioCliente, 'cliente.crt');
   const ca = path.join(directorioCliente, 'ca.crt');
@@ -348,4 +346,52 @@ export function obtenerCN(certificado?: tls.PeerCertificate | null): string | nu
 
 export function obtenerClaveDispositivoDesdeCertificado(certificado?: tls.PeerCertificate | null): string | null {
   return obtenerCN(certificado);
+}
+
+
+
+export function crearCertificadoCelular(clave:string) {
+
+
+  const directorioCliente = path.join(
+    entorno.DIRECTORIO,
+    'certificados',
+    'clientes',
+    clave
+  );
+
+  fs.mkdirSync(directorioCliente, { recursive: true });
+
+  const key = path.join(directorioCliente, 'cliente.key');
+  const cert = path.join(directorioCliente, 'cliente.crt');
+  const ca = path.join(directorioCliente, 'ca.crt');
+
+  try {
+    const rutasServidor = asegurarCertificadosServidor();
+
+    const llaveCaPem = fs.readFileSync(rutasServidor.llave, 'utf8');
+    const certificadoCaPem = fs.readFileSync(rutasServidor.certificado, 'utf8');
+
+    const { llavePem, certificadoPem } = crearCertificadoCliente(
+      clave,
+      llaveCaPem,
+      certificadoCaPem
+    );
+
+    fs.writeFileSync(key, llavePem);
+    fs.writeFileSync(cert, certificadoPem);
+    fs.copyFileSync(rutasServidor.certificado, ca);
+
+    return {
+      key: fs.readFileSync(key),
+      cert: fs.readFileSync(cert),
+      ca: fs.readFileSync(ca)
+    };
+  } catch (error) {
+    const detalle = error instanceof Error ? error.message : String(error);
+
+    throw new Error(
+      `No se pudo generar el certificado del cliente ${clave}. ${detalle}`
+    );
+  }
 }

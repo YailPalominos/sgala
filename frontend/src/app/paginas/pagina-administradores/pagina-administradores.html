@@ -1,43 +1,42 @@
-<form class="filtros-formulario" [formGroup]="formularioFiltros">
-  <mat-accordion class="filtros-acordeon" multi>
-    <mat-expansion-panel class="panel-filtros-fijos" expanded disabled hideToggle>
-      <div class="campos-filtros-principales">
-        <mat-form-field appearance="outline" class="c100 m50 g50">
-          <mat-label>Alias</mat-label>
-          <input matInput formControlName="alias" />
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="c100 m50 g50">
-          <mat-label>Correo electrónico</mat-label>
-          <input matInput formControlName="direccionCorreoElectronico" />
-        </mat-form-field>
-        <div class="acciones-filtros">
-          <button mat-mini-fab class="fab-tema" type="button" aria-label="Reiniciar filtros"
-            matTooltip="Reiniciar filtros"><mat-icon>restart_alt</mat-icon></button>
-          <button mat-mini-fab class="fab-tema" type="submit" aria-label="Buscar" matTooltip="Buscar">
-            <mat-icon>search</mat-icon>
-          </button>
-          <button mat-mini-fab class="fab-tema" type="button"
-            [attr.aria-label]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
-            [matTooltip]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
-            (click)="intercalarFiltros()"><mat-icon>filter_list</mat-icon></button>
-        </div>
+<form class="filtros" [formGroup]="formularioFiltros">
+  <mat-accordion multi>
+    <mat-expansion-panel expanded disabled hideToggle>
+
+      <mat-form-field appearance="outline" class="c100 m50 g50">
+        <mat-label>Alias</mat-label>
+        <input matInput formControlName="alias" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="c100 m50 g50">
+        <mat-label>Correo electrónico</mat-label>
+        <input matInput formControlName="direccionCorreoElectronico" />
+      </mat-form-field>
+      <div class="acciones-filtros">
+        <button mat-mini-fab type="button" aria-label="Reiniciar filtros"
+          matTooltip="Reiniciar filtros"><mat-icon>restart_alt</mat-icon></button>
+        <button mat-mini-fab type="submit" aria-label="Buscar" matTooltip="Buscar">
+          <mat-icon>search</mat-icon>
+        </button>
+        <button mat-mini-fab type="button"
+          [attr.aria-label]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
+          [matTooltip]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'" (click)="intercalarFiltros()">
+          <mat-icon>{{filtrosExpandido()?'keyboard_arrow_up':'keyboard_arrow_down'}}</mat-icon>
+        </button>
       </div>
+
     </mat-expansion-panel>
-    <mat-expansion-panel class="panel-filtros-variables" [expanded]="filtrosExpandido()"
-      (opened)="filtrosExpandido.set(true)" (closed)="filtrosExpandido.set(false)" hideToggle>
-      <mat-expansion-panel-header class="encabezado-filtros-oculto" aria-hidden="true">
-        <mat-panel-title></mat-panel-title>
-      </mat-expansion-panel-header>
-      <div class="campos-filtros-adicionales">
-        <mat-form-field appearance="outline" class="c100 m50 g50">
-          <mat-label>Estado</mat-label>
-          <mat-select formControlName="estadoTexto">
-            <mat-option value="">Todos</mat-option>
-            <mat-option value="Activo">Activo</mat-option>
-            <mat-option value="Inactivo">Inactivo</mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
+    <mat-expansion-panel class="panel-filtros-ocultos" [class.panel-contraido]="!filtrosExpandido()"
+      [expanded]="filtrosExpandido()" (opened)="filtrosExpandido.set(true)" (closed)="filtrosExpandido.set(false)"
+      hideToggle>
+
+      <mat-form-field appearance="outline" class="c100 m50 g50">
+        <mat-label>Estado</mat-label>
+        <mat-select formControlName="estadoTexto">
+          <mat-option value="">Todos</mat-option>
+          <mat-option value="Activo">Activo</mat-option>
+          <mat-option value="Inactivo">Inactivo</mat-option>
+        </mat-select>
+      </mat-form-field>
+
     </mat-expansion-panel>
   </mat-accordion>
 </form>

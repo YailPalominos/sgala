@@ -34,7 +34,7 @@ export class PaginaInformacion {
   }
 
   volver(): void {
-    this.router.navigate(['/iniciar-sesion']);
+    this.router.navigate(['/acceder']);
   }
 
   abrirAgente(): void {

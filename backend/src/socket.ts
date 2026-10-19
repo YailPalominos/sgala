@@ -262,7 +262,12 @@ export async function iniciarServidorSocketio(): Promise<HttpServer> {
 
   ioInstance = new Server(httpServer, {
     cors: {
-      origin: 'http://localhost:4200',
+      origin: [
+        'http://localhost:4058',
+        'https://localhost:4058',
+        'http://localhost:4200',
+        'https://localhost:4200',
+      ],
       credentials: true,
     },
   });

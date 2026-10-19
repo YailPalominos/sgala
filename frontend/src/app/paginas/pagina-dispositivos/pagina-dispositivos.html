@@ -28,18 +28,18 @@
         </mat-select>
       </mat-form-field>
 
-      <div class="acciones-filtros c100 m100 g100" aria-label="Acciones de filtros">
-        <button mat-mini-fab class="fab-tema" type="button"
+      <div class="acciones-filtros c100 m100 g100">
+        <button mat-mini-fab type="button"
           [attr.aria-label]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
           [matTooltip]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'" (click)="intercalarFiltros()">
           <mat-icon>{{filtrosExpandido()?'keyboard_arrow_up':'keyboard_arrow_down'}}</mat-icon>
         </button>
-        <button mat-mini-fab class="fab-tema" type="button" aria-label="Reiniciar filtros"
+        <button mat-mini-fab type="button" aria-label="Reiniciar filtros"
           matTooltip="Reiniciar filtros" (click)="reiniciarFiltros()">
           <mat-icon>restart_alt</mat-icon>
         </button>
 
-        <button mat-mini-fab class="fab-tema" type="submit" aria-label="Buscar" matTooltip="Buscar" (click)="buscar()">
+        <button mat-mini-fab  type="submit" aria-label="Buscar" matTooltip="Buscar" (click)="buscar()">
           <mat-icon>search</mat-icon>
         </button>
       </div>

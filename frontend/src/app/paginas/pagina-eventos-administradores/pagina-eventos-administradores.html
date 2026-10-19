@@ -1,66 +1,50 @@
-<main class="pagina-admin">
+<form class="filtros" [formGroup]="formularioFiltros" (ngSubmit)="buscar()">
+  <mat-accordion multi>
+    <mat-expansion-panel expanded disabled hideToggle>
+
+      <mat-form-field appearance="outline" class="c100 m50 g50">
+        <mat-label>Acción</mat-label>
+        <input matInput formControlName="accion" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="c100 m50 g50">
+        <mat-label>Administrador</mat-label>
+        <input matInput formControlName="aliasAdministrador" />
+      </mat-form-field>
+      <div class="acciones-filtros">
+        <button mat-mini-fab  type="button" aria-label="Reiniciar filtros"
+          matTooltip="Reiniciar filtros" (click)="reiniciarFiltros()"><mat-icon>restart_alt</mat-icon></button>
+        <button mat-mini-fab class="fab-tema" type="submit" aria-label="Buscar" matTooltip="Buscar">
+          <mat-icon>search</mat-icon>
+        </button>
+        <button mat-mini-fab type="button"
+          [attr.aria-label]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
+          [matTooltip]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'" (click)="intercalarFiltros()">
+          <mat-icon>{{filtrosExpandido()?'keyboard_arrow_up':'keyboard_arrow_down'}}</mat-icon>
+        </button>
+      </div>
+
+    </mat-expansion-panel>
+
+    <mat-expansion-panel class="panel-filtros-ocultos" [class.panel-contraido]="!filtrosExpandido()"
+      [expanded]="filtrosExpandido()" (opened)="filtrosExpandido.set(true)" (closed)="filtrosExpandido.set(false)"
+      hideToggle>
 
 
-  <form class="filtros-formulario" [formGroup]="formularioFiltros" (ngSubmit)="buscar()">
-    <mat-accordion class="filtros-acordeon" multi>
-      <mat-expansion-panel class="panel-filtros-fijos" expanded disabled hideToggle>
-        <div class="campos-filtros-principales">
-          <mat-form-field appearance="outline" class="c100 m50 g50">
-            <mat-label>Acción</mat-label>
-            <input matInput formControlName="accion" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="c100 m50 g50">
-            <mat-label>Administrador</mat-label>
-            <input matInput formControlName="aliasAdministrador" />
-          </mat-form-field>
-          <div class="acciones-filtros">
-            <button mat-mini-fab class="fab-tema" type="button" aria-label="Reiniciar filtros"
-              matTooltip="Reiniciar filtros" (click)="reiniciarFiltros()"><mat-icon>restart_alt</mat-icon></button>
-            <button mat-mini-fab class="fab-tema" type="submit" aria-label="Buscar" matTooltip="Buscar">
-              <mat-icon>search</mat-icon>
-            </button>
-            <button mat-mini-fab class="fab-tema" type="button"
-              [attr.aria-label]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
-              [matTooltip]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
-              (click)="intercalarFiltros()"><mat-icon>filter_list</mat-icon></button>
-          </div>
-        </div>
-      </mat-expansion-panel>
-      <mat-expansion-panel class="panel-filtros-variables" [expanded]="filtrosExpandido()"
-        (opened)="filtrosExpandido.set(true)" (closed)="filtrosExpandido.set(false)" hideToggle>
-        <mat-expansion-panel-header class="encabezado-filtros-oculto" aria-hidden="true">
-          <mat-panel-title></mat-panel-title>
-        </mat-expansion-panel-header>
-        <div class="campos-filtros-adicionales">
-          <mat-form-field appearance="outline" class="c100 m50 g50">
-            <mat-label>Correo electrónico</mat-label>
-            <input matInput formControlName="correoAdministrador" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="c100 m50 g50">
-            <mat-label>Fecha</mat-label>
-            <input matInput type="date" formControlName="fechaTexto" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="c100 m50 g50">
-            <mat-label>ID</mat-label>
-            <input matInput type="number" formControlName="id" />
-          </mat-form-field>
-        </div>
-      </mat-expansion-panel>
-    </mat-accordion>
-  </form>
+      <mat-form-field appearance="outline" class="c100 m50 g50">
+        <mat-label>Correo electrónico</mat-label>
+        <input matInput formControlName="correoAdministrador" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="c100 m50 g50">
+        <mat-label>Fecha</mat-label>
+        <input matInput type="date" formControlName="fechaTexto" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="c100 m50 g50">
+        <mat-label>ID</mat-label>
+        <input matInput type="number" formControlName="id" />
+      </mat-form-field>
 
-  @if (cargando()) {
-    <div class="estado">
-      <mat-spinner diameter="40"></mat-spinner>
-      <p>Cargando eventos de administradores...</p>
-    </div>
-  } @else if (error()) {
-    <div class="estado estado-error" role="alert">
-      <mat-icon>error_outline</mat-icon>
-      <p>{{ error() }}</p>
-      <button mat-button type="button" (click)="cargar()">Reintentar</button>
-    </div>
-  } @else {
-    <app-tabla [datos]="eventos()" [columnas]="columnas" [filtros]="filtros"></app-tabla>
-  }
-</main>
+    </mat-expansion-panel>
+  </mat-accordion>
+</form>
+
+<app-tabla [datos]="eventos()" [columnas]="columnas" [filtros]="filtros"></app-tabla>

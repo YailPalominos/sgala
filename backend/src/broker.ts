@@ -39,7 +39,7 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
 
       try {
 
-        await obtenerDispositivo(
+        const dispositivo = await obtenerDispositivo(
           claveDispositivo
         );
 
@@ -68,7 +68,6 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
 
     const claveDispositivo = socket.claveDispositivo;
 
-
     if (!claveDispositivo) {
       return;
     }
@@ -77,8 +76,8 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
       claveDispositivo;
 
     callback(null, true);
-
   };
+
 
   servidor.listen(
     entorno.PUERTO_BROKER,
@@ -264,6 +263,13 @@ export async function onPublicacion(claveDispositivo: string, topico: string, pa
       payload.toString("utf8")
     );
 
+    if (topico == "localizaciones") {
+
+
+    }
+
+    console.log(claveDispositivo, datos)
+    
     await actualizarDatosDispositivo(claveDispositivo, datos);
     await enviarDispositivoActualizado(claveDispositivo);
 

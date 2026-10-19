@@ -37,8 +37,7 @@ interface UsuarioAdministrativo {
     ReactiveFormsModule,
     TablaComponent,
   ],
-  templateUrl: './pagina-usuarios.html',
-  styleUrl: './pagina-usuarios.scss'
+  templateUrl: './pagina-usuarios.html'
 })
 export class PaginaUsuarios implements OnInit {
   private readonly administradorServicio = inject(ServicioAdministrador);

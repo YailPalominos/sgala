@@ -1,6 +1,6 @@
 
 Para desplegar contenedores
-> docker compose up --build -d 
+Usa el comando para tu sistema operativo indicado al final. El script genera los secretos que falten y ejecuta Docker Compose.
 
 Instala las dependencias del proyecto
 > npm install
@@ -18,3 +18,11 @@ https://10.1.33.98:4200/confirmar?codigoVerificacion=7f3a9c21-6d84-4b17-a2e5-91c
 
 
 analistainnovacionti28lem@gmail.com
+
+
+Despliegue en Windows (desde la raiz del proyecto)
+> powershell -ExecutionPolicy Bypass -File .\desplegar.ps1
+
+
+Despliegue en Linux (desde la raiz del proyecto)
+> bash ./desplegar.sh

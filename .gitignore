@@ -23,5 +23,10 @@ npm-debug.log*
 # Coverage
 coverage/
 
+# Secrets / local env
+.env
+backend/.env
+**/.env
+
 # Kiro specs
 .kiro/

@@ -27,7 +27,7 @@ export async function enviarCorreoConfirmacion(correo: string, clave: string): P
   const esIpv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(servidor);
 
   const host = esIpv4 || servidor === 'localhost'
-    ? `${servidor}:4200`
+    ? `${servidor}:4058`
     : servidor;
 
   const enlaceConfirmacion =
@@ -73,7 +73,7 @@ export async function enviarCorreoRecuperacion(correo: string, llave: string): P
   const esIpv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(servidor);
 
   const host = esIpv4 || servidor === 'localhost'
-    ? `${servidor}:4200`
+    ? `${servidor}:4058`
     : servidor;
 
   const enlaceRecuperacion =
@@ -148,7 +148,7 @@ export async function enviarCorreoConfirmacionCambios(
   const esIpv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(servidor);
 
   const host = esIpv4 || servidor === 'localhost'
-    ? `${servidor}:4200`
+    ? `${servidor}:4058`
     : servidor;
 
   const enlaceConfirmacion =
