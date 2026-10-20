@@ -191,6 +191,8 @@ export async function obtenerDatosDispositivos(): Promise<DispositivoClave[]> {
             WHEN 'T' THEN 'Timbre'
             WHEN 'C' THEN 'Camara'
             WHEN 'D' THEN 'Dispositivo'
+            WHEN 'M' THEN 'Modulo'
+            WHEN 'Y' THEN 'Telefono'
             ELSE 'Desconocido'
           END AS tipoTexto
       FROM dispositivos dis
@@ -266,6 +268,29 @@ export async function crearPreDispositivo(
   return resultado[0].clave;
 }
 
+export async function actualizarPreDispositivo(
+  datos: any
+): Promise<string> {
+
+  const resultado = await prisma.$queryRaw<{ clave: string }[]>`
+    DECLARE @salida TABLE (clave UNIQUEIDENTIFIER);
+
+    UPDATE dbo.pre_dispositivos
+    SET
+      tipo = ${datos.tipo},
+      cualidades = ${datos.cualidades}
+    OUTPUT INSERTED.clave INTO @salida (clave)
+    WHERE clave = ${datos.clave};
+
+    SELECT clave FROM @salida;
+  `;
+
+  if (!resultado.length) {
+    throw new Error('No se encontró el pre-dispositivo o no se pudo actualizar.');
+  }
+
+  return resultado[0].clave;
+}
 
 /**
  * Obtiene las localizaciones acorde a los filtros
@@ -299,38 +324,149 @@ export async function obtenerLocalizaciones(idUsuario: number, filtros: any): Pr
 
   return registros;
 }
-
 /**
- * Crea una localización del dispositivo
- * @param claveDispositivo Clave del dispositivo
- * @param localizacion Datos de ubicación
+ * Registra una lista de localizaciones del dispositivo.
+ * Solo registra puntos separados al menos 20 metros
+ * de la última localización aceptada.
+ *
+ * id: identificador asignado por el dispositivo.
+ * idReplica: identificador asignado por el servidor.
+ * idReplica = -1 cuando la localización no se registra.
+ * fecha: fecha de la localización enviada por el dispositivo.
  */
-export async function crearLocalizacion(
+export async function crearLocalizaciones(
   claveDispositivo: string,
-  localizacion: {
+  localizaciones: {
+    id: number;
     latitud: number;
     longitud: number;
     altitud: number;
-  }
-): Promise<void> {
+    fecha: string | Date;
+  }[]
+): Promise<{
+  id: number;
+  idReplica: number;
+  latitud: number;
+  longitud: number;
+  altitud: number;
+  fecha: string | Date;
+}[]> {
 
-  await prisma.$executeRaw`
-        INSERT INTO localizaciones (
-            id_dispositivo,
-            latitud,
-            longitud,
-            altitud
-        )
-        SELECT
-            d.id,
-            ${localizacion.latitud},
-            ${localizacion.longitud},
-            ${localizacion.altitud}
-        FROM dispositivos d
-        INNER JOIN pre_dispositivos pd
-            ON pd.id = d.id_pre_dispositivo
-        WHERE pd.clave = TRY_CONVERT(uniqueidentifier, ${claveDispositivo});
+  return prisma.$transaction(async (tx) => {
+
+    const resultado: {
+      id: number;
+      idReplica: number;
+      latitud: number;
+      longitud: number;
+      altitud: number;
+      fecha: string | Date;
+    }[] = [];
+
+    const dispositivo = await tx.$queryRaw<
+      { id: number }[]
+    >`
+      SELECT d.id
+      FROM dispositivos d
+      INNER JOIN pre_dispositivos pd
+        ON pd.id = d.id_pre_dispositivo
+      WHERE pd.clave = TRY_CONVERT(uniqueidentifier, ${claveDispositivo});
     `;
-}
 
-//#endregion
+    if (dispositivo.length === 0) {
+      throw new Error(
+        `No existe el dispositivo ${claveDispositivo}`
+      );
+    }
+
+    const idDispositivo = dispositivo[0].id;
+
+    const ultimaLocalizacion = await tx.$queryRaw<
+      {
+        latitud: number;
+        longitud: number;
+      }[]
+    >`
+      SELECT TOP (1)
+        latitud,
+        longitud
+      FROM localizaciones
+      WHERE id_dispositivo = ${idDispositivo}
+      ORDER BY id DESC;
+    `;
+
+    let referencia = ultimaLocalizacion[0] ?? null;
+
+    for (const localizacion of localizaciones) {
+
+      let distancia = Infinity;
+
+      if (referencia) {
+        const R = 6371000;
+        const rad = (grados: number) => grados * Math.PI / 180;
+
+        const lat1 = rad(referencia.latitud);
+        const lat2 = rad(localizacion.latitud);
+
+        const deltaLat = rad(
+          localizacion.latitud - referencia.latitud
+        );
+
+        const deltaLon = rad(
+          localizacion.longitud - referencia.longitud
+        );
+
+        const a =
+          Math.sin(deltaLat / 2) ** 2 +
+          Math.cos(lat1) *
+          Math.cos(lat2) *
+          Math.sin(deltaLon / 2) ** 2;
+
+        distancia = 2 * R * Math.atan2(
+          Math.sqrt(a),
+          Math.sqrt(1 - a)
+        );
+      }
+
+      if (distancia < 20) {
+        resultado.push({
+          ...localizacion,
+          idReplica: -1
+        });
+
+        continue;
+      }
+
+      const registro = await tx.$queryRaw<
+        { idReplica: number }[]
+      >`
+        INSERT INTO localizaciones (
+          id_dispositivo,
+          latitud,
+          longitud,
+          altitud,
+          fecha
+        )
+        OUTPUT INSERTED.id AS idReplica
+        VALUES (
+          ${idDispositivo},
+          ${localizacion.latitud},
+          ${localizacion.longitud},
+          ${localizacion.altitud},
+          ${localizacion.fecha instanceof Date
+            ? localizacion.fecha
+            : new Date(localizacion.fecha)}
+        );
+      `;
+
+      resultado.push({
+        ...localizacion,
+        idReplica: registro[0].idReplica
+      });
+
+      referencia = localizacion;
+    }
+
+    return resultado;
+  });
+}

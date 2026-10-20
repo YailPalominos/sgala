@@ -29,11 +29,10 @@ const puerto = entorno.PUERTO_API
 const app = express();
 
 const permitidos = [
-  `https://${entorno.ENLACE_SERVIDOR}`,
-  'https://localhost:4058',
-  'http://localhost:4058',
-  'https://localhost:4200',
-  'http://localhost:4200',
+  `https://${entorno.ENLACE_SERVIDOR}:4058`,
+  `https://localhost:4058`,
+  `http://${entorno.ENLACE_SERVIDOR}:4058`,
+  `http://localhost:4058`,
 ];
 
 app.use(cors({
@@ -59,6 +58,10 @@ app.use(
       {
         url: '/api/administradores/autenticar',
         method: 'POST'
+      },
+      {
+        url: '/api/administradores/restablecer',
+        method: 'PUT'
       },
       {
         url: /^\/api\/usuarios\/confirmar\/[^/]+$/,

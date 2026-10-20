@@ -65,8 +65,8 @@ export class ServicioAdministrador {
     return this.conexion.put(`${this.ruta}/perfil`, datos);
   }
 
-  public restablecerContrasena(contrasena: string): Observable<Respuesta<void>> {
-    return this.conexion.put<void>(`${this.ruta}/perfil/contrasena`, { contrasena });
+  public restablecer(datos: any): Observable<Respuesta<void>> {
+    return this.conexion.put<void>(`${this.ruta}/restablecer`, datos);
   }
 
   public crearPreDispositivo(datos: {
@@ -75,6 +75,16 @@ export class ServicioAdministrador {
   }): Observable<Respuesta<{ id: number; clave: string }>> {
     return this.conexion.post<{ id: number; clave: string }>(
       `${this.ruta}/pre-dispositivos/crear`,
+      datos
+    );
+  }
+
+  public actualizarPreDispositivo(datos: {
+    tipo: 'I' | 'T' | 'C' | 'D';
+    cualidades: string | null;
+  }): Observable<Respuesta<{ id: number; clave: string }>> {
+    return this.conexion.put<{ id: number; clave: string }>(
+      `${this.ruta}/pre-dispositivos/actualizar`,
       datos
     );
   }

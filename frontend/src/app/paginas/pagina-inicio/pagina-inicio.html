@@ -4,7 +4,8 @@
     <input matInput (input)="filtrar($event)" placeholder="Clave, alias..." />
     <mat-icon matPrefix>search</mat-icon>
   </mat-form-field>
-  <button mat-fab type="button" aria-label="Agregar dispositivo" matTooltip="Agregar dispositivo" (click)="agregarDispositivo()">
+  <button mat-fab type="button" aria-label="Agregar dispositivo" matTooltip="Agregar dispositivo"
+    (click)="agregarDispositivo()">
     <mat-icon>add</mat-icon>
   </button>
 </div>
@@ -37,41 +38,9 @@
 
       <!-- Sección media: datos -->
       <div class="card-datos" (click)="verAlarmas(dispositivo)">
+        <b>{{ dispositivo.clave }}</b>
 
-        <p class="dato-telefono">
-          <!-- <mat-icon inline>phone</mat-icon>
-          {{ dispositivo.telefono }} -->
-
-          <mat-icon inline>{{ iconoTipo(dispositivo.tipo) }}</mat-icon>
-          {{ dispositivo.tipoTexto }}
-        </p>
-
-        <p class="dato-sucripcion">
-          <mat-icon inline>date_range</mat-icon>
-
-          @if (dispositivo.fechaFinalSuscripcion) {
-
-          @if (
-          dispositivo.fechaFinalSuscripcion &&
-          dispositivo.fechaFinalSuscripcion !== 'null'
-          ) {
-          {{ dispositivo.fechaFinalSuscripcion | date:'dd/MM/yyyy' }}
-          } @else {
-          <span style="color:#9e9e9e">Sin suscripción</span>
-          }
-
-          <span [style.color]="obtenerColorSuscripcion(dispositivo.fechaFinalSuscripcion)">
-            {{ obtenerTextoSuscripcion(dispositivo.fechaFinalSuscripcion) }}
-          </span>
-
-          } @else {
-
-          <span style="color:#f44336">
-            Sin suscripción
-          </span>
-
-          }
-        </p>
+        <span style="text-align: center; color: cadetblue;">{{ dispositivo.tipoTexto }}</span>
 
         <p class="dato-general">
 
@@ -107,6 +76,13 @@
           </b>
           {{ '103 U GB de 200 T GB 73 GB'}}
           } -->
+
+          @if(dispositivo.tipo=='Y'){
+          Estado:
+          <b style="color: #4caf50">
+            Desbloqueado
+          </b>
+          }
         </p>
       </div>
 
@@ -122,18 +98,22 @@
           </button>
         </span>
 
+        @if(dispositivo.tipo!='Y'){
         <span matTooltip="Conectar con el dispositivo via bluetooth">
           <button mat-icon-button color="primary" (click)="conectar(dispositivo)">
             <mat-icon>bluetooth</mat-icon>
           </button>
         </span>
+        }
 
+        @if(dispositivo.tipo!='Y'){
         <span matTooltip="Configurar el dispositivo">
           <button mat-icon-button color="primary" (click)="configurarDispositivo(dispositivo)"
             [disabled]="dispositivo.estatusConexion == true?false:true">
             <mat-icon>settings</mat-icon>
           </button>
         </span>
+        }
 
         @if (tieneCualidad(dispositivo, 'COC')) {
         <span [matTooltip]=" (dispositivo.estatusCortaCorriente==false ? 'Activar corta corriente'
@@ -225,6 +205,19 @@
             <mat-icon>play_arrow</mat-icon>
           </button>
 
+        </span>
+        }
+
+
+
+
+
+        @if (dispositivo.tipo== 'Y') {
+        <span matTooltip="Bloquear">
+          <button mat-icon-button [disabled]="(dispositivo.estatusConexion==true)?false:true" color="warn"
+            (click)="bloquear(dispositivo)">
+            <mat-icon>block</mat-icon>
+          </button>
         </span>
         }
 

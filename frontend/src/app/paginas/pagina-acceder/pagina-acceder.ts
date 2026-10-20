@@ -76,11 +76,17 @@ export class PaginaAcceder {
       ? this.administradorServicio.autenticar(credenciales)
       : this.usuarioServicio.acceder(credenciales);
     solicitud.subscribe({
-      next: (respuesta) => {
+      next: (respuesta: any) => {
         if (respuesta.estatus === 202) {
           this.notificador.advertencia("Debe cambiar su contraseña")
-          const llave = respuesta.datos;
-          this.router.navigate(['/restablecer'], { queryParams: { llave } });
+          const llave = respuesta.datos.claveLLaveRecuperacion;
+          const esAdministrador = respuesta.datos.esAdministrador;
+          this.router.navigate(['/restablecer'], {
+            queryParams: {
+              llave,
+              esAdministrador
+            }
+          });
         } else {
           this.autenticador.guardarSesion(respuesta.datos);
           const sesion = this.autenticador.obtenerSesion();

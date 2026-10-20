@@ -30,6 +30,7 @@
     <mat-expansion-panel class="panel-filtros-ocultos" [class.panel-contraido]="!filtrosExpandido()"
       [expanded]="filtrosExpandido()" (opened)="filtrosExpandido.set(true)" (closed)="filtrosExpandido.set(false)"
       hideToggle>
+      
       <mat-form-field appearance="outline" class="c100 m50 g50">
         <mat-label>Teléfono</mat-label>
         <input matInput formControlName="telefono" />

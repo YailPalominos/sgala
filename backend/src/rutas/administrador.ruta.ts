@@ -5,6 +5,7 @@ import * as administradorRepositorio from '../repositorios/base-datos/administra
 import * as eventoAdministradorRepositorio from '../repositorios/base-datos/evento-administrador.repositorio';
 import * as autenticacionServicio from '../servicios/autenticacion.servicio';
 import {
+  actualizarPreDispositivo,
   crearPreDispositivo,
   obtenerListaAdministrativa
 } from '../repositorios/base-datos/dispositivo.repositorio';
@@ -17,7 +18,8 @@ import { ErrorHttp } from '../interceptores/error.middleware';
 import {
   actualizarPerfilSesion,
   crearLlaveRecuperacion,
-  eliminarSesion
+  eliminarSesion,
+  obtenerLlaveRecuperacion
 } from '@/repositorios/redis/sesiones.redis';
 
 export const administradorRouter = Router();
@@ -58,29 +60,53 @@ function validarDatosAdministrador(datos: Record<string, unknown>): void {
 }
 
 
-administradorRouter.post('/autenticar', asyncHandler(async (solicitud, respuesta) => {
-  const { identificador, contraseña } = solicitud.body;
-  const resultado = await autenticacionServicio.autenticar(identificador, contraseña, true);
+administradorRouter.post('/autenticar',
+  asyncHandler(async (solicitud, respuesta) => {
+    const { identificador, contraseña } = solicitud.body;
+    const resultado = await autenticacionServicio.autenticar(identificador, contraseña, true);
 
-  console.log(resultado)
-  if (resultado.requiereCambioContrasena) {
-    if (resultado.idAdminitrador === undefined) {
-      throw new Error('idAdminitrador no definido para cambio de contraseña.');
+    if (resultado.requiereCambioContrasena) {
+      if (resultado.idAdministrador === undefined) {
+        throw new Error('idAdminitrador no definido para cambio de contraseña.');
+      }
+      const claveLLaveRecuperacion = await crearLlaveRecuperacion(resultado.idAdministrador, 'A', true);
+      respuesta.status(202).json({ mensaje: 'Debe cambiar su contraseña', datos: { claveLLaveRecuperacion, esAdministrador: true } });
+    } else {
+      respuesta.status(200).json({ datos: resultado.sesion, mensaje: 'Inicio de sesión exitoso' });
     }
-    const claveLLaveRecuperacion = await crearLlaveRecuperacion(resultado.idUsuario, 'A');
-    respuesta.status(202).json({ mensaje: 'Debe cambiar su contraseña', datos: claveLLaveRecuperacion });
-  } else {
-    respuesta.status(200).json({ datos: resultado.sesion, mensaje: 'Inicio de sesión exitoso' });
-  }
-})
+  })
 );
+
+
+/**
+ * Restablece la contraseña de un administrador usando una llave de recuperación válida.
+ */
+administradorRouter.put('/restablecer',
+  asyncHandler(async (solicitud, respuesta) => {
+
+    const { llave, nuevaContrasena } = solicitud.body;
+    const recuperacion = await obtenerLlaveRecuperacion(llave);
+
+    if (!recuperacion) {
+      throw new ErrorHttp(400, 'Enlace inválido o expirado');
+    }
+
+    const contrasenaCifrada = await bcrypt.hash(nuevaContrasena, saltRounds);
+    administradorRepositorio.actualizarContrasena(recuperacion.idAdministrador, contrasenaCifrada);
+
+    respuesta.status(200).json({
+      mensaje: 'Contraseña actualizada exitosamente.'
+    });
+  })
+);
+
 
 administradorRouter.use(requiereAdministrador);
 
-administradorRouter.get(
-  '/dispositivos/obtener-lista',
+administradorRouter.get('/dispositivos/obtener-lista',
   asyncHandler(async (_solicitud, respuesta) => {
     const datos = await obtenerListaAdministrativa();
+    console.log('Lista de dispositivos administrativos obtenida:', datos);
     respuesta.status(200).json({
       datos,
       mensaje: 'Dispositivos obtenidos exitosamente.'
@@ -88,8 +114,7 @@ administradorRouter.get(
   })
 );
 
-administradorRouter.get(
-  '/dispositivos/descargar-certificados/:clave',
+administradorRouter.get('/dispositivos/descargar-certificados/:clave',
   asyncHandler(async (solicitud, respuesta) => {
     const clave = String(solicitud.params.clave ?? '').trim();
 
@@ -145,8 +170,7 @@ administradorRouter.get(
   })
 );
 
-administradorRouter.post(
-  '/pre-dispositivos/crear',
+administradorRouter.post('/pre-dispositivos/crear',
   asyncHandler(async (solicitud, respuesta) => {
     if (!solicitud.body || typeof solicitud.body !== 'object' || Array.isArray(solicitud.body)) {
       throw new ErrorHttp(400, 'Los datos del pre-dispositivo no son válidos.');
@@ -196,8 +220,18 @@ administradorRouter.post(
   })
 );
 
-administradorRouter.get(
-  '/usuarios/obtener-lista',
+
+administradorRouter.put('/pre-dispositivos/actualizar',
+  asyncHandler(async (solicitud, respuesta) => {
+    const datos = solicitud.body;
+    await actualizarPreDispositivo(datos);
+    respuesta.status(201).json({
+      mensaje: 'Pre-dispositivo creado exitosamente.'
+    });
+  })
+);
+
+administradorRouter.get('/usuarios/obtener-lista',
   asyncHandler(async (_solicitud, respuesta) => {
     const datos = await obtenerListaUsuarios();
     respuesta.status(200).json({
@@ -207,8 +241,7 @@ administradorRouter.get(
   })
 );
 
-administradorRouter.get(
-  '/eventos/obtener-lista',
+administradorRouter.get('/eventos/obtener-lista',
   asyncHandler(async (_solicitud, respuesta) => {
     const datos = await obtenerListaEventos();
     respuesta.status(200).json({
@@ -218,8 +251,7 @@ administradorRouter.get(
   })
 );
 
-administradorRouter.get(
-  '/eventos-administradores/obtener-lista',
+administradorRouter.get('/eventos-administradores/obtener-lista',
   asyncHandler(async (_solicitud, respuesta) => {
     const datos = await eventoAdministradorRepositorio.obtenerLista();
     respuesta.status(200).json({
@@ -229,8 +261,7 @@ administradorRouter.get(
   })
 );
 
-administradorRouter.get(
-  '/perfil',
+administradorRouter.get('/perfil',
   asyncHandler(async (solicitud, respuesta) => {
     const datos = await administradorRepositorio.obtener(
       Math.abs(solicitud.sesion.idUsuario)
@@ -245,8 +276,7 @@ administradorRouter.get(
   })
 );
 
-administradorRouter.post(
-  '/cerrar-sesion',
+administradorRouter.post('/cerrar-sesion',
   asyncHandler(async (solicitud, respuesta) => {
     await eliminarSesion(solicitud.sesion.clave);
     respuesta.status(200).json({
@@ -255,8 +285,7 @@ administradorRouter.post(
   })
 );
 
-administradorRouter.get(
-  '/obtener-lista',
+administradorRouter.get('/obtener-lista',
   asyncHandler(async (_solicitud, respuesta) => {
     const datos = await administradorRepositorio.obtenerLista();
     respuesta.status(200).json({
@@ -266,8 +295,7 @@ administradorRouter.get(
   })
 );
 
-administradorRouter.get(
-  '/obtener/:id',
+administradorRouter.get('/obtener/:id',
   asyncHandler(async (solicitud, respuesta) => {
     const id = Number(solicitud.params.id);
     if (!Number.isInteger(id) || id < 1) {
@@ -284,8 +312,7 @@ administradorRouter.get(
   })
 );
 
-administradorRouter.post(
-  '/crear',
+administradorRouter.post('/crear',
   asyncHandler(async (solicitud, respuesta) => {
     if (
       solicitud.body === null ||
@@ -332,8 +359,7 @@ administradorRouter.post(
   })
 );
 
-administradorRouter.put(
-  '/actualizar',
+administradorRouter.put('/actualizar',
   asyncHandler(async (solicitud, respuesta) => {
     if (
       solicitud.body === null ||
@@ -395,8 +421,7 @@ administradorRouter.put(
   })
 );
 
-administradorRouter.put(
-  '/perfil',
+administradorRouter.put('/perfil',
   asyncHandler(async (solicitud, respuesta) => {
     if (
       solicitud.body === null ||
@@ -465,44 +490,6 @@ administradorRouter.put(
         direccionCorreoElectronico: datos.direccionCorreoElectronico
       },
       mensaje: 'Perfil de administrador actualizado exitosamente.'
-    });
-  })
-);
-
-/**
- * Restablece (cambia) la contraseña del administrador autenticado.
- * El administrador ya está autenticado, por lo que basta con enviar
- * la nueva contraseña, que se guarda cifrada.
- */
-administradorRouter.put(
-  '/perfil/contrasena',
-  asyncHandler(async (solicitud, respuesta) => {
-    if (
-      solicitud.body === null ||
-      typeof solicitud.body !== 'object' ||
-      Array.isArray(solicitud.body)
-    ) {
-      throw new ErrorHttp(400, 'Los datos no son válidos.');
-    }
-    const { contrasena } = solicitud.body as { contrasena?: unknown };
-    if (typeof contrasena !== 'string' || contrasena.length < 4 || contrasena.length > 255) {
-      throw new ErrorHttp(400, 'La contraseña debe tener entre 4 y 255 caracteres.');
-    }
-
-    const id = Math.abs(solicitud.sesion.idUsuario);
-    const actual = await administradorRepositorio.obtenerConContrasena(id);
-    if (!actual) {
-      throw new ErrorHttp(404, 'Administrador no encontrado.');
-    }
-
-    const contrasenaCifrada = await bcrypt.hash(contrasena, saltRounds);
-    const actualizado = await administradorRepositorio.actualizarContrasena(id, contrasenaCifrada);
-    if (!actualizado) {
-      throw new ErrorHttp(404, 'Administrador no encontrado.');
-    }
-    await eventoAdministradorRepositorio.registrar(id, 'Cambió su contraseña de administrador.');
-    respuesta.status(200).json({
-      mensaje: 'Contraseña actualizada exitosamente.'
     });
   })
 );

@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ServicioUsuario } from '../../servicios/servicio-usuario';
 import { Notificador } from '../../recursos/notificador';
+import { ServicioAdministrador } from '../../servicios/servicio-administrador';
 
 export interface ReglasContrasena {
   minimo8: boolean;
@@ -33,6 +34,7 @@ export interface ReglasContrasena {
 })
 export class PaginaRestablecer implements OnInit, OnDestroy {
   private servicioUsuario = inject(ServicioUsuario);
+  private servicioAdministrador = inject(ServicioAdministrador);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private notificador = inject(Notificador);
@@ -56,12 +58,21 @@ export class PaginaRestablecer implements OnInit, OnDestroy {
   });
   contrasenaSegura = signal(false);
 
+  esAdministrador: boolean = false;
+
   ngOnInit(): void {
-    // Prellenar la llave si viene por query param
-    const llave = this.route.snapshot.queryParamMap.get('llave');
+
+    const parametros = this.route.snapshot.queryParamMap;
+
+    const llave = parametros.get('llave');
+
     if (llave) {
       this.formulario.get('llave')!.setValue(llave);
     }
+
+    this.esAdministrador =
+      parametros.get('esAdministrador') === 'true';
+
 
     // Suscribirse a cambios de contraseña
     const subContrasena = this.formulario.get('contrasena')!.valueChanges.subscribe(() => {
@@ -111,11 +122,22 @@ export class PaginaRestablecer implements OnInit, OnDestroy {
       nuevaContrasena: this.formulario.getRawValue().contrasena!,
     };
 
-    this.servicioUsuario.cambiarContrasena(datos).subscribe({
-      next: () => {
-        this.notificador.exitoso('Contraseña actualizada exitosamente.');
-        this.router.navigate(['/acceder']);
-      }
-    });
+    if (this.esAdministrador == true) {
+      this.servicioAdministrador.restablecer(datos).subscribe({
+        next: () => {
+          this.notificador.exitoso('Administrador actualizado exitosamente.');
+          this.router.navigate(['/acceder'], {
+            queryParams: { tipo: 'administrador' }
+          });
+        }
+      });
+    } else {
+      this.servicioUsuario.cambiarContrasena(datos).subscribe({
+        next: () => {
+          this.notificador.exitoso('Contraseña actualizada exitosamente.');
+          this.router.navigate(['/acceder']);
+        }
+      });
+    }
   }
 }

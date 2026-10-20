@@ -89,6 +89,7 @@ export class PaginaDispositivos implements OnInit {
   readonly columnas: Columna[] = [
     { clave: 'clave', titulo: 'Clave', formato: 'texto' },
     { clave: 'tipoTexto', titulo: 'Tipo', formato: 'texto' },
+    { clave: 'cualidades', titulo: 'Cualidades', formato: 'texto' },
     { clave: 'estatusTexto', titulo: 'Estatus', formato: 'texto' },
     { clave: 'asignacionTexto', titulo: 'Asignación', formato: 'texto' },
     { clave: 'usuarioTexto', titulo: 'Usuario', formato: 'texto' },

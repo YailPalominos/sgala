@@ -18,7 +18,7 @@ export interface ConfirmacionData {
 }
 
 @Component({
-  selector: 'app-confirmacion-dialog',
+  selector: 'app-resolucion-dialog',
   standalone: true,
   imports: [
     MatDialogModule,

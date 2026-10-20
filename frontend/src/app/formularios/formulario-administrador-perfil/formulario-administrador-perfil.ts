@@ -172,7 +172,7 @@ export class FormularioAdministradorPerfil extends Formulario {
     if (typeof nuevaContrasena !== 'string' || nuevaContrasena.length < 4) {
       return;
     }
-    this.servicio.restablecerContrasena(nuevaContrasena).subscribe({
+    this.servicio.restablecer(nuevaContrasena).subscribe({
       next: () => {
         this.notificador.exitoso('Contraseña actualizada exitosamente.');
       },

@@ -246,6 +246,39 @@ async function manejarConexion(socket: Socket): Promise<void> {
     //   }
     // });
 
+    socket.on('bloquear', async (datos, responder) => {
+      try {
+        const respuesta = await Promise.race([
+          enviarSolicitudDispositivo(datos.clave, 'bloquear'),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(
+                new Error(
+                  'El dispositivo no respondió dentro del tiempo esperado.'
+                )
+              );
+            }, 12000);
+          })
+        ]);
+
+        if (respuesta.estatus === false) {
+          throw new Error(respuesta.mensaje);
+        }
+        const dispositivo = await redisRepositorio.obtenerDispositivo(
+          datos.clave
+        );
+        await enviarNotificacionUsuario(dispositivo.idUsuario);
+        responder(respuesta);
+      } catch (error) {
+        responder({
+          estatus: false,
+          mensaje: error instanceof Error
+            ? error.message
+            : 'Error al procesar la solicitud.'
+        });
+      }
+    });
+
   } catch (error) {
     console.log(error)
   }

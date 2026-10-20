@@ -448,6 +448,7 @@ export class PaginaInicio implements OnInit {
       case 'T': return 'doorbell';
       case 'C': return 'photo_camera';
       case 'D': return 'devices_other';
+      case 'Y': return 'mobile';
       default: return 'help_outline';
     }
   }
@@ -513,6 +514,82 @@ export class PaginaInicio implements OnInit {
       datos: dispositivo
     });
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  //#region Celular
+
+  public intercalarBloqueo(dispositivo: Dispositivo): void {
+    const estatus = dispositivo.estatus === true
+    this.dialogoServicio.abrir({
+      referencia: DialogoConfirmacion,
+      titulo: 'Confirmar',
+      icono: 'check',
+      largo: 'l25%,m45%,c100%',
+      desactivarAutocerrado: true,
+      parametros: {
+        titulo: "Intercalar bloqueo/desbloqueo",
+        mensaje: estatus
+          ? '¿Desea desbloquear el celular?'
+          : '¿Desea bloquear el celular?',
+      },
+      datos: {
+        clave: dispositivo.clave,
+        estatus: estatus ? false : true
+      },
+      alFinalizar: this.finalizarIntercalarBloqueo.bind(this)
+    });
+  }
+
+  private async finalizarIntercalarBloqueo(respuesta?: any) {
+    if (respuesta?.resultado == true) {
+      this.marcarProcesando(respuesta.datos.clave);
+      await this.socket.emitir('bloquear', { clave: respuesta.datos.clave, estatus: respuesta.datos.estatus })
+      this.quitarProcesando(respuesta.datos.clave);
+    }
+  }
+
+
+
+  public bloquear(dispositivo: Dispositivo): void {
+    this.dialogoServicio.abrir({
+      referencia: DialogoConfirmacion,
+      titulo: 'Confirmar',
+      icono: 'check',
+      largo: 'l25%,m45%,c100%',
+      desactivarAutocerrado: true,
+      parametros: {
+        titulo: "Bloquear",
+        mensaje: '¿Desea bloquear el celular?'
+      },
+      datos: {
+        clave: dispositivo.clave,
+      },
+      alFinalizar: this.finalizarBloquear.bind(this)
+    });
+  }
+
+  private async finalizarBloquear(respuesta?: any) {
+    if (respuesta?.resultado == true) {
+      this.marcarProcesando(respuesta.datos.clave);
+      await this.socket.emitir('bloquear', { clave: respuesta.datos.clave })
+      this.quitarProcesando(respuesta.datos.clave);
+    }
+  }
+
+  //#endregion
 
 
 }

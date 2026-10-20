@@ -396,29 +396,26 @@ export async function obtenerSocketsUsuario(
     }
 }
 
-
-/**
- * Crea una llave de recuperación.
- *
- * Vigencia: 2 minutos.
- *
- * HASH: llaves:{llave}
- */
 export async function crearLlaveRecuperacion(
-    idUsuario: number,
-    tipo: string
+    idElemento: number,
+    tipo: string,
+    esAdministrador: boolean
 ): Promise<string> {
 
     try {
 
         const llave = uuidv4();
 
+        const campoId = esAdministrador
+            ? 'idAdministrador'
+            : 'idUsuario';
+
         await redis.hset(
             `llaves:${llave}`,
             {
                 clave: llave,
                 tipo,
-                idUsuario: String(idUsuario)
+                [campoId]: String(idElemento)
             }
         );
 
@@ -446,7 +443,7 @@ export async function crearLlaveRecuperacion(
  */
 export async function obtenerLlaveRecuperacion(
     llave: string
-): Promise<RecuperacionRedis | null> {
+): Promise<any | null> {
 
     try {
 
@@ -458,17 +455,33 @@ export async function obtenerLlaveRecuperacion(
             return null;
         }
 
-        if (!datos.clave || !datos.idUsuario || !datos.tipo) {
+        if (!datos.clave || !datos.tipo) {
             throw new Error(
                 'La llave de recuperación tiene datos incompletos.'
             );
         }
 
-        return {
-            clave: datos.clave,
-            idUsuario: Number(datos.idUsuario),
-            tipo: datos.tipo
-        };
+        if (datos.idUsuario) {
+
+            return {
+                clave: datos.clave,
+                idUsuario: Number(datos.idUsuario),
+                tipo: datos.tipo
+            };
+        }
+
+        if (datos.idAdministrador) {
+
+            return {
+                clave: datos.clave,
+                idAdministrador: Number(datos.idAdministrador),
+                tipo: datos.tipo
+            };
+        }
+
+        throw new Error(
+            'La llave no contiene idUsuario ni idAdministrador.'
+        );
 
     } catch (error) {
 

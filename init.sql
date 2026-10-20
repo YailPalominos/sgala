@@ -111,10 +111,23 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'localizac
 CREATE TABLE localizaciones (
   id INT IDENTITY(1,1) PRIMARY KEY,
   id_dispositivo INT NOT NULL REFERENCES dispositivos(id),
-  latitud DECIMAL(10, 7) NOT NULL,
-  longitud DECIMAL(10, 7) NOT NULL,
-  altitud DECIMAL(8, 2) NOT NULL
+  latitud DECIMAL(20, 15) NOT NULL,
+  longitud DECIMAL(20, 15) NOT NULL,
+  altitud DECIMAL(20, 15) NOT NULL,
+  fecha DATETIME NOT NULL
 );
+GO
+
+ALTER TABLE dbo.localizaciones
+ALTER COLUMN latitud DECIMAL(20, 15) NOT NULL;
+GO
+
+ALTER TABLE dbo.localizaciones
+ALTER COLUMN longitud DECIMAL(20, 15) NOT NULL;
+GO
+
+ALTER TABLE dbo.localizaciones
+ALTER COLUMN altitud DECIMAL(20, 15) NOT NULL;
 GO
 
 -- Índice para consulta eficiente de última localización por dispositivo

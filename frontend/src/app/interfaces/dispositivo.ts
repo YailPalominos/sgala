@@ -2,6 +2,7 @@ export interface Localizacion {
   latitud: number;
   longitud: number;
   altitud: number;
+  fecha?: string;
 }
 
 export interface Alarma {

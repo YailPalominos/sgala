@@ -3,7 +3,7 @@ import tls from 'tls';
 import { entorno } from './recursos/entorno';
 import { leerCertificadosServidor, obtenerClaveDispositivoDesdeCertificado } from './servicios/certificados.servicio';
 import { enviarDispositivoActualizado, enviarNotificacionUsuario } from './socket';
-import { obtenerDatosDispositivos } from './repositorios/base-datos/dispositivo.repositorio';
+import { crearLocalizaciones, obtenerDatosDispositivos } from './repositorios/base-datos/dispositivo.repositorio';
 import dayjs from "dayjs";
 import { enviarWebPush } from './webpush';
 import { actualizarDatosDispositivo, actualizarEstatusConexion, agregarAlarma, eliminarAlarma, eliminarAlarmasDesconexion, EstadoDispositivoRedis, guardarEstadosDispositivos, obtenerDispositivo, obtenerDispositivosSinConexion } from './repositorios/redis/dispositivo.redis';
@@ -129,12 +129,29 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
         return;
       }
 
-      await onPublicacion(
-        (cliente as ClienteMqtt).claveDispositivo,
-        packet.topic,
-        packet.payload as Buffer
-      );
+      const payload = packet.payload as Buffer;
 
+      try {
+        const datos = JSON.parse(payload.toString('utf8'));
+
+        // Ignorar las respuestas para evitar reprocesarlas.
+        if (datos.resultado) {
+          return;
+        }
+
+        await onPublicacion(
+          (cliente as ClienteMqtt).claveDispositivo,
+          packet.topic,
+          payload
+        );
+
+      } catch (error) {
+        console.error(
+          '[MQTT] Error procesando publicación:',
+          (cliente as ClienteMqtt).claveDispositivo,
+          error
+        );
+      }
     }
   );
 
@@ -253,25 +270,52 @@ export async function desconectar(claveDispositivo: string) {
  * Se ejecuta cuando un dispositivo publica un mensaje.
  */
 export async function onPublicacion(claveDispositivo: string, topico: string, payload: Buffer) {
+  let datos: any;
   try {
 
     if (topico.startsWith('respuestas/')) {
       return;
     }
 
-    const datos = JSON.parse(
+    datos = JSON.parse(
       payload.toString("utf8")
     );
 
+    // console.log(claveDispositivo, datos)
+
     if (topico == "localizaciones") {
-
-
+      const localizaciones = await crearLocalizaciones(claveDispositivo, datos.localizaciones)
+      datos.localizaciones = localizaciones;
     }
 
-    console.log(claveDispositivo, datos)
-    
     await actualizarDatosDispositivo(claveDispositivo, datos);
     await enviarDispositivoActualizado(claveDispositivo);
+
+    aedesInstance.publish(
+      {
+        cmd: 'publish',
+        topic: topico,
+        payload: Buffer.from(
+          JSON.stringify({
+            ...datos,
+            resultado: {
+              estatus: true,
+              mensaje: 'Solicitud procesada correctamente'
+            }
+          }),
+          'utf8'
+        ),
+        qos: 0,
+        retain: false,
+        dup: false
+      },
+      (error) => {
+        if (error) {
+          throw new Error('Error enviando respuesta MQTT.');
+        }
+      }
+    );
+
 
     // await actualizarDatosDispositivo(claveDispositivo, datos)
 
@@ -434,12 +478,42 @@ export async function onPublicacion(claveDispositivo: string, topico: string, pa
     //   }
     // }
 
-  } catch (error) {
 
+
+  } catch (error) {
     console.error(
-      "Error en publicación:",
+      '[MQTT] Error procesando publicación:',
       claveDispositivo,
       error
+    );
+
+
+    aedesInstance.publish(
+      {
+        cmd: 'publish',
+        topic: topico,
+        payload: Buffer.from(
+          JSON.stringify({
+            ...datos,
+            resultado: {
+              estatus: false,
+              mensaje: 'Error al procesar la solicitud'
+            }
+          }),
+          'utf8'
+        ),
+        qos: 0,
+        retain: false,
+        dup: false
+      },
+      (errorPublicacion) => {
+        if (errorPublicacion) {
+          console.error(
+            '[MQTT] Error al publicar el resultado del error:',
+            errorPublicacion
+          );
+        }
+      }
     );
 
   }
@@ -448,7 +522,7 @@ export async function onPublicacion(claveDispositivo: string, topico: string, pa
 /**
  * Envía una solicitud MQTT a un dispositivo y espera su respuesta.
  */
-export async function enviarSolicitudDispositivo(claveDispositivo: string, topico: 'obtener-datos' | 'actualizar-estatus' | 'obtener-configuracion' | 'actualizar-configuracion', datos?: any): Promise<{
+export async function enviarSolicitudDispositivo(claveDispositivo: string, topico: 'obtener-datos' | 'actualizar-estatus' | 'obtener-configuracion' | 'actualizar-configuracion' | 'bloquear', datos?: any): Promise<{
   estatus: boolean;
   mensaje: string;
   datos?: any
@@ -492,6 +566,7 @@ export async function enviarSolicitudDispositivo(claveDispositivo: string, topic
 
     const topicoFinal = 'solicitud/' + topico + '/' + claveDispositivo.toLocaleLowerCase()
 
+    console.log(`Enviando solicitud MQTT al dispositivo ${claveDispositivo} en el tópico ${topicoFinal} con datos:`, datos);
     aedesInstance.publish(
       {
         cmd: 'publish',

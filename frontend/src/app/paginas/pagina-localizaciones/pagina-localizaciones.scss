@@ -11,8 +11,29 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  border: 0;
+  z-index: 0;
   background: #eee;
+}
+
+.aviso-ubicacion {
+  position: absolute;
+  z-index: 4;
+  top: 12px;
+  right: 12px;
+  max-width: min(320px, calc(100% - 24px));
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  box-shadow: 0 2px 10px #0003;
+}
+
+.boton-recargar {
+  position: absolute;
+  z-index: 3;
+  top: 16px;
+  right: 16px;
 }
 
 .boton-menu {
@@ -44,9 +65,11 @@
   position: absolute;
   z-index: 2;
   inset: 0 auto 0 56px;
-  width: min(400px, calc(100% - 56px));
+  display: flex;
+  width: min(380px, calc(100% - 56px));
+  flex-direction: column;
   transform: translateX(calc(-100% - 56px));
-  border-radius: 0 12px 12px 0;
+  border-radius: 0 8px 8px 0;
   background: #fff;
   box-shadow: 3px 0 18px #0003;
   transition: transform 220ms ease;
@@ -56,4 +79,140 @@
 .menu-lateral.abierto {
   transform: translateX(0);
   pointer-events: auto;
+}
+
+.encabezado-menu {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid #d9dedb;
+}
+
+.encabezado-menu h2 {
+  margin: 0;
+  color: #202a25;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.contador {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8efeb;
+  color: #315c46;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lista-dispositivos {
+  display: grid;
+  gap: 9px;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.tarjeta-dispositivo {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #d9dedb;
+  border-left: 4px solid var(--color-marcador);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.fila-principal {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) 12px 20px;
+  align-items: center;
+  gap: 9px;
+}
+
+.muestra-color,
+.estado-conexion {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.muestra-color {
+  background: var(--color-marcador);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px #c6ceca;
+}
+
+.fila-principal h3 {
+  overflow: hidden;
+  margin: 0;
+  color: #202a25;
+  font-size: 15px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conexion-verde {
+  background: #25834b;
+}
+
+.conexion-roja {
+  background: #c83d3d;
+}
+
+.conexion-amarilla {
+  background: #d89b16;
+}
+
+.conexion-gris {
+  background: #858d89;
+}
+
+.selector-dispositivo {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-marcador);
+  cursor: pointer;
+}
+
+.tipo-dispositivo,
+.clave-dispositivo,
+.fecha-localizacion {
+  overflow-wrap: anywhere;
+  margin: 7px 0 0 21px;
+  color: #56615b;
+  font-size: 12px;
+}
+
+.tipo-dispositivo {
+  color: #315c46;
+  font-weight: 600;
+}
+
+.fecha-localizacion {
+  color: #315c46;
+}
+
+.fecha-localizacion.sin-localizacion,
+.sin-dispositivos {
+  color: #707a75;
+}
+
+.sin-dispositivos {
+  margin: 8px 6px;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .boton-recargar {
+    top: 12px;
+    right: 12px;
+  }
+
+  .lista-dispositivos {
+    padding: 10px;
+  }
 }

@@ -51,8 +51,8 @@ autenticacionRouter.post('/iniciar-sesion',
       if (resultado.idUsuario === undefined) {
         throw new Error('idUsuario no definido para cambio de contraseña.');
       }
-      const claveLLaveRecuperacion = await crearLlaveRecuperacion(resultado.idUsuario, 'A');
-      respuesta.status(202).json({ mensaje: 'Debe cambiar su contraseña', datos: claveLLaveRecuperacion });
+      const claveLLaveRecuperacion = await crearLlaveRecuperacion(resultado.idUsuario, 'A', false);
+      respuesta.status(202).json({ mensaje: 'Debe cambiar su contraseña', datos: { claveLLaveRecuperacion, esAdministrador: false } });
     } else {
       respuesta.status(200).json({ datos: resultado.sesion, mensaje: 'Inicio de sesión exitoso' });
     }

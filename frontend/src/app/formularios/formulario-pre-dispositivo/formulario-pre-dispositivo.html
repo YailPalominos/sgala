@@ -12,6 +12,8 @@
         <mat-option value="T">Timbre</mat-option>
         <mat-option value="C">Cámara</mat-option>
         <mat-option value="D">Dispositivo</mat-option>
+        <mat-option value="Y">Celular</mat-option>
+        <mat-option value="M">Modulo</mat-option>
       </mat-select>
       <mat-icon matPrefix>devices</mat-icon>
       @if (formulario.controls.tipo.hasError('required')) {
@@ -34,8 +36,8 @@
   <div class="c100 m50 g50">
     <button mat-raised-button color="primary" type="submit" form="formPreDispositivo"
       [class.boton-inactivo]="!puedeEnviar()">
-      <mat-icon>add</mat-icon>
-      Crear
+      <mat-icon>{{ parametros=='C' ? 'add' : 'restart_alt' }}</mat-icon>
+      {{ parametros=='C' ? 'Crear' : 'Actualizar' }}
     </button>
   </div>
 </mat-dialog-actions>

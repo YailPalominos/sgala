@@ -1,15 +1,43 @@
 <main class="localizaciones">
-  @if (mapaUrl(); as mapa) {
-    <iframe
-      class="mapa"
-      title="Mapa de OpenStreetMap centrado en tu ubicación actual"
-      [src]="mapa"
-      loading="eager"
-      referrerpolicy="no-referrer-when-downgrade">
-    </iframe>
+  <div
+    #mapa
+    class="mapa"
+    role="application"
+    aria-label="Mapa de localizaciones">
+  </div>
+
+  @if (errorUbicacion()) {
+    <p class="aviso-ubicacion" role="status">No se pudo detectar tu ubicación.</p>
   }
 
-  <aside class="menu-lateral" [class.abierto]="menuAbierto()" [attr.aria-hidden]="!menuAbierto()"></aside>
+  <aside
+    class="menu-lateral"
+    [class.abierto]="menuAbierto()"
+    [attr.aria-hidden]="!menuAbierto()"
+    [attr.inert]="menuAbierto() ? null : ''">
+
+
+    <section class="lista-dispositivos" aria-label="Dispositivos para mostrar en el mapa">
+      @for (elemento of elementos(); track elemento.clave; let indice = $index) {
+        <article class="tarjeta-dispositivo" [style.--color-marcador]="elemento.color">
+          <div class="fila-principal">
+            <span class="muestra-color" [attr.aria-label]="'Color del marcador ' + elemento.color"></span>
+            <h3>{{ elemento.alias }}</h3>
+            <span class="estado-conexion" [ngClass]="claseConexion(elemento.estatusConexion)" [attr.aria-label]="textoConexion(elemento.estatusConexion)"></span>
+            <input
+              class="selector-dispositivo"
+              type="checkbox"
+              [checked]="estaSeleccionado(elemento.clave)"
+              [attr.aria-label]="'Mostrar ' + elemento.alias + ' en el mapa'"
+              (change)="alternarSeleccion(elemento.clave, $any($event.target).checked)">
+          </div>
+          <p class="tipo-dispositivo">{{ elemento.tipoTexto }}</p>
+        </article>
+      } @empty {
+        <p class="sin-dispositivos">No hay dispositivos con localización.</p>
+      }
+    </section>
+  </aside>
 
   <button
     class="boton-menu"
@@ -18,5 +46,16 @@
     [attr.aria-label]="menuAbierto() ? 'Cerrar menú de localizaciones' : 'Abrir menú de localizaciones'"
     (click)="alternarMenu()">
     <mat-icon>{{ menuAbierto() ? 'chevron_left' : 'menu' }}</mat-icon>
+  </button>
+
+  <button
+    mat-fab
+    class="boton-recargar"
+    type="button"
+    aria-label="Agregar dispositivo"
+    matTooltip="Recargar posición"
+    [disabled]="actualizandoPosicion()"
+    (click)="recargarPosicion()">
+    <mat-icon>refresh</mat-icon>
   </button>
 </main>

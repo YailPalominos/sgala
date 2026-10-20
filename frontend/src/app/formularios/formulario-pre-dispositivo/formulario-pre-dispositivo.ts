@@ -32,7 +32,8 @@ export class FormularioPreDispositivo extends Formulario {
   private readonly notificador = inject(Notificador);
 
   readonly formulario = new FormGroup({
-    tipo: new FormControl<'I' | 'T' | 'C' | 'D' | null>(null, [Validators.required]),
+    clave: new FormControl('', [Validators.required]),
+    tipo: new FormControl<'I' | 'T' | 'C' | 'D' | 'Y' | 'M' | null>(null, [Validators.required]),
     cualidades: new FormControl('', [Validators.maxLength(100)])
   });
 
@@ -42,7 +43,8 @@ export class FormularioPreDispositivo extends Formulario {
       return;
     }
     const datos = this.formulario.getRawValue();
-    if (!datos.tipo) return;
+
+    const esActualizar = this.parametros === 'A';
 
     this.dialogoServicio.abrir({
       referencia: DialogoConfirmacion,
@@ -51,29 +53,34 @@ export class FormularioPreDispositivo extends Formulario {
       largo: 'l25%,m45%,c100%',
       desactivarAutocerrado: true,
       parametros: {
-        titulo: 'Crear pre-dispositivo',
-        mensaje: '¿Está seguro de crear este pre-dispositivo?'
+        titulo: esActualizar ? 'Actualizar pre-dispositivo' : 'Crear pre-dispositivo',
+        mensaje: esActualizar
+          ? '¿Está seguro de actualizar este pre-dispositivo?'
+          : '¿Está seguro de crear este pre-dispositivo?',
+        esActualizar
       },
-      datos: { tipo: datos.tipo, cualidades: datos.cualidades?.trim() || null },
+      datos,
       alFinalizar: this.finalizarConfirmacion.bind(this)
     });
   }
 
   private finalizarConfirmacion(respuesta: any): void {
     if (respuesta?.resultado !== true) return;
-    const datos = respuesta.datos as {
-      tipo: 'I' | 'T' | 'C' | 'D';
-      cualidades: string | null;
-    } | undefined;
-    if (!datos) return;
-    this.servicio.crearPreDispositivo(datos).subscribe({
-      next: (resultado) => {
-        this.notificador.exitoso(`Pre-dispositivo creado. Clave: ${resultado.datos.clave}`);
-        this.cerrar(true);
-      },
-      error: (error) => {
-        this.notificador.error(error.error?.mensaje ?? 'No fue posible crear el pre-dispositivo.');
-      }
-    });
+    if (respuesta.parametros.esActualizar === false) {
+      this.servicio.crearPreDispositivo(respuesta.datos).subscribe({
+        next: () => {
+          this.notificador.exitoso(`Pre-dispositivo creado exitosamente.`);
+          this.cerrar(true);
+        }
+      });
+    } else {
+      this.servicio.actualizarPreDispositivo(respuesta.datos).subscribe({
+        next: () => {
+          this.notificador.exitoso(`Pre-dispositivo actualizado exitosamente.`);
+          this.cerrar(true);
+        }
+      });
+    }
+
   }
 }

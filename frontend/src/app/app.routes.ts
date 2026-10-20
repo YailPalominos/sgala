@@ -16,6 +16,7 @@ import { PaginaTablero } from './paginas/pagina-tablero/pagina-tablero';
 import { PaginaSolicitudes } from './paginas/pagina-solicitudes/pagina-solicitudes';
 import { PaginaLocalizaciones } from './paginas/pagina-localizaciones/pagina-localizaciones';
 import { Autorizador } from './recursos/autorizador';
+import { PaginaSuscripciones } from './paginas/pagina-suscripciones/pagina-suscripciones';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'acceder', pathMatch: 'full' },
@@ -30,7 +31,7 @@ export const routes: Routes = [
   { path: 'inicio', component: PaginaInicio, canActivate: [Autorizador] },
   { path: 'localizaciones', component: PaginaLocalizaciones, canActivate: [Autorizador] },
   { path: 'tablero', component: PaginaTablero, canActivate: [Autorizador] },
-  { path: 'suscripciones', component: PaginaSolicitudes, canActivate: [Autorizador] },
+  { path: 'suscripciones', component: PaginaSuscripciones, canActivate: [Autorizador] },
   { path: 'solicitudes', component: PaginaSolicitudes, canActivate: [Autorizador] },
   { path: 'eventos', component: PaginaEventos, canActivate: [Autorizador] },
   { path: 'dispositivos', component: PaginaDispositivos, canActivate: [Autorizador] },
