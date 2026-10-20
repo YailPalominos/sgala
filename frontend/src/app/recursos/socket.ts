@@ -46,6 +46,7 @@ export class Socket {
     this.sesionInvalida = false;
 
     this.socketCliente = io(this.socketUrl, {
+      path: environment.socketPath,
       withCredentials: true,
       transports: ['websocket', 'polling'],
 

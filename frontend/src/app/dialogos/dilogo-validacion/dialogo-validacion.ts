@@ -1,18 +1,13 @@
 import { Component, ElementRef, inject, OnDestroy, signal, ViewChild } from '@angular/core';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { ServicioUsuario } from '../../servicios/servicio-usuario';
 import { ServicioDispositivo } from '../../servicios/servicio-dispositivo';
 import { Notificador } from '../../recursos/notificador';
 import { Formulario } from '../../recursos/dialogo.formulario';
-
-export interface ValidarClaveData {
-  tipo: 'U' | 'D';
-}
 
 /** Expresión UUID usada para validar la clave leída del QR. */
 const PATRON_UUID =
@@ -58,7 +53,6 @@ const PATRON_UUID =
 })
 export class DialogoValidacion extends Formulario implements OnDestroy {
 
-  private servicioUsuario = inject(ServicioUsuario);
   private servicioDispositivo = inject(ServicioDispositivo);
   private notificador = inject(Notificador);
 
@@ -248,11 +242,7 @@ export class DialogoValidacion extends Formulario implements OnDestroy {
 
     const clave = this.formulario.getRawValue().clave!;
 
-    const peticion = this.parametros === 'U'
-      ? this.servicioUsuario.validarClave(clave)
-      : this.servicioDispositivo.validarClave(clave);
-
-    peticion.subscribe({
+    this.servicioDispositivo.validarClave(clave).subscribe({
       next: (respuesta) => {
         if (respuesta.estatus === 200) {
           this.notificador.exitoso(

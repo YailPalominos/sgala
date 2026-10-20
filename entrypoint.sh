@@ -39,5 +39,10 @@ else
   echo "ℹ️ init.sql ya se había ejecutado anteriormente, se omite."
 fi
 
+# Mantener los registros iniciales presentes también en bases que ya existían.
+echo "👤 Verificando cuentas iniciales..."
+$SQLCMD -S localhost -U sa -P "$MSSQL_SA_PASSWORD" $OPCIONES_TLS -b -i /usr/src/seed-inicial.sql
+echo "✅ Cuentas iniciales verificadas."
+
 # Mantener el contenedor vivo con el proceso de SQL Server en primer plano.
 wait $PID_SQL

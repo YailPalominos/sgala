@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import { isIP } from 'net';
+import { domainToASCII } from 'url';
 dotenv.config();
 
 export interface Entorno {
@@ -35,6 +37,30 @@ function obtenerVariable(nombre: string): string {
   return valor;
 }
 
+function obtenerEnlaceServidor(): string {
+  const enlace = obtenerVariable('ENLACE_SERVIDOR').trim();
+  const dominioAscii = domainToASCII(enlace);
+  const etiquetas = dominioAscii.split('.');
+  const dominioValido =
+    dominioAscii.length <= 253 &&
+    etiquetas.every((etiqueta) =>
+      etiqueta.length > 0 &&
+      etiqueta.length <= 63 &&
+      /^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(etiqueta)
+    );
+
+  if (isIP(enlace) === 4) {
+    return enlace;
+  }
+  if (dominioValido) {
+    return dominioAscii;
+  }
+
+  throw new Error(
+    'La variable de entorno "ENLACE_SERVIDOR" debe contener un dominio o una dirección IPv4, sin protocolo ni ruta.'
+  );
+}
+
 function cargarEntorno(): Entorno {
   return {
     PUERTO_BROKER: parseInt(obtenerVariable('PUERTO_BROKER'), 10),
@@ -52,7 +78,7 @@ function cargarEntorno(): Entorno {
     REDIS_PUERTO: parseInt(obtenerVariable('REDIS_PUERTO'), 10),
 
     DIRECTORIO: obtenerVariable('DIRECTORIO'),
-    ENLACE_SERVIDOR: obtenerVariable('ENLACE_SERVIDOR'),
+    ENLACE_SERVIDOR: obtenerEnlaceServidor(),
 
     SMTP_HOST: obtenerVariable('SMTP_HOST'),
     SMTP_PUERTO: parseInt(obtenerVariable('SMTP_PUERTO'), 10),

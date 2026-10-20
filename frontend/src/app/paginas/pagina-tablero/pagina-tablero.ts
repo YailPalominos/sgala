@@ -14,7 +14,6 @@ import { MatMenuModule } from '@angular/material/menu';
 import { Socket } from '../../recursos/socket';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
 import { FormularioDispositivo } from '../../formularios/formulario-dipositivo/formulario-dispositivo';
-import { DialogoValidacion } from '../../dialogos/dilogo-validacion/dialogo-validacion';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
 import { DialogoAlarmas } from '../../dialogos/dialogo-alarmas/dialogo-alarmas';
 import { DialogoConexion } from '../../dialogos/dilogo-conexion/dialogo-conexion';

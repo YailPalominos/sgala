@@ -18,7 +18,7 @@ import { DialogoCaptura } from '../dialogo-captura/dialogo-captura';
 import { DialogoResolucion } from '../dialogo-resolucion/dialogo-resolucion';
 
 @Component({
-  selector: 'dialogo-validacion',
+  selector: 'dialogo-conexion',
   standalone: true,
   imports: [
     ReactiveFormsModule,

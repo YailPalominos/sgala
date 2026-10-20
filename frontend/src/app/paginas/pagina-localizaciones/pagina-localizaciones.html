@@ -1,0 +1,22 @@
+<main class="localizaciones">
+  @if (mapaUrl(); as mapa) {
+    <iframe
+      class="mapa"
+      title="Mapa de OpenStreetMap centrado en tu ubicación actual"
+      [src]="mapa"
+      loading="eager"
+      referrerpolicy="no-referrer-when-downgrade">
+    </iframe>
+  }
+
+  <aside class="menu-lateral" [class.abierto]="menuAbierto()" [attr.aria-hidden]="!menuAbierto()"></aside>
+
+  <button
+    class="boton-menu"
+    type="button"
+    [attr.aria-expanded]="menuAbierto()"
+    [attr.aria-label]="menuAbierto() ? 'Cerrar menú de localizaciones' : 'Abrir menú de localizaciones'"
+    (click)="alternarMenu()">
+    <mat-icon>{{ menuAbierto() ? 'chevron_left' : 'menu' }}</mat-icon>
+  </button>
+</main>

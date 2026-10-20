@@ -261,8 +261,10 @@ export async function iniciarServidorSocketio(): Promise<HttpServer> {
   const httpServer = createServer();
 
   ioInstance = new Server(httpServer, {
+    path: '/sgala/socket.io',
     cors: {
       origin: [
+        `https://${entorno.ENLACE_SERVIDOR}`,
         'http://localhost:4058',
         'https://localhost:4058',
         'http://localhost:4200',

@@ -71,6 +71,13 @@ BEGIN
 END;
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_administradores_correo')
+BEGIN
+  CREATE UNIQUE INDEX UQ_administradores_correo
+    ON dbo.administradores(direccion_correo_electronico);
+END;
+GO
+
 -- Tabla de pre-dispositivos (registrados antes de vincular a un usuario)
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'pre_dispositivos') AND type = 'U')
 CREATE TABLE pre_dispositivos (
@@ -291,3 +298,5 @@ BEGIN
     FROM inserted i;
 END;
 GO
+
+:r /usr/src/seed-inicial.sql

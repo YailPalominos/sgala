@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
+import { environment } from '../../environments/environment';
 
 interface OpcionChat {
   clave: string;
@@ -26,7 +27,8 @@ export class ServicioAgente {
 
   constructor() {
 
-    this.socket = io('http://localhost:4700', {
+    this.socket = io(environment.agentSocketUrl || window.location.origin, {
+      path: environment.agentSocketPath,
       transports: ['websocket'],
       autoConnect: true
     });

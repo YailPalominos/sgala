@@ -16,6 +16,7 @@ services:
     volumes:
       - sql_datos:/var/opt/mssql
       - ./init.sql:/usr/src/init.sql
+      - ./seed-inicial.sql:/usr/src/seed-inicial.sql
       - ./entrypoint.sh:/usr/src/entrypoint.sh
     command: ["/bin/bash", "/usr/src/entrypoint.sh"]
     healthcheck:
@@ -64,16 +65,25 @@ services:
       REDIS_SERVIDOR: "redis"
       SQL_CONTRASENA: ${MSSQL_SA_PASSWORD}
       REDIS_CONTRASENA: ${REDIS_PASSWORD}
-      DATABASE_URL: "sqlserver://sqlserver:1433;database=sgala;user=sa;password=${MSSQL_SA_PASSWORD};encrypt=true;trustServerCertificate=true"
+      PUERTO_API: ${PUERTO_API}
+      PUERTO_BROKER: ${PUERTO_BROKER}
+      PUERTO_SOCKET: ${PUERTO_SOCKET}
+      DIRECTORIO: "/archivos"
+      ENLACE_SERVIDOR: ${ENLACE_SERVIDOR}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      DATABASE_URL: "sqlserver://sqlserver:1433;database=sgala;user=sa;password={${MSSQL_SA_PASSWORD}};encrypt=true;trustServerCertificate=true"
+    volumes:
+      - "${DIRECTORIO_HOST}:/archivos"
     depends_on:
       sqlserver:
         condition: service_healthy
       redis:
         condition: service_healthy
     ports:
-      - "4059:4059"   # API
-      - "4060:4060"   # Broker MQTT
-      - "4061:4061"   # Socket.io
+      - "${PUERTO_API}:${PUERTO_API}"   # API
+      - "${PUERTO_BROKER}:${PUERTO_BROKER}"   # Broker MQTT
+      - "${PUERTO_SOCKET}:${PUERTO_SOCKET}"   # Socket.io
     restart: unless-stopped
 
   agente:
@@ -82,8 +92,6 @@ services:
     container_name: sgala-agente
     environment:
       TZ: "America/Mexico_City"
-    ports:
-      - "4700:4700"   # Socket del agente
     restart: unless-stopped
 
   frontend:
@@ -92,8 +100,16 @@ services:
     container_name: sgala-frontend
     environment:
       TZ: "America/Mexico_City"
+      ENLACE_SERVIDOR: ${ENLACE_SERVIDOR}
+      PUERTO_API: ${PUERTO_API}
+      PUERTO_BROKER: ${PUERTO_BROKER}
+      PUERTO_SOCKET: ${PUERTO_SOCKET}
+      NGINX_ENVSUBST_FILTER: "^(PUERTO_API|PUERTO_SOCKET)$"
     ports:
-      - "80:80"       # Producción: Nginx sirve la app
+      - "80:80"       # Redirección a HTTPS
+      - "443:443"     # Frontend HTTPS
+    volumes:
+      - "${DIRECTORIO_HOST}:/archivos:ro"
     depends_on:
       - backend
       - agente

@@ -318,7 +318,6 @@ export class PaginaInicio implements OnInit {
       icono: 'check_circle',
       largo: 'l30%,m50%,c100%',
       desactivarAutocerrado: true,
-      parametros: 'D',//'D' Dipsitivo
       alFinalizar: this.finalizarAgregarDispositivo.bind(this)
     });
   }

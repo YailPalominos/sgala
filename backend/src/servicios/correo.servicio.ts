@@ -24,11 +24,7 @@ export async function enviarCorreoConfirmacion(correo: string, clave: string): P
     .replace(/^https?:\/\//, '')
     .replace(/\/+$/, '');
 
-  const esIpv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(servidor);
-
-  const host = esIpv4 || servidor === 'localhost'
-    ? `${servidor}:4058`
-    : servidor;
+  const host = servidor;
 
   const enlaceConfirmacion =
     `https://${host}/confirmar?tipo=usuario&codigoVerificacion=${encodeURIComponent(clave)}`;
@@ -70,11 +66,7 @@ export async function enviarCorreoRecuperacion(correo: string, llave: string): P
     .replace(/^https?:\/\//, '')
     .replace(/\/+$/, '');
 
-  const esIpv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(servidor);
-
-  const host = esIpv4 || servidor === 'localhost'
-    ? `${servidor}:4058`
-    : servidor;
+  const host = servidor;
 
   const enlaceRecuperacion =
     `https://${host}/restablecer?llave=${encodeURIComponent(llave)}`;
@@ -145,11 +137,7 @@ export async function enviarCorreoConfirmacionCambios(
     .replace(/^https?:\/\//, '')
     .replace(/\/+$/, '');
 
-  const esIpv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(servidor);
-
-  const host = esIpv4 || servidor === 'localhost'
-    ? `${servidor}:4058`
-    : servidor;
+  const host = servidor;
 
   const enlaceConfirmacion =
     `https://${host}/confirmar?tipo=correo&codigoVerificacion=${encodeURIComponent(clave)}`;

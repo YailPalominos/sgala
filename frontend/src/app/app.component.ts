@@ -159,6 +159,10 @@ export class AppComponent {
       return;
     }
 
+    // No volver a presentar la sugerencia si el diálogo se cierra desde
+    // el control de ventana en lugar de elegir una de sus respuestas.
+    this.temaServicio.marcarSugerenciaRespondida();
+
     this.dialogoServicio.abrir({
       referencia: DialogoConfirmacion,
       titulo: 'Tema del mes',
@@ -167,8 +171,8 @@ export class AppComponent {
       desactivarAutocerrado: true,
       recordar: false,
       parametros: {
-        titulo: 'Tema del mes',
-        mensaje: `¿Desea cambiar al tema "${sugerido.nombre}" para este mes?`,
+        titulo: '¿Desea cambiar el tema?',
+        mensaje: `El tema sugerido para este mes es "${sugerido.nombre}". ¿Desea aplicarlo?`,
         textoSi: 'Sí, cambiar',
         textoNo: 'No, gracias'
       },

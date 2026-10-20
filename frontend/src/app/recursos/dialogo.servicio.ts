@@ -1,4 +1,4 @@
-import { Inject, inject, Injectable, runInInjectionContext, signal, Type } from "@angular/core";
+import { Inject, inject, Injectable, reflectComponentType, runInInjectionContext, signal, Type } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { DialogoContenedorComponent } from "./dialogo.contenedor";
 import { clases } from "../app.config";
@@ -80,6 +80,7 @@ export class DialogoServicio {
   private matDialogo = inject(MatDialog);
 
   private registro = new Map<string, Type<any>>();
+  private aliasReferencias = new Map<string, string>();
   private registroInstancias = inject(RegistroInstancias)
   private callbacks = new Map<string, (resultado: any) => void>();
   private referencias = new Map<string, any>();
@@ -90,11 +91,23 @@ export class DialogoServicio {
     private injector: EnvironmentInjector
   ) {
 
+    const aliasCandidatos = new Map<string, string[]>();
     for (const clase of clasesRegistradas) {
-      this.registro.set(
-        clase.name,
-        clase
-      );
+      const identificador = this.obtenerIdentificador(clase);
+      this.registro.set(identificador, clase);
+
+      // Los nombres de clase pueden cambiar al minificar el build de producción.
+      // Conservamos los nombres legibles solo para migrar diálogos guardados.
+      if (clase.name.length > 3 && clase.name !== identificador) {
+        const candidatos = aliasCandidatos.get(clase.name) ?? [];
+        candidatos.push(identificador);
+        aliasCandidatos.set(clase.name, candidatos);
+      }
+    }
+    for (const [alias, identificadores] of aliasCandidatos) {
+      if (identificadores.length === 1) {
+        this.aliasReferencias.set(alias, identificadores[0]);
+      }
     }
 
     const datos = localStorage.getItem(this.claveStorage);
@@ -105,10 +118,22 @@ export class DialogoServicio {
 
     const dialogos: EstadoDialogo[] = JSON.parse(datos);
 
-    const actualizados = dialogos.map(dialogo => ({
-      ...dialogo,
-      minimizado: true
-    }));
+    const actualizados = dialogos.flatMap(dialogo => {
+      const referencia = this.registro.has(dialogo.referencia)
+        ? dialogo.referencia
+        : this.aliasReferencias.get(dialogo.referencia);
+
+      // Elimina referencias antiguas/ambiguas que no se pueden resolver con
+      // seguridad (por ejemplo, nombres de clase de builds minificados).
+      if (!referencia) return [];
+
+      return [{
+        ...dialogo,
+        referencia,
+        parametros: dialogo.parametros ?? {},
+        minimizado: true
+      }];
+    });
 
     this._dialogos.set(actualizados);
 
@@ -288,7 +313,7 @@ export class DialogoServicio {
   ) {
 
     const id = this.generarUUID();
-    const nombrePanel = configuracionDialogo.referencia.name
+    const nombrePanel = this.obtenerIdentificador(configuracionDialogo.referencia as Type<any>);
     const referencia = configuracionDialogo.referencia;
 
     const esFormulario =
@@ -315,7 +340,7 @@ export class DialogoServicio {
       icono: configuracionDialogo.icono,
       //Genericos
       datos: configuracionDialogo.datos,
-      parametros: configuracionDialogo.parametros,
+      parametros: configuracionDialogo.parametros ?? {},
       filtros: [],
       // datos por defecto
       posicionX: 0,
@@ -395,7 +420,7 @@ export class DialogoServicio {
             id,
             titulo: dialogo.titulo,
             icono: dialogo.icono,
-            data: dialogo.parametros,
+            data: dialogo.parametros ?? {},
             posicionX: dialogo.posicionX,
             posicionY: dialogo.posicionY,
             ancho: dialogo.ancho,
@@ -591,6 +616,14 @@ export class DialogoServicio {
 
   private obtenerClase(nombre: string): Type<any> | undefined {
     return this.registro.get(nombre);
+  }
+
+  private obtenerIdentificador(clase: Type<any>): string {
+    const selector = reflectComponentType(clase)?.selector;
+    if (!selector) {
+      throw new Error(`No se pudo obtener un selector estable para el diálogo ${clase.name}.`);
+    }
+    return selector;
   }
 
 }

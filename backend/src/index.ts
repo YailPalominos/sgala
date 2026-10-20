@@ -29,6 +29,7 @@ const puerto = entorno.PUERTO_API
 const app = express();
 
 const permitidos = [
+  `https://${entorno.ENLACE_SERVIDOR}`,
   'https://localhost:4058',
   'http://localhost:4058',
   'https://localhost:4200',

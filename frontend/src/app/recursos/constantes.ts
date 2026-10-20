@@ -84,6 +84,7 @@ export const rutasAdministrador: RutaNavegacion[] = [
 
 export const rutasUsuario: RutaNavegacion[] = [
   { ruta: '/inicio', nombre: 'Inicio', clave: 'CLI', permiso: "INI", icono: 'home' },
+  { ruta: '/localizaciones', nombre: 'Localizaciones', clave: 'CLI', permiso: "OBL", icono: 'location_on' },
   { ruta: '/tablero', nombre: 'Tablero', clave: 'CLI', permiso: "TAB", icono: 'dashboard' },
   { ruta: '/suscripciones', nombre: 'Suscripciones', clave: 'CLI', permiso: "OBL", icono: 'hourglass_top' },
   { ruta: '/eventos', nombre: 'Eventos', clave: 'CLI', permiso: "OBL", icono: 'event' },

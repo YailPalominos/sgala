@@ -4,9 +4,8 @@
     <input matInput (input)="filtrar($event)" placeholder="Clave, alias..." />
     <mat-icon matPrefix>search</mat-icon>
   </mat-form-field>
-  <button mat-raised-button color="primary" (click)="agregarDispositivo()">
+  <button mat-fab type="button" aria-label="Agregar dispositivo" matTooltip="Agregar dispositivo" (click)="agregarDispositivo()">
     <mat-icon>add</mat-icon>
-    Agregar
   </button>
 </div>
 

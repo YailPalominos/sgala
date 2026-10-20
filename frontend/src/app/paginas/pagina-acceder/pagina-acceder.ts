@@ -9,7 +9,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogoAyuda } from '../../dialogos/dialogo-ayuda/dialogo-ayuda';
 import { environment } from '../../../environments/environment';
-import { DialogoValidacion } from '../../dialogos/dilogo-validacion/dialogo-validacion';
 import { DialogoRecuperacion } from '../../dialogos/dialogo-recuperacion/dialogo-recuperacion';
 import { FormularioUsuario } from '../../formularios/formulario-usuario/formulario-usuario';
 import { Autenticador } from '../../recursos/autenticador';

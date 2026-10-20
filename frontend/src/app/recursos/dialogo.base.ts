@@ -5,7 +5,7 @@ import { RegistroInstancias } from './dialogo.registro';
 @Directive()
 export abstract class Dialogo {
 
-    public parametros: any;
+    public parametros: any = {};
     public catalogos: any;
     public datos: any;
 

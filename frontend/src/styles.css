@@ -867,11 +867,17 @@ button.boton-inactivo .mat-icon {
   justify-content: center;
   padding: 0;
   margin: 10px;
+  container-type: inline-size;
+  container-name: formulario;
 
   mat-accordion {
     width: 86%;
     display: flex;
     flex-wrap: wrap;
+    gap: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: var(--mat-expansion-container-elevation-shadow, 0 2px 8px #0002);
 
     .panel-contraido {
       display: none !important;
@@ -880,6 +886,14 @@ button.boton-inactivo .mat-icon {
     mat-expansion-panel {
       width: 100%;
       padding: 20px;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      background-color: #fff !important;
+      color: #212121;
+
+      & + mat-expansion-panel {
+        border-top: 1px solid var(--mat-divider-color, #0000001f);
+      }
 
       mat-expansion-panel-content {
         display: flex !important;
@@ -897,6 +911,40 @@ button.boton-inactivo .mat-icon {
       }
     }
 
+  }
+
+  mat-accordion mat-expansion-panel mat-form-field {
+    width: 100%;
+  }
+
+  mat-accordion mat-expansion-panel .c100,
+  mat-accordion mat-expansion-panel .c50,
+  mat-accordion mat-expansion-panel .c33,
+  mat-accordion mat-expansion-panel .m100,
+  mat-accordion mat-expansion-panel .m50,
+  mat-accordion mat-expansion-panel .m33,
+  mat-accordion mat-expansion-panel .g100,
+  mat-accordion mat-expansion-panel .g50,
+  mat-accordion mat-expansion-panel .g33 {
+    width: 100%;
+  }
+
+  @container formulario (max-width: 399px) {
+    mat-accordion mat-expansion-panel .c100 { width: 100% !important; }
+    mat-accordion mat-expansion-panel .c50 { width: calc(50% - 8px) !important; }
+    mat-accordion mat-expansion-panel .c33 { width: calc(33.333% - 11px) !important; }
+  }
+
+  @container formulario (min-width: 400px) and (max-width: 699px) {
+    mat-accordion mat-expansion-panel .m100 { width: 100% !important; }
+    mat-accordion mat-expansion-panel .m50 { width: calc(50% - 8px) !important; }
+    mat-accordion mat-expansion-panel .m33 { width: calc(33.333% - 11px) !important; }
+  }
+
+  @container formulario (min-width: 700px) {
+    mat-accordion mat-expansion-panel .g100 { width: 100% !important; }
+    mat-accordion mat-expansion-panel .g50 { width: calc(50% - 8px) !important; }
+    mat-accordion mat-expansion-panel .g33 { width: calc(33.333% - 11px) !important; }
   }
 
   .acciones-filtros {

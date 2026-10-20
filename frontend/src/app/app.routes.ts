@@ -14,6 +14,7 @@ import { PaginaEventos } from './paginas/pagina-eventos/pagina-eventos';
 import { PaginaConfirmar } from './paginas/pagina-confirmar/pagina-confirmar';
 import { PaginaTablero } from './paginas/pagina-tablero/pagina-tablero';
 import { PaginaSolicitudes } from './paginas/pagina-solicitudes/pagina-solicitudes';
+import { PaginaLocalizaciones } from './paginas/pagina-localizaciones/pagina-localizaciones';
 import { Autorizador } from './recursos/autorizador';
 
 export const routes: Routes = [
@@ -27,6 +28,7 @@ export const routes: Routes = [
 
   // Rutas protegidas
   { path: 'inicio', component: PaginaInicio, canActivate: [Autorizador] },
+  { path: 'localizaciones', component: PaginaLocalizaciones, canActivate: [Autorizador] },
   { path: 'tablero', component: PaginaTablero, canActivate: [Autorizador] },
   { path: 'suscripciones', component: PaginaSolicitudes, canActivate: [Autorizador] },
   { path: 'solicitudes', component: PaginaSolicitudes, canActivate: [Autorizador] },

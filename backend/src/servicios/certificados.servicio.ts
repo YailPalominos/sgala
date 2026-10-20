@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import tls from 'tls';
 import { entorno } from '@/recursos/entorno';
+import { isIP } from 'net';
 
 export interface RutasCertificadosServidor {
   directorio: string;
@@ -29,34 +30,11 @@ const DIAS_VIGENCIA = 825;
 const TAMANO_LLAVE = 2048;
 
 /**
- * Hosts/IPs que debe cubrir el certificado del servidor (SAN).
- * Se toman de la variable de entorno SERVIDOR_HOSTS (separados por comas)
- * y, si no está, se usa una lista por defecto con las IPs conocidas.
- * El primer host de la lista se usa como Common Name (CN).
+ * El único host que debe cubrir el certificado del servidor (SAN).
+ * Se obtiene de ENLACE_SERVIDOR, que también se usa para los enlaces públicos.
  */
 function obtenerHostsServidor(): string[] {
-  const configurados = (process.env.SERVIDOR_HOSTS ?? '')
-    .split(',')
-    .map((h) => h.trim())
-    .filter((h) => h.length > 0);
-
-  const base = configurados.length > 0
-    ? configurados
-    : ['10.1.33.98', '127.0.0.1', 'localhost'];
-
-  // Garantizar localhost/127.0.0.1 para pruebas locales.
-  for (const extra of ['127.0.0.1', 'localhost']) {
-    if (!base.includes(extra)) {
-      base.push(extra);
-    }
-  }
-
-  return base;
-}
-
-/** Determina si una cadena es una dirección IPv4. */
-function esIPv4(valor: string): boolean {
-  return /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(valor);
+  return [entorno.ENLACE_SERVIDOR];
 }
 
 export function normalizarDirectorioCertificados(
@@ -144,7 +122,7 @@ function crearCertificadoAutofirmado(hosts: string[]): { llavePem: string; certi
   // Subject Alternative Name (SAN): type 7 = IP, type 2 = DNS.
   // Los clientes modernos validan el host contra el SAN.
   const altNames = hosts.map((host) =>
-    esIPv4(host)
+    isIP(host) === 4
       ? { type: 7, ip: host }
       : { type: 2, value: host }
   );
@@ -215,8 +193,32 @@ export function asegurarCertificadosServidor(
     fs.existsSync(rutas.llave) &&
     fs.existsSync(rutas.certificado);
 
+  const hostConfigurado = entorno.ENLACE_SERVIDOR;
+  const hostYaCubierto = hayServidor && (() => {
+    try {
+      const certificado = forge.pki.certificateFromPem(
+        fs.readFileSync(rutas.certificado, 'utf8')
+      );
+      const extension = certificado.extensions.find(
+        (elemento: any) => elemento.name === 'subjectAltName'
+      ) as any;
+      const tipoEsperado = isIP(hostConfigurado) === 4 ? 7 : 2;
+      return extension?.altNames?.some((altName: any) =>
+        altName.type === tipoEsperado &&
+        (tipoEsperado === 7 ? altName.ip : altName.value) === hostConfigurado
+      ) ?? false;
+    } catch {
+      return false;
+    }
+  })();
 
-  if (!hayServidor || forzar) {
+  if (hayServidor && !hostYaCubierto) {
+    // La CA cambia al renovar el host; los certificados de cliente anteriores
+    // dejarían de ser válidos y deben volver a emitirse.
+    fs.rmSync(rutas.clientes, { recursive: true, force: true });
+  }
+
+  if (!hayServidor || forzar || !hostYaCubierto) {
     const hosts = obtenerHostsServidor();
 
     try {

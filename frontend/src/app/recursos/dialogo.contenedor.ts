@@ -181,7 +181,7 @@ export class DialogoContenedorComponent {
     );
 
     const instancia = this.componenteRef.instance;
-    instancia.parametros = this.data.data;
+    instancia.parametros = this.data.data ?? {};
     instancia.datos = this.data.datos;
 
 
