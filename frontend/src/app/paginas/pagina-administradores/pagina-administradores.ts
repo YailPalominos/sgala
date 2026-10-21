@@ -70,6 +70,7 @@ export class PaginaAdministradores implements OnInit {
   readonly formularioFiltros = new FormGroup({
     alias: new FormControl(''),
     direccionCorreoElectronico: new FormControl(''),
+    telefono: new FormControl(''),
     estadoTexto: new FormControl('')
   });
   readonly formulario = new FormGroup({

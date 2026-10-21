@@ -2,17 +2,35 @@
   <mat-accordion multi>
     <mat-expansion-panel expanded disabled hideToggle>
 
-      <mat-form-field appearance="outline" class="c100 m25 g25">
-        <mat-label>Acción</mat-label>
-        <input matInput formControlName="accion" />
+      <div class="c0 m0 g20"> </div>
+
+      <mat-form-field appearance="outline" class="c100 m50 g30">
+        <mat-label>Rango de fechas</mat-label>
+
+        <mat-date-range-input [rangePicker]="picker">
+          <input matStartDate placeholder="Fecha inicial" formControlName="fechaInicial" />
+          <input matEndDate placeholder="Fecha final" formControlName="fechaFinal" />
+        </mat-date-range-input>
+
+        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-date-range-picker #picker></mat-date-range-picker>
       </mat-form-field>
-      <mat-form-field appearance="outline" class="c100 m25 g25">
-        <mat-label>Administrador</mat-label>
-        <input matInput formControlName="aliasAdministrador" />
-      </mat-form-field>
-      <div class="acciones-filtros">
-        <button mat-mini-fab  type="button" aria-label="Reiniciar filtros"
-          matTooltip="Reiniciar filtros" (click)="reiniciarFiltros()"><mat-icon>restart_alt</mat-icon></button>
+
+      <div class="rango-horas c100 m50 g30">
+        <label class="rango-horas-label">Rango de horas</label>
+
+        <div class="rango-horas-inputs">
+          <input matInput type="time" formControlName="horaInicial" aria-label="Hora inicial" />
+
+          <span class="rango-horas-separador">–</span>
+
+          <input matInput type="time" formControlName="horaFinal" aria-label="Hora final" />
+        </div>
+      </div>
+
+      <div class="acciones-filtros c100 m100 g100">
+        <button mat-mini-fab type="button" aria-label="Reiniciar filtros" matTooltip="Reiniciar filtros"
+          (click)="reiniciarFiltros()"><mat-icon>restart_alt</mat-icon></button>
         <button mat-mini-fab class="fab-tema" type="submit" aria-label="Buscar" matTooltip="Buscar">
           <mat-icon>search</mat-icon>
         </button>
@@ -30,14 +48,6 @@
       hideToggle>
 
 
-      <mat-form-field appearance="outline" class="c100 m50 g50">
-        <mat-label>Correo electrónico</mat-label>
-        <input matInput formControlName="correoAdministrador" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="c100 m50 g50">
-        <mat-label>Fecha</mat-label>
-        <input matInput type="date" formControlName="fechaTexto" />
-      </mat-form-field>
       <mat-form-field appearance="outline" class="c100 m50 g50">
         <mat-label>ID</mat-label>
         <input matInput type="number" formControlName="id" />

@@ -32,7 +32,7 @@ export class FormularioPreDispositivo extends Formulario {
   private readonly notificador = inject(Notificador);
 
   readonly formulario = new FormGroup({
-    clave: new FormControl('', [Validators.required]),
+    clave: new FormControl('', this.parametros === 'A' ? [Validators.required] : []),
     tipo: new FormControl<'I' | 'T' | 'C' | 'D' | 'Y' | 'M' | null>(null, [Validators.required]),
     cualidades: new FormControl('', [Validators.maxLength(100)])
   });

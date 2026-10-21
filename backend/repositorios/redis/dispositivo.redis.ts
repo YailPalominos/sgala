@@ -34,6 +34,7 @@ export interface EstadoDispositivoRedis {
     estatusMovimiento: boolean | null;
     estatusFijarEstacionado: boolean | null;
     alarmas: Alarma[] | null;
+    numero: number;
 }
 
 
@@ -163,7 +164,7 @@ export async function obtenerDispositivoDeUsuario(
  * Elimina las llaves anteriores primero.
  */
 export async function guardarEstadosDispositivos(
-    dispositivos: EstadoDispositivoRedis[]
+    dispositivos: any[]
 ): Promise<void> {
 
     try {

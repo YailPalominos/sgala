@@ -1,0 +1,70 @@
+<form class="filtros" [formGroup]="formularioFiltros" (ngSubmit)="buscar()">
+    <mat-accordion multi>
+        <mat-expansion-panel expanded disabled hideToggle>
+
+            <div class="c0 m10 g25"> </div>
+
+            <mat-form-field appearance="outline" class="c100 m50 g25">
+                <mat-label>Rango de fechas</mat-label>
+
+                <mat-date-range-input [rangePicker]="picker">
+                    <input matStartDate placeholder="Fecha inicial" formControlName="fechaInicial" />
+                    <input matEndDate placeholder="Fecha final" formControlName="fechaFinal" />
+                </mat-date-range-input>
+
+                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-date-range-picker #picker></mat-date-range-picker>
+            </mat-form-field>
+
+
+            <div class="rango-horas c100 m50 g25">
+                <label class="rango-horas-label">Rango de horas</label>
+
+                <div class="rango-horas-inputs">
+                    <input matInput type="time" formControlName="horaInicial" aria-label="Hora inicial" />
+
+                    <span class="rango-horas-separador">–</span>
+
+                    <input matInput type="time" formControlName="horaFinal" aria-label="Hora final" />
+                </div>
+            </div>
+
+            <div class="acciones-filtros c100 m100 g100">
+                <button mat-mini-fab type="button" aria-label="Reiniciar filtros" matTooltip="Reiniciar filtros"
+                    (click)="reiniciarFiltros()"><mat-icon>restart_alt</mat-icon></button>
+                <button mat-mini-fab class="fab-tema" type="submit" aria-label="Buscar" matTooltip="Buscar">
+                    <mat-icon>search</mat-icon>
+                </button>
+                <button mat-mini-fab type="button"
+                    [attr.aria-label]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
+                    [matTooltip]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'"
+                    (click)="intercalarFiltros()">
+                    <mat-icon>{{filtrosExpandido()?'keyboard_arrow_up':'keyboard_arrow_down'}}</mat-icon>
+                </button>
+            </div>
+
+        </mat-expansion-panel>
+
+        <mat-expansion-panel class="panel-filtros-ocultos" [class.panel-contraido]="!filtrosExpandido()"
+            [expanded]="filtrosExpandido()" (opened)="filtrosExpandido.set(true)" (closed)="filtrosExpandido.set(false)"
+            hideToggle>
+
+            <!-- 
+            <div class="c0 m0 g20"> </div> -->
+
+
+            <mat-form-field appearance="outline" class="c100 m75 g50">
+                <mat-label>Descripción</mat-label>
+                <input matInput type="text" formControlName="descripcion" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="c100 m25 g25">
+                <mat-label>Id</mat-label>
+                <input matInput type="number" formControlName="id" mask="000000000S" />
+            </mat-form-field>
+
+        </mat-expansion-panel>
+    </mat-accordion>
+</form>
+
+<app-tabla [datos]="datos()" [columnas]="columnas" [filtros]="filtros"></app-tabla>

@@ -100,4 +100,13 @@ export class ServicioAdministrador {
   public actualizar(datos: any): Observable<Respuesta<void>> {
     return this.conexion.put<void>(`${this.ruta}/actualizar`, datos);
   }
+
+
+
+
+  public obtenerListaSolicitudes(filtros: any): Observable<Respuesta<any[]>> {
+    return this.conexion.get<any[]>(`${this.ruta}/obtener-lista-solicitudes`, filtros);
+  }
+
+
 }

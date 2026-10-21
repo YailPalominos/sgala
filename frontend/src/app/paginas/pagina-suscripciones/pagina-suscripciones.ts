@@ -1,12 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { ServicioSolicitud } from '../../servicios/servicio-solicitud';
 import { Columna, Filtros, TablaComponent } from '../../componentes/tabla/tabla.component';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { ServicioSuscripcion } from '../../servicios/servicio-suscripcion';
 
 @Component({
   selector: 'app-pagina-suscripciones',
@@ -18,18 +19,19 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatExpansionModule,
     MatTooltipModule,
     ReactiveFormsModule,
-    TablaComponent
+    TablaComponent,
+    MatDatepickerModule,
   ],
   templateUrl: './pagina-suscripciones.html'
 })
 export class PaginaSuscripciones {
-  private readonly servicio = inject(ServicioSolicitud);
+  private readonly servicioSuscripcion = inject(ServicioSuscripcion);
 
   datos = signal<any[]>([]);
 
   readonly filtrosExpandido = signal(false);
   readonly filtros = signal<Filtros>({
-    etiqueta: '',
+    etiqueta: 'Buscar',
     marcador: '',
     texto: '',
     botones: [
@@ -40,18 +42,16 @@ export class PaginaSuscripciones {
     ]
   });
   readonly formularioFiltros = new FormGroup({
-    accion: new FormControl(''),
-    aliasAdministrador: new FormControl(''),
-    correoAdministrador: new FormControl(''),
-    fechaTexto: new FormControl(''),
+    fechaInicial: new FormControl(''),
+    fechaFinal: new FormControl(''),
+    horaInicial: new FormControl(''),
+    horaFinal: new FormControl(''),
+    descripcion: new FormControl(''),
     id: new FormControl('')
   });
   readonly columnas: Columna[] = [
     { clave: 'id', titulo: 'ID', formato: 'texto' },
-    { clave: 'fecha', titulo: 'Fecha', formato: 'fecha' },
-    { clave: 'aliasAdministrador', titulo: 'Administrador', formato: 'texto' },
-    { clave: 'correoAdministrador', titulo: 'Correo electrónico', formato: 'texto' },
-    { clave: 'accion', titulo: 'Acción', formato: 'texto' }
+
   ];
 
   ngOnInit(): void {
@@ -63,33 +63,22 @@ export class PaginaSuscripciones {
   }
 
   buscar(): void {
-    const criterios = Object.fromEntries(
-      Object.entries(this.formularioFiltros.getRawValue())
-        .filter(([, valor]) => Boolean(valor?.trim()))
-        .map(([clave, valor]) => [clave, valor!.trim()])
-    );
-    this.filtros.update((actual) => ({ ...actual, texto: '', criterios }));
+
   }
 
   reiniciarFiltros(): void {
-    this.formularioFiltros.reset({
-      accion: '',
-      aliasAdministrador: '',
-      correoAdministrador: '',
-      fechaTexto: '',
-      id: ''
-    });
-    this.filtros.update((actual) => ({ ...actual, texto: '', criterios: {} }));
+    this.formularioFiltros.reset()
+
   }
 
   cargar(): void {
 
     const filtros = this.formularioFiltros.getRawValue()
 
-    this.servicio.obtenerLista(filtros).subscribe({
-      next: (respuesta) => {
-        this.datos = respuesta.datos
-      }
-    });
+    // this.servicioSuscripcion.obtenerLista(filtros).subscribe({
+    //   next: (respuesta) => {
+    //     this.datos = respuesta.datos
+    //   }
+    // });
   }
 }

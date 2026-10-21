@@ -176,3 +176,42 @@ export async function actualizarContrasena(
   `;
   return resultado > 0;
 }
+
+
+export async function obtenerListaSolicitudes(
+  filtros: any = {},
+) {
+  const {
+    fechaInicial,
+    fechaFinal,
+    estatus,
+    descripcion,
+  } = filtros;
+
+  const solicitudes = await prisma.solicitud.findMany({
+    where: {
+      ...(fechaInicial || fechaFinal
+        ? {
+            fecha: {
+              ...(fechaInicial && { gte: new Date(fechaInicial) }),
+              ...(fechaFinal && { lte: new Date(fechaFinal) }),
+            },
+          }
+        : {}),
+      ...(estatus !== undefined && { estatus }),
+      ...(descripcion?.trim() && {
+        descripcion: {
+          contains: descripcion.trim(),
+        },
+      }),
+    },
+    orderBy: {
+      fecha: 'desc',
+    },
+  });
+
+  return solicitudes.map((solicitud) => ({
+    ...solicitud,
+    estatusTexto: solicitud.estatus ? 'Pendiente' : 'Finalizada',
+  }));
+}

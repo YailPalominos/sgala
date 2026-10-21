@@ -106,10 +106,9 @@ administradorRouter.use(requiereAdministrador);
 administradorRouter.get('/dispositivos/obtener-lista',
   asyncHandler(async (_solicitud, respuesta) => {
     const datos = await obtenerListaAdministrativa();
-    console.log('Lista de dispositivos administrativos obtenida:', datos);
     respuesta.status(200).json({
-      datos,
-      mensaje: 'Dispositivos obtenidos exitosamente.'
+      mensaje: 'Dispositivos obtenidos exitosamente.',
+      datos
     });
   })
 );
@@ -490,6 +489,20 @@ administradorRouter.put('/perfil',
         direccionCorreoElectronico: datos.direccionCorreoElectronico
       },
       mensaje: 'Perfil de administrador actualizado exitosamente.'
+    });
+  })
+);
+
+
+/**
+ * Solicita la lista de filtros
+ */
+administradorRouter.get('/obtener-lista-solicitudes',
+  asyncHandler(async (_solicitud, respuesta) => {
+    const datos = await administradorRepositorio.obtenerListaSolicitudes();
+    respuesta.status(200).json({
+      datos,
+      mensaje: 'solicitudes obtenidas exitosamente.'
     });
   })
 );

@@ -33,12 +33,12 @@
       <div class="card-encabezado" (click)="verAlarmas(dispositivo)">
         <mat-icon class="icono-conexion"
           [style.color]="dispositivo.estatusConexion == true ? '#4caf50' : '#f44336'">circle</mat-icon>
-        <span class="card-alias">{{ dispositivo.alias || 'Sin nombre' }}</span>
+        <span class="card-alias"> <b>{{ dispositivo.numero }}</b> -
+          {{ dispositivo.alias || 'Sin nombre' }}</span>
       </div>
 
       <!-- Sección media: datos -->
       <div class="card-datos" (click)="verAlarmas(dispositivo)">
-        <b>{{ dispositivo.clave }}</b>
 
         <span style="text-align: center; color: cadetblue;">{{ dispositivo.tipoTexto }}</span>
 
@@ -69,7 +69,7 @@
           </b>
           }
 
-          <!-- @if(dispositivo.tipo=='G'){
+          <!-- @if(dispositivo.tipo=='C'){
           Almacenamiento:
           <b [style.color]="colorBateria(51)">
             {{ 51 ?? '-' }}%
@@ -209,7 +209,14 @@
         }
 
 
-
+        @if (dispositivo.tipo== 'C') {
+        <span matTooltip="Ver en vivo">
+          <button mat-icon-button [disabled]="(dispositivo.estatusConexion==true)?false:true" color='primary'
+            (click)="verCamara(dispositivo)">
+            <mat-icon>visibility</mat-icon>
+          </button>
+        </span>
+        }
 
 
         @if (dispositivo.tipo== 'Y') {

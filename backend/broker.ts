@@ -647,7 +647,8 @@ export async function enviarSolicitudDispositivo(claveDispositivo: string, topic
 export async function iniciarConexiones() {
   try {
     const dispositivosClave = await obtenerDatosDispositivos();
-    const estados: EstadoDispositivoRedis[] = dispositivosClave.map(dispositivo => ({
+
+    const estados: any[] = dispositivosClave.map(dispositivo => ({
       clave: dispositivo.clave,
       idUsuario: dispositivo.idUsuario,
       alias: dispositivo.alias,
@@ -660,14 +661,12 @@ export async function iniciarConexiones() {
       estatusAlarma: null,
       estatusCortaCorriente: null,
       estatusDirecto: null,
-      fechaFinalSuscripcion: dispositivo.fechaFinalSuscripcion
-        ? dispositivo.fechaFinalSuscripcion.toISOString()
-        : null,
       estatusEncendida: null,
       estatusMovimiento: null,
       porcentajeBateria: null,
       estatusFijarEstacionado: null,
-      alarmas: null
+      alarmas: null,
+      numero: dispositivo.numero
     }));
 
     await guardarEstadosDispositivos(estados);

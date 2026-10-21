@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma, ejecutarConSesion } from '../../recursos/prisma';
 import { obtenerSesion } from '@/interceptores/solicitud';
+import { ErrorHttp } from '@/interceptores/error.middleware';
 
 export interface Dispositivo {
   id: number;
@@ -121,23 +122,27 @@ export async function crear(datos: DatosCrear) {
     `;
 
   if (registros.length === 0) {
-    throw new Error('La clave del pre dispositivo no existe.');
+    throw new ErrorHttp(404, 'La clave del pre dispositivo no existe.');
   }
 
   const registro = registros[0];
 
   if (registro.idDispositivo) {
-    throw new Error('La clave del pre dispositivo ya está siendo utilizada.');
+    throw new ErrorHttp(404, 'La clave del pre dispositivo ya está siendo utilizada.');
   }
 
   const sesion = obtenerSesion();
 
-  await ejecutarConSesion(sesion?.idUsuario ?? 0, async (tx) => {
+  if (sesion == undefined) {
+    throw new Error('Sesion no disponible. No se puede crear el dispositivo.');
+  }
+
+  await ejecutarConSesion(sesion.idUsuario, async (tx) => {
     return tx.dispositivos.create({
       data: {
         id_usuario: datos.idUsuario,
         id_pre_dispositivo: registro.idPreDispositivo,
-        alias: datos.alias || null as any
+        alias: datos.alias
       }
     });
   });
@@ -186,38 +191,42 @@ export async function obtenerListaDispositivosUsuario(
   return registros;
 }
 
-export async function obtenerDatosDispositivos(): Promise<DispositivoClave[]> {
-  const registros = await prisma.$queryRaw<DispositivoClave[]>`
-      SELECT 
-          dis.id_usuario AS idUsuario,
-          prd.clave,
-          sus.fecha_final AS fechaFinalSuscripcion,
-          dis.alias,
-          prd.cualidades,
-          prd.tipo,
-          CASE prd.tipo
-            WHEN 'I' THEN 'Interruptor'
-            WHEN 'T' THEN 'Timbre'
-            WHEN 'C' THEN 'Camara'
-            WHEN 'D' THEN 'Dispositivo'
-            WHEN 'M' THEN 'Modulo'
-            WHEN 'Y' THEN 'Telefono'
-            ELSE 'Desconocido'
-          END AS tipoTexto
+export async function obtenerDatosDispositivos(): Promise<any[]> {
+  const registros = await prisma.$queryRaw<any[]>`
+    WITH DispositivosNumerados AS (
+      SELECT
+        dis.id_usuario AS idUsuario,
+        ROW_NUMBER() OVER (
+          PARTITION BY dis.id_usuario
+          ORDER BY dis.id
+        ) AS numero,
+        prd.clave,
+        dis.alias,
+        prd.cualidades,
+        prd.tipo,
+        CASE prd.tipo
+          WHEN 'I' THEN 'Interruptor'
+          WHEN 'T' THEN 'Timbre'
+          WHEN 'C' THEN 'Camara'
+          WHEN 'D' THEN 'Dispositivo'
+          WHEN 'M' THEN 'Modulo'
+          WHEN 'Y' THEN 'Telefono'
+          ELSE 'Desconocido'
+        END AS tipoTexto
       FROM dispositivos dis
       INNER JOIN pre_dispositivos prd
-          ON prd.id = dis.id_pre_dispositivo
-      OUTER APPLY (
-          SELECT TOP 1
-              s.fecha_final
-          FROM suscripciones s
-          WHERE s.id_dispositivo = dis.id
-          ORDER BY s.fecha_final DESC
-      ) sus
-      WHERE prd.estatus = 1;
-    `;
+        ON prd.id = dis.id_pre_dispositivo
+      WHERE prd.estatus = 1
+    )
+    SELECT *
+    FROM DispositivosNumerados
+    ORDER BY idUsuario, numero;
+  `;
 
-  return registros;
+  return registros.map(registro => ({
+    ...registro,
+    numero: Number(registro.numero),
+  }));
 }
 
 export async function obtenerListaAdministrativa(): Promise<DispositivoAdministrativo[]> {
@@ -235,6 +244,8 @@ export async function obtenerListaAdministrativa(): Promise<DispositivoAdministr
         WHEN 'T' THEN 'Timbre'
         WHEN 'C' THEN 'Cámara'
         WHEN 'D' THEN 'Dispositivo'
+        WHEN 'Y' THEN 'Celular'
+        WHEN 'M' THEN 'Modulo'
         ELSE 'Desconocido'
       END AS tipoTexto,
       u.id AS idUsuario,
@@ -491,8 +502,8 @@ export async function crearLocalizaciones(
           ${localizacion.longitud},
           ${localizacion.altitud},
           ${localizacion.fecha instanceof Date
-            ? localizacion.fecha
-            : new Date(localizacion.fecha)}
+          ? localizacion.fecha
+          : new Date(localizacion.fecha)}
         );
       `;
 

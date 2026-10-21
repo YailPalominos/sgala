@@ -9,7 +9,6 @@ import { PaginaUsuarios } from './paginas/pagina-usuarios/pagina-usuarios';
 
 import { PaginaAdministradores } from './paginas/pagina-administradores/pagina-administradores';
 import { PaginaGraficas } from './paginas/pagina-graficas/pagina-graficas';
-import { PaginaEventosAdministradores } from './paginas/pagina-eventos-administradores/pagina-eventos-administradores';
 import { PaginaEventos } from './paginas/pagina-eventos/pagina-eventos';
 import { PaginaConfirmar } from './paginas/pagina-confirmar/pagina-confirmar';
 import { PaginaTablero } from './paginas/pagina-tablero/pagina-tablero';
@@ -36,7 +35,6 @@ export const routes: Routes = [
   { path: 'eventos', component: PaginaEventos, canActivate: [Autorizador] },
   { path: 'dispositivos', component: PaginaDispositivos, canActivate: [Autorizador] },
   { path: 'usuarios', component: PaginaUsuarios, canActivate: [Autorizador] },
-  { path: 'eventos-administradores', component: PaginaEventosAdministradores, canActivate: [Autorizador] },
   { path: 'graficas', component: PaginaGraficas, canActivate: [Autorizador] },
   { path: 'administradores', component: PaginaAdministradores, canActivate: [Autorizador] },
 

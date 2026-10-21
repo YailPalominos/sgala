@@ -8,14 +8,12 @@ import { ErrorGlobal } from './recursos/error-global';
 import { Solicitudes } from './recursos/solicitudes';
 import { provideNgxMask } from 'ngx-mask';
 
-import { PanelSuscripciones } from './paneles/panel-suscripciones/panel-suscripciones.componente';
 import { FormularioUsuario } from './formularios/formulario-usuario/formulario-usuario';
 import { DialogoValidacion } from './dialogos/dilogo-validacion/dialogo-validacion';
 import { PaginaInicio } from './paginas/pagina-inicio/pagina-inicio';
 
 import { InjectionToken, Type, isDevMode } from '@angular/core';
 import { FormularioSuscripcion } from './formularios/formulario-suscripcion/formulario-suscripcion';
-import { PanelLocalizaciones } from './paneles/panel-localizaciones/panel-localizaciones.componente';
 import { FormularioDispositivo } from './formularios/formulario-dipositivo/formulario-dispositivo';
 import { FormularioPreDispositivo } from './formularios/formulario-pre-dispositivo/formulario-pre-dispositivo';
 import { FormularioAdministradorPerfil } from './formularios/formulario-administrador-perfil/formulario-administrador-perfil';
@@ -24,7 +22,6 @@ import { DialogoConfirmacion } from './dialogos/dialogo-confirmacion/dialogo-con
 import { DialogoRecuperacion } from './dialogos/dialogo-recuperacion/dialogo-recuperacion';
 import { provideServiceWorker } from '@angular/service-worker';
 import { DialogoInformacion } from './dialogos/dialogo-informacion/dialogo-informacion';
-import { PanelEventos } from './paneles/panel-eventos/panel-eventos.componente';
 import { DialogoComparacion } from './dialogos/dilogo-comparacion/dialogo-comparacion';
 import { DialogoSeleccion } from './dialogos/dialogo-seleccion/dialogo-seleccion';
 import { DialogoAyuda } from './dialogos/dialogo-ayuda/dialogo-ayuda';
@@ -68,9 +65,6 @@ export const appConfig: ApplicationConfig = {
         FormularioPreUsuario,
         FormularioUsuario,
         FormularioEvento,
-        PanelSuscripciones,
-        PanelLocalizaciones,
-        PanelEventos,
         PaginaInicio,
         PaginaAcceder,
         PaginaDispositivos,

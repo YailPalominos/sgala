@@ -2,12 +2,14 @@
   <mat-accordion multi>
     <mat-expansion-panel expanded disabled hideToggle>
 
-      <mat-form-field appearance="outline" class="c100 m50 g50">
+      <div class="c0 m0 g5"></div>
+      
+      <mat-form-field appearance="outline" class="c100 m100 g30">
         <mat-label>Clave</mat-label>
         <input matInput formControlName="clave" />
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="c100 m50 g50">
+      <mat-form-field appearance="outline" class="c100 m50 g30">
         <mat-label>Tipo</mat-label>
         <mat-select formControlName="tipoTexto">
           <mat-option value="">Todos</mat-option>
@@ -18,7 +20,7 @@
         </mat-select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="c100 m50 g50">
+      <mat-form-field appearance="outline" class="c100 m50 g30">
         <mat-label>Estado</mat-label>
         <mat-select formControlName="estatusTexto">
           <mat-option value="">Todos</mat-option>
@@ -33,12 +35,12 @@
           [matTooltip]="filtrosExpandido() ? 'Contraer filtros' : 'Expandir filtros'" (click)="intercalarFiltros()">
           <mat-icon>{{filtrosExpandido()?'keyboard_arrow_up':'keyboard_arrow_down'}}</mat-icon>
         </button>
-        <button mat-mini-fab type="button" aria-label="Reiniciar filtros"
-          matTooltip="Reiniciar filtros" (click)="reiniciarFiltros()">
+        <button mat-mini-fab type="button" aria-label="Reiniciar filtros" matTooltip="Reiniciar filtros"
+          (click)="reiniciarFiltros()">
           <mat-icon>restart_alt</mat-icon>
         </button>
 
-        <button mat-mini-fab  type="submit" aria-label="Buscar" matTooltip="Buscar" (click)="buscar()">
+        <button mat-mini-fab type="submit" aria-label="Buscar" matTooltip="Buscar" (click)="buscar()">
           <mat-icon>search</mat-icon>
         </button>
       </div>

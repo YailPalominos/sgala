@@ -15,16 +15,14 @@
         <mat-option value="Y">Celular</mat-option>
         <mat-option value="M">Modulo</mat-option>
       </mat-select>
-      <mat-icon matPrefix>devices</mat-icon>
       @if (formulario.controls.tipo.hasError('required')) {
       <mat-error>Selecciona el tipo de pre-dispositivo.</mat-error>
       }
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="c100 m50 g50">
-      <mat-label>Cualidades (opcional)</mat-label>
-      <input matInput formControlName="cualidades" maxlength="100" placeholder="LOC,ALA,COC" />
-      <mat-icon matPrefix>tune</mat-icon>
+      <mat-label>Cualidades</mat-label>
+      <input matInput formControlName="cualidades" maxlength="100" />
       @if (formulario.controls.cualidades.hasError('maxlength')) {
       <mat-error>Las cualidades no pueden superar los 100 caracteres.</mat-error>
       }

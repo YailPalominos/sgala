@@ -157,28 +157,7 @@ async function iniciar(): Promise<void> {
 
   // d. Iniciar broker MQTT y registrar manejadores de eventos
   await iniciarBrokerMqtt()
-
-  const precios = [
-    {
-      tipo: 'S',
-      nombre: 'Semestral',
-      LOC: 50,
-      ALA: 20,
-      COC: 40
-    },
-    {
-      tipo: 'A',
-      nombre: 'Anual',
-      LOC: 90,
-      ALA: 20,
-      COC: 40
-    }
-  ]
-
-  redisRepositorio.actualizarPrecios(precios)
-
   await iniciarServidorSocketio();
-
   await iniciarWebPush();
 
   console.log('✅ SGALA iniciado.');

@@ -11,7 +11,7 @@ import { Dispositivo } from '../../interfaces/dispositivo';
 import { Notificador } from '../../recursos/notificador';
 import { Socket } from '../../recursos/socket';
 import { DialogoConfirmacion } from '../../dialogos/dialogo-confirmacion/dialogo-confirmacion';
-import { ServicioSuscripciones } from '../../servicios/servicio-suscripciones';
+import { ServicioSuscripcion } from '../../servicios/servicio-suscripcion';
 import { Formulario } from '../../recursos/dialogo.formulario';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
 
@@ -33,7 +33,7 @@ import { DialogoServicio } from '../../recursos/dialogo.servicio';
 })
 export class FormularioSuscripcion extends Formulario {
 
-  private servicioSuscripciones = inject(ServicioSuscripciones);
+  private servicioSuscripcion = inject(ServicioSuscripcion);
   private socket = inject(Socket);
   private dialogoServicio = inject(DialogoServicio);
   private notificador = inject(Notificador);
@@ -73,7 +73,7 @@ export class FormularioSuscripcion extends Formulario {
   }
 
   private obtenerSuscripciones(claveDispositivo: string): void {
-    this.servicioSuscripciones.obtenerSuscripcionesDispositivo(claveDispositivo).subscribe({
+    this.servicioSuscripcion.obtenerSuscripcionesDispositivo(claveDispositivo).subscribe({
       next: (respuesta: any) => {
         this.tiposSuscripcionFiltrados = respuesta.datos;
       }
@@ -84,7 +84,7 @@ export class FormularioSuscripcion extends Formulario {
     const claveDispositivo = this.formulario.value.claveDispositivo;
     const tipoSuscripcion = this.formulario.value.tipoSuscripcion;
 
-    this.servicioSuscripciones.obtenerResumenSuscripcion(claveDispositivo, tipoSuscripcion).subscribe({
+    this.servicioSuscripcion.obtenerResumenSuscripcion(claveDispositivo, tipoSuscripcion).subscribe({
       next: (respuesta: any) => {
         const inicio = new Date(respuesta.datos.fechaInicial);
         const fin = new Date(respuesta.datos.fechaFinal);
@@ -147,7 +147,7 @@ export class FormularioSuscripcion extends Formulario {
   }
 
   private crear(datos: any): void {
-    this.servicioSuscripciones.crear(datos).subscribe({
+    this.servicioSuscripcion.crear(datos).subscribe({
       next: () => {
         this.notificador.exitoso('La suscripción se ha creado exitosamente.');
         this.cerrar(true);

@@ -40,11 +40,16 @@ model Administrador {
   @@map("administradores")
 }
 
+model Solicitud {
+  id                Int       @id(map: "PK__solicitu__3213E83FE626FD31") @default(autoincrement())
+  descripcion       String    @db.VarChar(1000)
+  medioContacto     String   @map("medio_contacto") @db.VarChar(50)
+  fecha             DateTime @db.DateTime2
+  fechaResolucion   DateTime? @map("fecha_resolucion") @db.DateTime2
+  estatus           Boolean   @default(true, map: "DF__solicitud__estat__59FA5E80")
 
-
-
-
-
+  @@map("solicitudes")
+}
 
 
 model pre_dispositivos {
@@ -87,13 +92,6 @@ model eventos {
   historial_registros historial_registros[]
 
   @@index([id_usuario], map: "ix_eventos_id_usuario")
-}
-
-model solicitudes {
-  id             Int     @id(map: "PK__solicitu__3213E83FE626FD31") @default(autoincrement())
-  descripcion    String  @db.VarChar(1000)
-  medio_contacto String? @db.VarChar(50)
-  estatus        Boolean @default(true, map: "DF__solicitud__estat__59FA5E80")
 }
 
 model historial_registros {

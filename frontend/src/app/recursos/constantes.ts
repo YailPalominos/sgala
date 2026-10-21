@@ -76,10 +76,11 @@ export interface RutaNavegacion {
 export const rutasAdministrador: RutaNavegacion[] = [
   { ruta: '/dispositivos', nombre: 'Dispositivos', clave: 'DIP', permiso: "OBL", icono: 'devices' },
   { ruta: '/usuarios', nombre: 'Usuarios', clave: 'DIP', permiso: "OBL", icono: 'group' },
-  { ruta: '/eventos-administradores', nombre: 'Eventos admin.', clave: 'EVA', permiso: "OBL", icono: 'event' },
+  { ruta: '/eventos', nombre: 'Eventos admin.', clave: 'CLI', permiso: "OBL", icono: 'event' },
   { ruta: '/graficas', nombre: 'Gráficas', clave: 'GRA', permiso: "OBL", icono: 'bar_chart' },
   { ruta: '/administradores', nombre: 'Administradores', clave: 'ADM', permiso: "OBL", icono: 'manage_accounts' },
   { ruta: '/solicitudes', nombre: 'Solicitudes', clave: 'SOL', permiso: "OBL", icono: 'assignment' },
+  { ruta: '/eventos', nombre: 'Eventos', clave: 'CLI', permiso: "OBL", icono: 'event' },
 ];
 
 export const rutasUsuario: RutaNavegacion[] = [

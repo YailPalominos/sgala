@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { Conexion, Respuesta } from '../recursos/conexion';
 
 @Injectable({ providedIn: 'root' })
-export class ServicioSuscripciones {
+export class ServicioSuscripcion {
 
     private ruta: string = 'suscripciones'
     private conexion = inject(Conexion);

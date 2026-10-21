@@ -10,6 +10,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Columna, Filtros, TablaComponent } from '../../componentes/tabla/tabla.component';
 import { ServicioAdministrador } from '../../servicios/servicio-administrador';
+import { ServicioEvento } from '../../servicios/servicio-evento';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { NgxMaskDirective } from 'ngx-mask';
+import { DialogoServicio } from '../../recursos/dialogo.servicio';
+import { DialogoComparacion } from '../../dialogos/dilogo-comparacion/dialogo-comparacion';
 
 interface EventoAdministrador {
   id: number;
@@ -33,35 +38,48 @@ interface EventoAdministrador {
     MatProgressSpinnerModule,
     MatTooltipModule,
     ReactiveFormsModule,
-    TablaComponent
+    TablaComponent,
+    MatDatepickerModule,
+    NgxMaskDirective
   ],
   templateUrl: './pagina-eventos.html'
 })
 export class PaginaEventos implements OnInit {
-  private readonly servicio = inject(ServicioAdministrador);
+  private readonly servicioEventos = inject(ServicioEvento);
+  private readonly dialgo = inject(DialogoServicio);
 
-  readonly eventos = signal<EventoAdministrador[]>([]);
-  readonly cargando = signal(true);
-  readonly error = signal<string | null>(null);
+  datos = signal<any[]>([]);
+
   readonly filtrosExpandido = signal(false);
   readonly filtros = signal<Filtros>({
-    etiqueta: '',
+    etiqueta: 'Buscar',
     marcador: '',
     texto: '',
   });
   readonly formularioFiltros = new FormGroup({
-    accion: new FormControl(''),
-    aliasAdministrador: new FormControl(''),
-    correoAdministrador: new FormControl(''),
-    fechaTexto: new FormControl(''),
+    fechaInicial: new FormControl(''),
+    fechaFinal: new FormControl(''),
+    horaInicial: new FormControl(''),
+    horaFinal: new FormControl(''),
+    descripcion: new FormControl(''),
     id: new FormControl('')
   });
   readonly columnas: Columna[] = [
-    { clave: 'id', titulo: 'ID', formato: 'texto' },
+    { clave: 'id', titulo: 'Id', formato: 'texto' },
     { clave: 'fecha', titulo: 'Fecha', formato: 'fecha' },
-    { clave: 'aliasAdministrador', titulo: 'Administrador', formato: 'texto' },
-    { clave: 'correoAdministrador', titulo: 'Correo electrónico', formato: 'texto' },
-    { clave: 'accion', titulo: 'Acción', formato: 'texto' }
+    { clave: 'descripcion', titulo: 'Descripcion', formato: 'texto' },
+    {
+      clave: 'accciones', titulo: '', formato: 'botones', estilos: "display: flex;justify-content: flex-end;",
+      botones: [
+        {
+          icono: 'visibility',
+          tooltip: () => "Ver los datos actualizados o modificados.",
+          accion: (fila) => this.cargarElemento(fila),
+          visible: (fila) => this.tieneElemento(fila),
+          estilos: (fila) => this.estilosPorTipo(fila),
+        },
+      ]
+    },
   ];
 
   ngOnInit(): void {
@@ -78,35 +96,70 @@ export class PaginaEventos implements OnInit {
         .filter(([, valor]) => Boolean(valor?.trim()))
         .map(([clave, valor]) => [clave, valor!.trim()])
     );
-    this.filtros.update((actual) => ({ ...actual, texto: '', criterios }));
+
   }
 
   reiniciarFiltros(): void {
-    this.formularioFiltros.reset({
-      accion: '',
-      aliasAdministrador: '',
-      correoAdministrador: '',
-      fechaTexto: '',
-      id: ''
-    });
-    this.filtros.update((actual) => ({ ...actual, texto: '', criterios: {} }));
+    this.formularioFiltros.reset()
   }
 
   cargar(): void {
-    this.cargando.set(true);
-    this.error.set(null);
-    this.servicio.obtenerListaEventosAdministradores().subscribe({
+    const filtros = this.formularioFiltros.getRawValue()
+    this.servicioEventos.obtenerLista(filtros).subscribe({
       next: (respuesta) => {
-        this.eventos.set(respuesta.datos.map((evento) => ({
-          ...evento,
-          fechaTexto: new Date(evento.fecha).toISOString().slice(0, 10)
-        })));
-        this.cargando.set(false);
+        this.datos.set(respuesta.datos || []);
       },
-      error: () => {
-        this.error.set('No fue posible cargar los eventos de administradores.');
-        this.cargando.set(false);
-      }
     });
   }
+
+
+
+
+  async abrirFiltros() {
+
+  }
+
+  public tieneElemento(fila: any): boolean {
+    return fila.idElemento == null ? false : true;
+  }
+
+  public estilosPorTipo(fila: any): string {
+    if (fila.idElemento == null) {
+      return '';
+    }
+
+    const descripcion = fila.descripcion
+      ?.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    if (descripcion?.includes('creo')) {
+      return 'background: #e8f5e9;';
+    }
+
+    if (descripcion?.includes('actualizo')) {
+      return 'background: #fff3e0;';
+    }
+
+    return '';
+  }
+  public cargarElemento(elemento: any) {
+
+    this.servicioEventos.obtenerDatosElemento(elemento.idElemento).subscribe({
+      next: (respuesta) => {
+
+        this.dialgo.abrir({
+          referencia: DialogoComparacion,
+          titulo: 'Comparación',
+          icono: 'compare_arrows',
+          largo: 'l50%,m70%,c100%',
+          desactivarAutocerrado: true,
+          parametros: 'A',
+          datos: respuesta.datos
+        });
+
+      }
+    })
+  }
+
 }

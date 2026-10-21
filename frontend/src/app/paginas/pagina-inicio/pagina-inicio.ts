@@ -53,7 +53,7 @@ export class PaginaInicio implements OnInit {
   error = signal<string | null>(null);
   procesando = signal<Set<string>>(new Set());
 
-  dispositivos = signal<Dispositivo[]>([]);
+  dispositivos = signal<any[]>([]);
   dispositivosFiltrados = computed(() => {
     const texto = this.textoBusqueda().toLowerCase();
     if (!texto) return this.dispositivos();
@@ -588,6 +588,40 @@ export class PaginaInicio implements OnInit {
       this.quitarProcesando(respuesta.datos.clave);
     }
   }
+
+  //#endregion
+
+
+
+
+
+
+
+
+  //#region Camara
+
+  public verCamara(dispositivo: Dispositivo): void {
+    const estatus = dispositivo.estatus === true
+    this.dialogoServicio.abrir({
+      referencia: DialogoConfirmacion,
+      titulo: 'Confirmar',
+      icono: 'check',
+      largo: 'l25%,m45%,c100%',
+      desactivarAutocerrado: true,
+      parametros: {
+        titulo: "Intercalar estado",
+        mensaje: estatus
+          ? '¿Desea desactivar el interruptor?'
+          : '¿Desea activar del interruptor?',
+      },
+      datos: {
+        clave: dispositivo.clave,
+        estatus: estatus ? false : true
+      },
+      // alFinalizar: this.finalizarIntercalarActivacion.bind(this)
+    });
+  }
+
 
   //#endregion
 

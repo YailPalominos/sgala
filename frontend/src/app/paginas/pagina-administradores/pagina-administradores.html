@@ -2,15 +2,19 @@
   <mat-accordion multi>
     <mat-expansion-panel expanded disabled hideToggle>
 
-      <mat-form-field appearance="outline" class="c100 m50 g50">
+      <div class="c0 m0 g20"></div>
+
+      <mat-form-field appearance="outline" class="c100 m50 g30">
         <mat-label>Alias</mat-label>
         <input matInput formControlName="alias" />
       </mat-form-field>
-      <mat-form-field appearance="outline" class="c100 m50 g50">
+
+      <mat-form-field appearance="outline" class="c100 m50 g30">
         <mat-label>Correo electrónico</mat-label>
         <input matInput formControlName="direccionCorreoElectronico" />
       </mat-form-field>
-      <div class="acciones-filtros">
+
+      <div class="acciones-filtros c100 m100 g100">
         <button mat-mini-fab type="button" aria-label="Reiniciar filtros"
           matTooltip="Reiniciar filtros"><mat-icon>restart_alt</mat-icon></button>
         <button mat-mini-fab type="submit" aria-label="Buscar" matTooltip="Buscar">
@@ -27,6 +31,13 @@
     <mat-expansion-panel class="panel-filtros-ocultos" [class.panel-contraido]="!filtrosExpandido()"
       [expanded]="filtrosExpandido()" (opened)="filtrosExpandido.set(true)" (closed)="filtrosExpandido.set(false)"
       hideToggle>
+
+
+      <mat-form-field appearance="outline" class="c100 m50 g50">
+        <mat-label>Teléfono</mat-label>
+        <input matInput formControlName="telefono" />
+      </mat-form-field>
+
 
       <mat-form-field appearance="outline" class="c100 m50 g50">
         <mat-label>Estado</mat-label>

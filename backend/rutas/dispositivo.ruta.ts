@@ -1,12 +1,10 @@
 import { Router } from 'express';
-import { middlewareSesion } from '../interceptores/sesion.middleware';
 import { actualizar, crear, obtenerLocalizaciones, obtenerHistorialLocalizaciones, obtenerListaDispositivosUsuario, buscarPorClave, crearPreDispositivo } from '../repositorios/base-datos/dispositivo.repositorio';
 import asyncHandler from 'express-async-handler';
 import { enviarDispositivoActualizado } from '../socket'
 import { actualizarDatosDispositivo } from '@/repositorios/redis/dispositivo.redis';
 import { ErrorHttp } from '@/interceptores/error.middleware';
-import { enviarSolicitudDispositivo } from '@/broker';
-import { crearCertificado, crearCertificadoCelular } from '@/servicios/certificados.servicio';
+import { crearCertificadoCelular } from '@/servicios/certificados.servicio';
 export const dispositivoRouter = Router();
 
 /**
@@ -39,9 +37,7 @@ dispositivoRouter.post('/crear',
     const datos = solicitud.body
     datos.idUsuario = solicitud.sesion.idUsuario;
     await crear(datos)
-
-    // console.log(datos)
-    // await enviarDispositivoActualizado(datos.claveDispositivo)
+    await enviarDispositivoActualizado(datos.claveDispositivo)
     respuesta.status(201).json({ mensaje: 'Dispositivo creado exitosamente.' });
   })
 );
@@ -53,7 +49,7 @@ dispositivoRouter.put('/actualizar',
   asyncHandler(async (solicitud, respuesta) => {
     const datos = solicitud.body
     await actualizar(datos);
-    actualizarDatosDispositivo(datos.clave, datos)
+    await actualizarDatosDispositivo(datos.clave, datos)
     await enviarDispositivoActualizado(datos.clave)
     respuesta.status(200).json({ mensaje: 'Dispositivo actualizado exitosamente.' });
   })
@@ -66,7 +62,6 @@ dispositivoRouter.get('/obtener-lista-dipositivos-usuario',
   asyncHandler(async (solicitud, respuesta) => {
 
     const idUsuario = solicitud.sesion.idUsuario;
-
     const datos = await obtenerListaDispositivosUsuario(idUsuario);
 
     respuesta.status(200).json({
