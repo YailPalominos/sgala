@@ -10,6 +10,8 @@ export interface EstadoDispositivoRedis {
     clave: string;
     idUsuario: number;
     alias: string;
+    tipo?: string;
+    tipoTexto?: string;
     cualidades: string;
     estatusConexion: boolean | null;
     localizacion: {

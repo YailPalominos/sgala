@@ -6,7 +6,7 @@ import { enviarDispositivoActualizado, enviarNotificacionUsuario } from './socke
 import { crearLocalizaciones, obtenerDatosDispositivos } from './repositorios/base-datos/dispositivo.repositorio';
 import dayjs from "dayjs";
 import { enviarWebPush } from './webpush';
-import { actualizarDatosDispositivo, actualizarEstatusConexion, agregarAlarma, eliminarAlarma, eliminarAlarmasDesconexion, EstadoDispositivoRedis, guardarEstadosDispositivos, obtenerDispositivo, obtenerDispositivosSinConexion } from './repositorios/redis/dispositivo.redis';
+import { actualizarDatosDispositivo, actualizarEstatusConexion, agregarAlarma, eliminarAlarma, eliminarAlarmasDesconexion, EstadoDispositivoRedis, guardarEstadosDispositivos, obtenerDispositivo, obtenerDispositivosSinConexion, obtenerDispositivosUsuario } from './repositorios/redis/dispositivo.redis';
 import { agregarNotificacion, eliminarNotificacionDesconexion, eliminarNotificacionPorAlarma } from './repositorios/redis/notificaciones.redis';
 import { obtenerSuscripciones } from './repositorios/redis/suscripciones.redis';
 import { crearEventoSistema } from './repositorios/base-datos/evento.repositorio';
@@ -15,7 +15,47 @@ export interface ClienteMqtt extends Client {
   claveDispositivo: string;
 }
 
+export interface AlertaMovil {
+  tipo: string;
+  titulo: string;
+  mensaje: string;
+  datos?: Record<string, unknown>;
+}
+
 export const aedesInstance = new Aedes();
+
+/** Publica una alerta en el tópico privado de cada teléfono Y conectado del usuario. */
+export async function enviarAlertaTelefonosUsuario(idUsuario: number, alerta: AlertaMovil): Promise<void> {
+  const telefonos = await obtenerDispositivosUsuario(idUsuario);
+  const conectados = telefonos.filter(dispositivo =>
+    dispositivo.tipo?.toUpperCase() === 'Y' && dispositivo.estatusConexion === true
+  );
+
+  const resultados = await Promise.allSettled(conectados.map(dispositivo => new Promise<void>((resolve, reject) => {
+    const payload = Buffer.from(JSON.stringify({
+      version: 1,
+      tipo: 'alerta',
+      id: crypto.randomUUID(),
+      categoria: alerta.tipo,
+      titulo: alerta.titulo,
+      mensaje: alerta.mensaje,
+      fecha: new Date().toISOString(),
+      datos: alerta.datos ?? {}
+    }), 'utf8');
+
+    aedesInstance.publish({
+      cmd: 'publish',
+      topic: `notificaciones/${dispositivo.clave.toLowerCase()}`,
+      payload,
+      qos: 1,
+      retain: false,
+      dup: false
+    }, error => error ? reject(error) : resolve());
+  })));
+  for (const resultado of resultados) {
+    if (resultado.status === 'rejected') console.error('[MQTT] No se pudo publicar alerta a teléfono Y:', resultado.reason);
+  }
+}
 
 export async function iniciarBrokerMqtt(): Promise<tls.Server> {
 
@@ -76,6 +116,15 @@ export async function iniciarBrokerMqtt(): Promise<tls.Server> {
       claveDispositivo;
 
     callback(null, true);
+  };
+
+  aedesInstance.authorizeSubscribe = (cliente, suscripcion, callback) => {
+    const clave = (cliente as ClienteMqtt).claveDispositivo?.toLowerCase();
+    if (suscripcion.topic.startsWith('notificaciones/')) {
+      const topicoPropio = `notificaciones/${clave}`;
+      return callback(null, suscripcion.topic === topicoPropio ? suscripcion : null);
+    }
+    callback(null, suscripcion);
   };
 
 
@@ -242,6 +291,13 @@ export async function desconectar(claveDispositivo: string) {
     );
 
     await enviarNotificacionUsuario(dispositivo.idUsuario);
+
+    await enviarAlertaTelefonosUsuario(dispositivo.idUsuario, {
+      tipo: 'sin-conexion',
+      titulo: 'Dispositivo sin conexión',
+      mensaje: `Dispositivo '${dispositivo.alias}' sin conexión.`,
+      datos: { claveDispositivo: dispositivo.clave, alias: dispositivo.alias }
+    });
 
     const suscripciones = await obtenerSuscripciones(dispositivo.idUsuario);
 
@@ -662,6 +718,13 @@ async function verificarDispositivosSinConexion(): Promise<void> {
       );
 
       await enviarNotificacionUsuario(dispositivo.idUsuario)
+
+      await enviarAlertaTelefonosUsuario(dispositivo.idUsuario, {
+        tipo: 'sin-conexion',
+        titulo: 'Dispositivo sin conexión',
+        mensaje: `Dispositivo '${dispositivo.alias}' sin conexión.`,
+        datos: { claveDispositivo: dispositivo.clave, alias: dispositivo.alias }
+      });
 
       const suscripciones = await obtenerSuscripciones(dispositivo.idUsuario);
 

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { middlewareSesion } from '../interceptores/sesion.middleware';
-import { actualizar, crear, obtenerLocalizaciones, obtenerListaDispositivosUsuario, buscarPorClave, crearPreDispositivo } from '../repositorios/base-datos/dispositivo.repositorio';
+import { actualizar, crear, obtenerLocalizaciones, obtenerHistorialLocalizaciones, obtenerListaDispositivosUsuario, buscarPorClave, crearPreDispositivo } from '../repositorios/base-datos/dispositivo.repositorio';
 import asyncHandler from 'express-async-handler';
 import { enviarDispositivoActualizado } from '../socket'
 import { actualizarDatosDispositivo } from '@/repositorios/redis/dispositivo.redis';
@@ -91,6 +91,33 @@ dispositivoRouter.get('/obtener-lista',
       mensaje: 'Localizaciones obtenidas exitosamente.',
       datos
     });
+  })
+);
+
+/** Obtiene las localizaciones para trazar el historial de ruta de dispositivos seleccionados. */
+dispositivoRouter.get('/obtenerLocalizaciones',
+  asyncHandler(async (solicitud, respuesta) => {
+    const idUsuario = solicitud.sesion.idUsuario;
+    const clavesParametro = solicitud.query['claves'];
+    const claves = (Array.isArray(clavesParametro) ? clavesParametro : [clavesParametro])
+      .flatMap(valor => typeof valor === 'string' ? valor.split(',') : [])
+      .map(clave => clave.trim())
+      .filter(Boolean);
+    const fechaInicial = typeof solicitud.query['fechaInicial'] === 'string'
+      ? solicitud.query['fechaInicial'] as string : undefined;
+    const fechaFinal = typeof solicitud.query['fechaFinal'] === 'string'
+      ? solicitud.query['fechaFinal'] as string : undefined;
+    const clavesValidas = claves.every(clave =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clave)
+    );
+
+    if (claves.length > 100 || !clavesValidas || (fechaInicial && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(fechaInicial)) ||
+      (fechaFinal && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(fechaFinal))) {
+      throw new ErrorHttp(400, 'Los filtros de localización no son válidos.');
+    }
+
+    const datos = await obtenerHistorialLocalizaciones(idUsuario, claves, fechaInicial, fechaFinal);
+    respuesta.status(200).json({ mensaje: 'Historial de localizaciones obtenido exitosamente.', datos });
   })
 );
 

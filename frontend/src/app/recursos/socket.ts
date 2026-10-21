@@ -73,7 +73,8 @@ export class Socket {
       'dispositivos',
       (dispositivos) => {
         console.log('📟 Dispositivos ');
-        const normalizados = dispositivos.map((dispositivo: any) =>
+        const lista = Array.isArray(dispositivos) ? dispositivos : [];
+        const normalizados = lista.map((dispositivo: any) =>
           this.convertirNullStrings(dispositivo)
         );
         this.dispositivosSubject.next(normalizados);
@@ -93,7 +94,8 @@ export class Socket {
       'notificaciones',
       (notificaciones) => {
         console.log('🔔 Notificaciones ');
-        const normalizados = notificaciones.map((notificacion: any) =>
+        const lista = Array.isArray(notificaciones) ? notificaciones : [];
+        const normalizados = lista.map((notificacion: any) =>
           this.convertirNullStrings(notificacion)
         );
         this.notificacionesSubject.next(normalizados);

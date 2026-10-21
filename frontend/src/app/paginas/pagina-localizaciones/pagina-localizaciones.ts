@@ -3,9 +3,15 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { ReactiveFormsModule, FormControl, FormGroup } from '@angular/forms';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { Subscription } from 'rxjs';
 import { Dispositivo, Localizacion } from '../../interfaces/dispositivo';
 import { Socket } from '../../recursos/socket';
+import { ServicioDispositivo } from '../../servicios/servicio-dispositivo';
 import type * as Leaflet from 'leaflet';
 
 interface ElementoLocalizacion {
@@ -23,7 +29,8 @@ const CLAVE_YO = '__ubicacion_propia__';
 @Component({
   selector: 'app-pagina-localizaciones',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule, MatFormFieldModule, MatInputModule, MatDatepickerModule, ReactiveFormsModule],
+  providers: [provideNativeDateAdapter()],
   templateUrl: './pagina-localizaciones.html',
   styleUrl: './pagina-localizaciones.scss'
 })
@@ -32,12 +39,23 @@ export class PaginaLocalizaciones implements OnInit, AfterViewInit, OnDestroy {
   private readonly elementoMapa!: ElementRef<HTMLDivElement>;
 
   readonly menuAbierto = signal(true);
+  readonly filtrosAbiertos = signal(false);
+  readonly buscando = signal(false);
+  readonly errorHistorial = signal('');
+  readonly errorMapa = signal('');
   readonly errorUbicacion = signal(false);
   readonly actualizandoPosicion = signal(false);
   readonly dispositivos = signal<Dispositivo[]>([]);
   readonly ubicacionPropia = signal<Localizacion | null>(null);
   readonly seleccionados = signal(new Set<string>([CLAVE_YO]));
   readonly ahora = signal(Date.now());
+  readonly filtros = new FormGroup({
+    fechaInicial: new FormControl<Date | null>(null),
+    fechaFinal: new FormControl<Date | null>(null),
+    horaInicial: new FormControl('00:00'),
+    horaFinal: new FormControl('23:59')
+  });
+  readonly historial = signal<Record<string, Localizacion[]>>({});
   readonly elementos = computed<ElementoLocalizacion[]>(() => [
     {
       clave: CLAVE_YO,
@@ -45,10 +63,10 @@ export class PaginaLocalizaciones implements OnInit, AfterViewInit, OnDestroy {
       tipoTexto: 'Ubicación actual',
       localizacion: this.ubicacionPropia(),
       estatusConexion: -1,
-      color: '#238636',
+      color: '#475569',
       esYo: true
     },
-    ...this.dispositivos().map((dispositivo, indice) => ({
+    ...(Array.isArray(this.dispositivos()) ? this.dispositivos() : []).map((dispositivo, indice) => ({
       clave: dispositivo.clave,
       alias: dispositivo.alias || 'Sin alias',
       tipoTexto: dispositivo.tipoTexto || dispositivo.tipo || 'Dispositivo',
@@ -63,10 +81,13 @@ export class PaginaLocalizaciones implements OnInit, AfterViewInit, OnDestroy {
   private leaflet?: typeof import('leaflet');
   private capaMarcadores?: Leaflet.LayerGroup;
   private readonly socket = inject(Socket);
+  private readonly servicioDispositivo = inject(ServicioDispositivo);
   private readonly suscripciones = new Subscription();
   private componenteDestruido = false;
   private marcadoresInicialesDibujados = false;
   private temporizadorAhora?: ReturnType<typeof setInterval>;
+  private capaRutas?: Leaflet.LayerGroup;
+  private observadorTamano?: ResizeObserver;
 
   ngOnInit(): void {
     this.suscripciones.add(
@@ -89,29 +110,50 @@ export class PaginaLocalizaciones implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async ngAfterViewInit(): Promise<void> {
-    const leaflet = await import('leaflet');
-    if (this.componenteDestruido) {
-      return;
+    try {
+      const modulo = await import('leaflet');
+      if (this.componenteDestruido) return;
+
+      // Algunos empaquetados exponen Leaflet en `default`, otros como exports nombrados.
+      const candidatos = [modulo, (modulo as any).default];
+      const leaflet = candidatos.find(candidato => typeof candidato?.map === 'function') as typeof import('leaflet') | undefined;
+      if (!leaflet) {
+        throw new Error('El módulo de Leaflet no expone la función map().');
+      }
+
+      this.leaflet = leaflet;
+      this.mapa = leaflet.map(this.elementoMapa.nativeElement).setView([19.4326, -99.1332], 5);
+
+      leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(this.mapa);
+
+      this.capaMarcadores = leaflet.layerGroup().addTo(this.mapa);
+      this.capaRutas = leaflet.layerGroup().addTo(this.mapa);
+      if (this.dispositivos().length > 0) {
+        this.redibujarMarcadores();
+        this.marcadoresInicialesDibujados = true;
+      }
+
+      this.observadorTamano = new ResizeObserver(() => {
+        this.mapa?.invalidateSize({ pan: false, debounceMoveend: true });
+      });
+      this.observadorTamano.observe(this.elementoMapa.nativeElement);
+      requestAnimationFrame(() => this.mapa?.invalidateSize({ pan: false }));
+      setTimeout(() => {
+        if (!this.componenteDestruido) this.mapa?.invalidateSize({ pan: false });
+      }, 150);
+      this.recargarPosicion();
+    } catch (error) {
+      console.error('[Localizaciones] Error al iniciar Leaflet:', error);
+      this.errorMapa.set(error instanceof Error ? error.message : 'No se pudo iniciar el mapa.');
     }
-
-    this.leaflet = leaflet;
-    this.mapa = leaflet.map(this.elementoMapa.nativeElement).setView([19.4326, -99.1332], 5);
-
-    leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(this.mapa);
-
-    this.capaMarcadores = leaflet.layerGroup().addTo(this.mapa);
-    if (this.dispositivos().length > 0) {
-      this.redibujarMarcadores();
-      this.marcadoresInicialesDibujados = true;
-    }
-    this.recargarPosicion();
   }
 
   ngOnDestroy(): void {
     this.componenteDestruido = true;
+    this.observadorTamano?.disconnect();
     this.suscripciones.unsubscribe();
     if (this.temporizadorAhora) {
       clearInterval(this.temporizadorAhora);
@@ -159,17 +201,70 @@ export class PaginaLocalizaciones implements OnInit, AfterViewInit, OnDestroy {
       }
       return siguiente;
     });
+    this.redibujarMarcadores();
+  }
+
+  seleccionarDispositivo(elemento: ElementoLocalizacion): void {
+    if (elemento.esYo) return;
+    this.seleccionados.update(actuales => new Set([...actuales, elemento.clave]));
+    const ubicacion = this.historial()[elemento.clave]?.at(-1) ?? elemento.localizacion;
+    if (ubicacion && this.mapa) {
+      this.mapa.setView([Number(ubicacion.latitud), Number(ubicacion.longitud)], 16);
+    }
+    this.redibujarMarcadores();
+  }
+
+  buscarHistorial(): void {
+    const valores = this.filtros.getRawValue();
+    if (valores.fechaInicial && valores.fechaFinal && valores.fechaInicial > valores.fechaFinal) {
+      this.errorHistorial.set('La fecha inicial debe ser anterior a la fecha final.');
+      return;
+    }
+
+    const fechaInicial = valores.fechaInicial
+      ? this.formatearFechaHora(valores.fechaInicial, valores.horaInicial || '00:00', 0) : undefined;
+    const fechaFinal = valores.fechaFinal
+      ? this.formatearFechaHora(valores.fechaFinal, valores.horaFinal || '23:59', 59) : undefined;
+
+    this.buscando.set(true);
+    this.errorHistorial.set('');
+    this.servicioDispositivo.obtenerLocalizaciones({
+      claves: (Array.isArray(this.dispositivos()) ? this.dispositivos() : []).map(dispositivo => dispositivo.clave).join(','),
+      fechaInicial,
+      fechaFinal
+    }).subscribe({
+      next: respuesta => {
+        const rutas: Record<string, Localizacion[]> = {};
+        for (const punto of Array.isArray(respuesta.datos) ? respuesta.datos : []) {
+          (rutas[punto.claveDispositivo] ??= []).push({
+            latitud: Number(punto.latitud), longitud: Number(punto.longitud),
+            altitud: Number(punto.altitud), fecha: punto.fecha
+          });
+        }
+        this.historial.set(rutas);
+        this.dispositivos.update(dispositivos => dispositivos.map(dispositivo => ({
+          ...dispositivo,
+          localizaciones: rutas[dispositivo.clave] ?? []
+        })));
+        this.buscando.set(false);
+        this.redibujarMarcadores();
+      },
+      error: () => {
+        this.buscando.set(false);
+        this.errorHistorial.set('No se pudo obtener el historial de localizaciones.');
+      }
+    });
+  }
+
+  private formatearFechaHora(fecha: Date, hora: string, segundos: number): string {
+    const anio = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dia = String(fecha.getDate()).padStart(2, '0');
+    return `${anio}-${mes}-${dia}T${hora}:${String(segundos).padStart(2, '0')}`;
   }
 
   estaSeleccionado(clave: string): boolean {
     return this.seleccionados().has(clave);
-  }
-
-  claseConexion(estatus: boolean | null | -1): string {
-    if (estatus === -1) return 'conexion-gris';
-    if (estatus === true) return 'conexion-verde';
-    if (estatus === false) return 'conexion-roja';
-    return 'conexion-amarilla';
   }
 
   textoConexion(estatus: boolean | null | -1): string {
@@ -189,9 +284,13 @@ export class PaginaLocalizaciones implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private reemplazarDispositivos(dispositivos: Dispositivo[]): void {
-    const anteriores = new Set(this.dispositivos().map(dispositivo => dispositivo.clave));
-    const localizables = dispositivos.filter(dispositivo =>
-      dispositivo.cualidades?.split(',').map(cualidad => cualidad.trim()).includes('LOC')
+    const lista = Array.isArray(dispositivos)
+      ? dispositivos.filter((dispositivo): dispositivo is Dispositivo =>
+        Boolean(dispositivo && typeof dispositivo === 'object' && typeof dispositivo.clave === 'string'))
+      : [];
+    const anteriores = new Set((Array.isArray(this.dispositivos()) ? this.dispositivos() : []).map(dispositivo => dispositivo.clave));
+    const localizables = lista.filter(dispositivo =>
+      typeof dispositivo.cualidades === 'string' && dispositivo.cualidades.split(',').some(cualidad => cualidad.trim() === 'LOC')
     );
     const clavesActuales = new Set(localizables.map(dispositivo => dispositivo.clave));
 
@@ -212,11 +311,11 @@ export class PaginaLocalizaciones implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private actualizarDispositivo(dispositivo: Dispositivo): void {
-    const dispositivos = this.dispositivos();
+    const dispositivos = Array.isArray(this.dispositivos()) ? this.dispositivos() : [];
     const indice = dispositivos.findIndex(actual => actual.clave === dispositivo.clave);
 
     if (indice === -1) {
-      if (dispositivo.cualidades?.split(',').map(cualidad => cualidad.trim()).includes('LOC')) {
+      if (typeof dispositivo.cualidades === 'string' && dispositivo.cualidades.split(',').some(cualidad => cualidad.trim() === 'LOC')) {
         this.reemplazarDispositivos([...dispositivos, dispositivo]);
       }
       return;
@@ -228,8 +327,8 @@ export class PaginaLocalizaciones implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private colorDispositivo(indice: number): string {
-    const tono = (indice * 137.508 + 18) % 360;
-    return `hsl(${tono} 70% 38%)`;
+    const colores = ['#2563a6', '#7c4d9e', '#087f8c', '#ad6b16', '#4856a6', '#7356b5', '#176f83', '#715b32'];
+    return colores[indice % colores.length];
   }
 
   private tiempoTranscurrido(fecha: string): string {
@@ -255,22 +354,41 @@ export class PaginaLocalizaciones implements OnInit, AfterViewInit, OnDestroy {
   private redibujarMarcadores(recentrarEnYo = false): void {
     if (!this.mapa || !this.leaflet || !this.capaMarcadores) return;
 
-    this.capaMarcadores.clearLayers();
-    const seleccionados = this.seleccionados();
-    const miUbicacion = this.ubicacionPropia();
+    try {
+      this.errorMapa.set('');
+      this.capaMarcadores.clearLayers();
+      this.capaRutas?.clearLayers();
+      const seleccionados = this.seleccionados();
+      const miUbicacion = this.ubicacionPropia();
+      const dispositivos = Array.isArray(this.dispositivos()) ? this.dispositivos() : [];
 
-    if (miUbicacion && seleccionados.has(CLAVE_YO)) {
-      this.agregarMarcador(miUbicacion, 'Yo', '#238636');
-      if (recentrarEnYo) this.mapa.setView([miUbicacion.latitud, miUbicacion.longitud], 16);
-    }
+      if (miUbicacion && seleccionados.has(CLAVE_YO)) {
+        this.agregarMarcador(miUbicacion, 'Yo', '#475569');
+        if (recentrarEnYo) this.mapa.setView([miUbicacion.latitud, miUbicacion.longitud], 16);
+      }
 
-    for (const dispositivo of this.dispositivos()) {
-      const ubicacion = dispositivo.localizacion;
-      if (!seleccionados.has(dispositivo.clave) || !ubicacion) continue;
-      if (!Number.isFinite(ubicacion.latitud) || !Number.isFinite(ubicacion.longitud)) continue;
+      for (const dispositivo of dispositivos) {
+        const puntosHistorial = this.historial()[dispositivo.clave];
+        const puntos = Array.isArray(puntosHistorial)
+          ? puntosHistorial.filter(punto => Number.isFinite(punto?.latitud) && Number.isFinite(punto?.longitud))
+          : [];
+        const indice = dispositivos.findIndex(actual => actual.clave === dispositivo.clave);
+        if (seleccionados.has(dispositivo.clave) && puntos.length > 1) {
+          this.leaflet.polyline(puntos.map(punto => [punto.latitud, punto.longitud] as [number, number]), {
+            color: this.colorDispositivo(indice), weight: 4, opacity: 0.8
+          }).addTo(this.capaRutas!);
+        }
+        const ubicacion = dispositivo.localizacion;
+        if (!seleccionados.has(dispositivo.clave) || !ubicacion) continue;
+        const latitud = Number(ubicacion.latitud);
+        const longitud = Number(ubicacion.longitud);
+        if (!Number.isFinite(latitud) || !Number.isFinite(longitud)) continue;
 
-      const indice = this.dispositivos().findIndex(actual => actual.clave === dispositivo.clave);
-      this.agregarMarcador(ubicacion, dispositivo.alias || 'Sin alias', this.colorDispositivo(indice));
+        this.agregarMarcador({ ...ubicacion, latitud, longitud }, dispositivo.alias || 'Sin alias', this.colorDispositivo(indice));
+      }
+    } catch (error) {
+      console.error('[Localizaciones] Error al dibujar dispositivos en el mapa:', error);
+      this.errorMapa.set(error instanceof Error ? error.message : 'No se pudieron dibujar las localizaciones.');
     }
   }
 
@@ -291,5 +409,13 @@ export class PaginaLocalizaciones implements OnInit, AfterViewInit, OnDestroy {
 
   alternarMenu(): void {
     this.menuAbierto.update(abierto => !abierto);
+  }
+
+  alternarFiltros(): void {
+    const abrir = !this.filtrosAbiertos();
+    if (abrir && window.innerWidth < 760 && this.menuAbierto()) {
+      this.menuAbierto.set(false);
+    }
+    this.filtrosAbiertos.set(abrir);
   }
 }

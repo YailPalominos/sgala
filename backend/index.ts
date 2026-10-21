@@ -6,6 +6,7 @@ import { iniciarRegistroDeConsola } from './recursos/registro';
 iniciarRegistroDeConsola();
 
 import express from 'express';
+import https from 'https';
 import { manejadorErrores } from './interceptores/error.middleware';
 import { middlewareSesion } from './interceptores/sesion.middleware';
 import { autenticacionRouter } from './rutas/usuario.ruta';
@@ -23,16 +24,20 @@ import cors from 'cors';
 import { redisRepositorio } from './repositorios/redis.repositorio';
 import { datosRoute } from './rutas/datos.ruta';
 import { entorno } from './recursos/entorno';
+import { leerCertificadosHttps } from './servicios/certificados.servicio';
 
 const puerto = entorno.PUERTO_API
 
 const app = express();
 
 const permitidos = [
+  `https://${entorno.ENLACE_SERVIDOR}`,
+  'https://localhost',
   `https://${entorno.ENLACE_SERVIDOR}:4058`,
   `https://localhost:4058`,
-  `http://${entorno.ENLACE_SERVIDOR}:4058`,
-  `http://localhost:4058`,
+  `http://${entorno.ENLACE_SERVIDOR}:4200`,
+  'http://localhost:4200',
+  'https://localhost:4200',
 ];
 
 app.use(cors({
@@ -129,7 +134,7 @@ app.use(manejadorErrores);
 
 /**
  * Función de arranque asíncrona.
- * Inicializa conexiones a SQL Server y Redis, inicia el servidor HTTP,
+ * Inicializa conexiones a SQL Server y Redis, inicia el servidor HTTPS,
  * el broker MQTT con sus manejadores de eventos y el servidor Socket.io.
  */
 async function iniciar(): Promise<void> {
@@ -140,9 +145,14 @@ async function iniciar(): Promise<void> {
   await redis.connect();
   console.log('📦 Redis conectado');
 
-  // c. Iniciar servidor HTTP Express
-  app.listen(puerto, () => {
-    console.log(`🌐 API escuchando en puerto ${puerto}`);
+  // c. Iniciar servidor HTTPS Express con el certificado compartido con el broker.
+  const servidorApi = https.createServer(leerCertificadosHttps(entorno.DIRECTORIO), app);
+  await new Promise<void>((resolve, reject) => {
+    servidorApi.once('error', reject);
+    servidorApi.listen(puerto, () => {
+      console.log(`🌐 API HTTPS escuchando en puerto ${puerto}`);
+      resolve();
+    });
   });
 
   // d. Iniciar broker MQTT y registrar manejadores de eventos

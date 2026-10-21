@@ -5,6 +5,10 @@ export interface Localizacion {
   fecha?: string;
 }
 
+export interface LocalizacionHistorial extends Localizacion {
+  claveDispositivo: string;
+}
+
 export interface Alarma {
   clave: string;
   descripcion: string;
@@ -21,6 +25,7 @@ export interface Dispositivo {
   cualidades: string;
   fechaFinalSuscripcion: string | null;
   localizacion: Localizacion | null;
+  localizaciones?: Localizacion[];
   estatus: boolean | null;
   estatusConexion: boolean | null;
   estatusEncendida: boolean | null;

@@ -118,7 +118,7 @@ printf 'VAPID_PUBLIC_KEY="%s"\nVAPID_PRIVATE_KEY="%s"\n' "$VAPID_PUBLIC_KEY" "$V
 mv "$TEMP_ENV" "$ENV_PATH"
 
 printf '%s\n' 'Generando certificados TLS en el volumen seleccionado...'
-docker compose run --rm --no-deps backend node -r ts-node/register -r tsconfig-paths/register -e 'require(String.fromCharCode(46,47,115,114,99,47,115,101,114,118,105,99,105,111,115,47,99,101,114,116,105,102,105,99,97,100,111,115,46,115,101,114,118,105,99,105,111)).asegurarCertificadosServidor()'
+docker compose run --rm --no-deps backend node -r ts-node/register -r tsconfig-paths/register -e 'require(String.fromCharCode(46,47,115,101,114,118,105,99,105,111,115,47,99,101,114,116,105,102,105,99,97,100,111,115,46,115,101,114,118,105,99,105,111)).asegurarCertificadosServidor()'
 
 printf '%s\n' 'Configuración de despliegue lista. backend/.env se conserva sin cambios.'
 printf '%s\n' 'Recreando SQL Server para aplicar entrypoint.sh actualizado...'

@@ -28,4 +28,14 @@ export class ServicioDispositivo {
         return this.conexion.get<any>(`${this.ruta}/obtener-lista`, filtros);
     }
 
+    public obtenerLocalizaciones(filtros: {
+        claves: string;
+        fechaInicial?: string;
+        fechaFinal?: string;
+    }): Observable<Respuesta<import('../interfaces/dispositivo').LocalizacionHistorial[]>> {
+        return this.conexion.get<import('../interfaces/dispositivo').LocalizacionHistorial[]>(
+            `${this.ruta}/obtenerLocalizaciones`, filtros
+        );
+    }
+
 }

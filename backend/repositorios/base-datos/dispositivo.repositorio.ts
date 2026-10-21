@@ -63,6 +63,15 @@ export interface LocalizacionDispositivo {
   altitud: number;
 }
 
+export interface LocalizacionHistorialDispositivo {
+  claveDispositivo: string;
+  aliasDispositivo: string;
+  latitud: number;
+  longitud: number;
+  altitud: number;
+  fecha: Date;
+}
+
 
 export async function buscarPorClave(clave: string, idUsuario: number): Promise<any | null> {
   const registros = await prisma.$queryRaw<any[]>`
@@ -323,6 +332,34 @@ export async function obtenerLocalizaciones(idUsuario: number, filtros: any): Pr
     `;
 
   return registros;
+}
+
+/** Obtiene el historial de ruta de los dispositivos del usuario en el rango solicitado. */
+export async function obtenerHistorialLocalizaciones(
+  idUsuario: number,
+  claves: string[],
+  fechaInicial?: string,
+  fechaFinal?: string
+): Promise<LocalizacionHistorialDispositivo[]> {
+  if (claves.length === 0) return [];
+
+  return prisma.$queryRaw<LocalizacionHistorialDispositivo[]>`
+    SELECT
+      pd.clave AS claveDispositivo,
+      d.alias AS aliasDispositivo,
+      l.latitud,
+      l.longitud,
+      l.altitud,
+      l.fecha
+    FROM localizaciones l
+    INNER JOIN dispositivos d ON d.id = l.id_dispositivo
+    INNER JOIN pre_dispositivos pd ON pd.id = d.id_pre_dispositivo
+    WHERE d.id_usuario = ${idUsuario}
+      AND pd.clave IN (${Prisma.join(claves)})
+      AND (${fechaInicial ?? null} IS NULL OR l.fecha >= TRY_CONVERT(datetime2, ${fechaInicial ?? null}, 126))
+      AND (${fechaFinal ?? null} IS NULL OR l.fecha <= TRY_CONVERT(datetime2, ${fechaFinal ?? null}, 126))
+    ORDER BY pd.clave, l.fecha;
+  `;
 }
 /**
  * Registra una lista de localizaciones del dispositivo.

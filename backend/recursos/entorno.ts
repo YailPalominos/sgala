@@ -7,11 +7,6 @@ export interface Entorno {
   PUERTO_BROKER: number;
   PUERTO_SOCKET: number;
   PUERTO_API: number;
-  SQL_SERVIDOR: string;
-  SQL_USUARIO: string;
-  SQL_CONTRASENA: string;
-  SQL_BASE_DATOS: string;
-  SQL_PUERTO: number;
   REDIS_USUARIO: string;
   REDIS_SERVIDOR: string;
   REDIS_CONTRASENA: string;
@@ -66,12 +61,6 @@ function cargarEntorno(): Entorno {
     PUERTO_BROKER: parseInt(obtenerVariable('PUERTO_BROKER'), 10),
     PUERTO_SOCKET: parseInt(obtenerVariable('PUERTO_SOCKET'), 10),
     PUERTO_API: parseInt(obtenerVariable('PUERTO_API'), 10),
-    SQL_SERVIDOR: obtenerVariable('SQL_SERVIDOR'),
-    SQL_USUARIO: obtenerVariable('SQL_USUARIO'),
-    SQL_CONTRASENA: obtenerVariable('SQL_CONTRASENA'),
-    SQL_BASE_DATOS: obtenerVariable('SQL_BASE_DATOS'),
-    SQL_PUERTO: parseInt(obtenerVariable('SQL_PUERTO'), 10),
-
     REDIS_USUARIO: obtenerVariable('REDIS_USUARIO'),
     REDIS_SERVIDOR: obtenerVariable('REDIS_SERVIDOR'),
     REDIS_CONTRASENA: obtenerVariable('REDIS_CONTRASENA'),

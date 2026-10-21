@@ -3,7 +3,7 @@ import packageJson from '../../package.json';
 export const environment = {
   production: false,
 
-  apiUrl: 'http://10.1.33.98:4059/api/',
+  apiUrl: 'https://10.1.33.98:4059/api/',
 
   // Socket.IO
   socketUrl: 'http://10.1.33.98:4061/socket',

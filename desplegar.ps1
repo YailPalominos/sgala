@@ -142,7 +142,7 @@ try {
     Set-Content -Path $envPath -Value $rootEnv -Encoding UTF8
 
     Write-Host 'Generando certificados TLS en el volumen seleccionado...'
-    $certificateCode = 'require(String.fromCharCode(46,47,115,114,99,47,115,101,114,118,105,99,105,111,115,47,99,101,114,116,105,102,105,99,97,100,111,115,46,115,101,114,118,105,99,105,111)).asegurarCertificadosServidor()'
+    $certificateCode = 'require(String.fromCharCode(46,47,115,101,114,118,105,99,105,111,115,47,99,101,114,116,105,102,105,99,97,100,111,115,46,115,101,114,118,105,99,105,111)).asegurarCertificadosServidor()'
     & docker compose run --rm --no-deps backend node -r ts-node/register -r tsconfig-paths/register -e $certificateCode
     if ($LASTEXITCODE -ne 0) { throw 'No se pudieron preparar los certificados TLS en el volumen.' }
 

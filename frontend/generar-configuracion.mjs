@@ -29,7 +29,7 @@ if (![api, broker, socket].every((puerto) => Number.isInteger(puerto) && puerto 
   throw new Error('PUERTO_API, PUERTO_BROKER y PUERTO_SOCKET deben ser puertos válidos.');
 }
 
-const base = modo === 'production' ? `https://${host}` : 'http://' + host;
+const base = `https://${host}`;
 const configuracion = {
   apiUrl: modo === 'production' ? `${base}/api/` : `${base}:${api}/api/`,
   socketUrl: modo === 'production' ? `${base}/socket` : `${base}:${socket}/socket`,

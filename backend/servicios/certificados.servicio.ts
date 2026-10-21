@@ -278,6 +278,17 @@ export function leerCertificadosServidor(directorio?: string): tls.TlsOptions {
   };
 }
 
+/** Opciones TLS para HTTPS de navegador; el API no requiere certificado de cliente. */
+export function leerCertificadosHttps(directorio?: string): tls.TlsOptions {
+  const rutas = asegurarCertificadosServidor(directorio);
+
+  return {
+    key: fs.readFileSync(rutas.llave),
+    cert: fs.readFileSync(rutas.certificado),
+    minVersion: 'TLSv1.2'
+  };
+}
+
 export function crearCertificado(clave?: string, directorio?: string): CertificadosCliente {
   const rutasServidor = asegurarCertificadosServidor(directorio);
   const claveCertificado = (clave ?? crypto.randomUUID()).trim();
