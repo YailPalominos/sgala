@@ -49,10 +49,6 @@
             [expanded]="filtrosExpandido()" (opened)="filtrosExpandido.set(true)" (closed)="filtrosExpandido.set(false)"
             hideToggle>
 
-            <!-- 
-            <div class="c0 m0 g20"> </div> -->
-
-
             <mat-form-field appearance="outline" class="c100 m75 g50">
                 <mat-label>Descripción</mat-label>
                 <input matInput type="text" formControlName="descripcion" />
@@ -63,6 +59,15 @@
                 <input matInput type="number" formControlName="id" mask="000000000S" />
             </mat-form-field>
 
+            @if(esAdministrador){
+            <mat-form-field appearance="outline" class="c100 m50 g25">
+                <mat-label>Tipo de eventos</mat-label>
+                <mat-select formControlName="tipo">
+                    <mat-option value="U">Usuarios</mat-option>
+                    <mat-option value="A">Administradores</mat-option>
+                </mat-select>
+            </mat-form-field>
+            }
         </mat-expansion-panel>
     </mat-accordion>
 </form>

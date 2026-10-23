@@ -259,7 +259,7 @@ export async function solicitarRecuperacion(identificador: string, tipo: string)
     throw new ErrorHttp(401, error);
   }
   try {
-    const claveLLaveRecuperacion = await crearLlaveRecuperacion(usuario.id, 'R');
+    const claveLLaveRecuperacion = await crearLlaveRecuperacion(usuario.id, 'R', tipo == 'A' ? true : false);
     // if (tipo == 'C') {
     await enviarCorreoRecuperacion(usuario.direccionCorreoElectronico, claveLLaveRecuperacion);
     // }

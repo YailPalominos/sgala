@@ -7,129 +7,139 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Usuario {
-  id                         Int            @id(map: "PK__usuarios__3213E83FAD2C8EE9") @default(autoincrement())
-  alias                      String         @unique(map: "UQ__usuarios__8C585C04308863A7") @db.VarChar(50)
-  direccionCorreoElectronico String         @unique(map: "UQ__usuarios__0CE270AF62E7D7C6") @map("direccion_correo_electronico") @db.VarChar(100)
-  contrasena                 String         @db.VarChar(255)
-  telefono                   String         @db.VarChar(20)
-  estatus                    Boolean        @default(true, map: "DF__usuarios__estatu__398D8EEE")
-  clave                      String         @unique @default(dbgenerated("newid()")) @db.UniqueIdentifier
-  permisos                   String?        @db.VarChar(500)
+model usuario {
+  id                         Int          @id(map: "PK__usuarios__3213E83FAD2C8EE9") @default(autoincrement())
+  alias                      String       @unique(map: "UQ__usuarios__8C585C04308863A7") @db.VarChar(50)
+  direccionCorreoElectronico String       @unique(map: "UQ__usuarios__0CE270AF62E7D7C6") @map("direccion_correo_electronico") @db.VarChar(100)
+  contrasena                 String       @db.VarChar(255)
+  telefono                   String       @db.VarChar(20)
+  estatus                    Boolean      @default(true, map: "DF__usuarios__estatu__398D8EEE")
+  clave                      String       @unique @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  permisos                   String?      @db.VarChar(500)
 
-  dispositivos dispositivos[]
-  eventos      eventos[]
+  dispositivos               dispositivo[]
+  eventos                    evento[]
 
   @@map("usuarios")
 }
 
-model Administrador {
-  id                           Int                          @id(map: "PK_administradores") @default(autoincrement())
-  nombres                      String                       @db.VarChar(50)
-  apellidos                    String                       @db.VarChar(50)
-  direccionCorreoElectronico   String                       @unique(map: "UQ__administradores__0CE270AF62E7D7C6") @map("direccion_correo_electronico") @db.VarChar(100)
-  contrasena                   String                       @db.VarChar(255)
-  telefono                     String                       @db.VarChar(20)
-  estatus                      Boolean
-  alias                        String                       @db.VarChar(15)
-  permisos                     String?                      @db.VarChar(500)
-  clave                        String                       @unique @default(dbgenerated("newid()")) @db.UniqueIdentifier
+model administrador {
+  id                         Int                     @id(map: "PK_administradores") @default(autoincrement())
+  nombres                    String                  @db.VarChar(50)
+  apellidos                  String                  @db.VarChar(50)
+  direccionCorreoElectronico String                  @unique(map: "UQ__administradores__0CE270AF62E7D7C6") @map("direccion_correo_electronico") @db.VarChar(100)
+  contrasena                 String                  @db.VarChar(255)
+  telefono                   String                  @db.VarChar(20)
+  estatus                    Boolean
+  alias                      String                  @db.VarChar(15)
+  permisos                   String?                 @db.VarChar(500)
+  clave                      String                  @unique @default(dbgenerated("newid()")) @db.UniqueIdentifier
 
-  eventos_administradores      eventos_administradores[]
+  eventosAdministradores     eventoAdministrador[]
 
   @@map("administradores")
 }
 
-model Solicitud {
-  id                Int       @id(map: "PK__solicitu__3213E83FE626FD31") @default(autoincrement())
-  descripcion       String    @db.VarChar(1000)
-  medioContacto     String   @map("medio_contacto") @db.VarChar(50)
-  fecha             DateTime @db.DateTime2
-  fechaResolucion   DateTime? @map("fecha_resolucion") @db.DateTime2
-  estatus           Boolean   @default(true, map: "DF__solicitud__estat__59FA5E80")
+model solicitud {
+  id               Int       @id(map: "PK__solicitu__3213E83FE626FD31") @default(autoincrement())
+  descripcion      String    @db.VarChar(1000)
+  medioContacto    String    @map("medio_contacto") @db.VarChar(50)
+  fecha            DateTime  @db.DateTime2
+  fechaResolucion  DateTime? @map("fecha_resolucion") @db.DateTime2
+  estatus          Boolean   @default(true, map: "DF__solicitud__estat__59FA5E80")
 
   @@map("solicitudes")
 }
 
+model preDispositivo {
+  id             Int           @id(map: "PK__pre_disp__3213E83F10C90AD3") @default(autoincrement())
+  clave          String        @unique(map: "UQ__pre_disp__71DCA3DBB4FFEE88") @default(dbgenerated("newid()"), map: "DF__pre_dispo__clave__3F466844") @db.UniqueIdentifier
+  estatus        Boolean       @default(true, map: "DF__pre_dispo__estat__403A8C7D")
+  cualidades     String?       @db.VarChar(100)
+  tipo           String?       @db.Char(1)
+  dispositivo    dispositivo?
 
-model pre_dispositivos {
-  id          Int           @id(map: "PK__pre_disp__3213E83F10C90AD3") @default(autoincrement())
-  clave       String        @unique(map: "UQ__pre_disp__71DCA3DBB4FFEE88") @default(dbgenerated("newid()"), map: "DF__pre_dispo__clave__3F466844") @db.UniqueIdentifier
-  estatus     Boolean       @default(true, map: "DF__pre_dispo__estat__403A8C7D")
-  cualidades  String?       @db.VarChar(100)
-  tipo        String?       @db.Char(1)
-  dispositivo dispositivos?
+  @@map("pre_dispositivos")
 }
 
-model dispositivos {
-  id                 Int              @id(map: "PK__disposit__3213E83F67C950D3") @default(autoincrement())
-  id_usuario         Int
-  id_pre_dispositivo Int              @unique(map: "UQ__disposit__C61CC62E8BAF9C5E")
-  alias              String?          @db.VarChar(100)
-  telefono           String?          @db.VarChar(20)
-  pre_dispositivo    pre_dispositivos @relation(fields: [id_pre_dispositivo], references: [id], onUpdate: NoAction, map: "FK__dispositi__id_pr__440B1D61")
-  usuario            Usuario          @relation(fields: [id_usuario], references: [id], onUpdate: NoAction, map: "FK__dispositi__id_us__4316F928")
-  localizaciones     localizaciones[]
+model dispositivo {
+  id                Int              @id(map: "PK__disposit__3213E83F67C950D3") @default(autoincrement())
+  idUsuario         Int              @map("id_usuario")
+  idPreDispositivo  Int              @unique(map: "UQ__disposit__C61CC62E8BAF9C5E") @map("id_pre_dispositivo")
+  alias             String?          @db.VarChar(100)
+  telefono          String?          @db.VarChar(20)
+
+  preDispositivo    preDispositivo   @relation(fields: [idPreDispositivo], references: [id], onUpdate: NoAction, map: "FK__dispositi__id_pr__440B1D61")
+  usuario           usuario          @relation(fields: [idUsuario], references: [id], onUpdate: NoAction, map: "FK__dispositi__id_us__4316F928")
+  localizaciones    localizacion[]
+
+  @@map("dispositivos")
 }
 
-model localizaciones {
-  id             Int          @id(map: "PK__localiza__3213E83FE3B04F91") @default(autoincrement())
-  id_dispositivo Int
-  latitud        Decimal      @db.Decimal(10, 7)
-  longitud       Decimal      @db.Decimal(10, 7)
-  altitud        Decimal      @db.Decimal(8, 2)
-  dispositivo    dispositivos @relation(fields: [id_dispositivo], references: [id], onUpdate: NoAction, map: "FK__localizac__id_di__46E78A0C")
+model localizacion {
+  id             Int         @id(map: "PK__localiza__3213E83FE3B04F91") @default(autoincrement())
+  idDispositivo  Int         @map("id_dispositivo")
+  latitud        Decimal     @db.Decimal(10, 7)
+  longitud       Decimal     @db.Decimal(10, 7)
+  altitud        Decimal     @db.Decimal(8, 2)
 
-  @@index([id_dispositivo], map: "ix_localizaciones_dispositivo")
+  dispositivo    dispositivo @relation(fields: [idDispositivo], references: [id], onUpdate: NoAction, map: "FK__localizac__id_di__46E78A0C")
+
+  @@index([idDispositivo], map: "ix_localizaciones_dispositivo")
+  @@map("localizaciones")
 }
 
-model eventos {
-  id                  Int                   @id(map: "PK__eventos__3213E83FDAA7CC2D") @default(autoincrement())
-  fecha               DateTime              @default(now(), map: "DF__eventos__fecha__4AB81AF0") @db.DateTime
-  descripcion         String                @db.VarChar(500)
-  id_usuario          Int?
-  usuario             Usuario?              @relation(fields: [id_usuario], references: [id], onDelete: Cascade, map: "FK__eventos__id_usua__52593CB8")
-  historial_registros historial_registros[]
+model evento {
+  id                 Int                 @id(map: "PK__eventos__3213E83FDAA7CC2D") @default(autoincrement())
+  fecha              DateTime            @default(now(), map: "DF__eventos__fecha__4AB81AF0") @db.DateTime
+  descripcion        String              @db.VarChar(500)
+  idUsuario          Int?                @map("id_usuario")
 
-  @@index([id_usuario], map: "ix_eventos_id_usuario")
+  usuario            usuario?            @relation(fields: [idUsuario], references: [id], onDelete: Cascade, map: "FK__eventos__id_usua__52593CB8")
+  historialRegistros historialRegistro[]
+
+  @@index([idUsuario], map: "ix_eventos_id_usuario")
+  @@map("eventos")
 }
 
-model historial_registros {
-  id          Int      @id(map: "PK__historia__3213E83F2A0A6DA5") @default(autoincrement())
-  tabla       String   @db.VarChar(100)
-  fecha       DateTime @default(now(), map: "DF__historial__fecha__4E88ABD4") @db.DateTime
-  id_registro Int
-  datos       String   @db.NVarChar(Max)
-  tipo        String   @db.Char(1)
-  id_evento   Int
-  eventos     eventos  @relation(fields: [id_evento], references: [id], onUpdate: NoAction, map: "fk_historial_registros_evento")
+model historialRegistro {
+  id           Int      @id(map: "PK__historia__3213E83F2A0A6DA5") @default(autoincrement())
+  tabla        String   @db.VarChar(100)
+  fecha        DateTime @default(now(), map: "DF__historial__fecha__4E88ABD4") @db.DateTime
+  idRegistro   Int      @map("id_registro")
+  datos        String   @db.NVarChar(Max)
+  tipo         String   @db.Char(1)
+  idEvento     Int      @map("id_evento")
+
+  evento       evento   @relation(fields: [idEvento], references: [id], onUpdate: NoAction, map: "fk_historial_registros_evento")
 
   @@index([fecha], map: "ix_historial_registros_fecha")
-  @@index([id_evento], map: "ix_historial_registros_id_evento")
-  @@index([id_registro], map: "ix_historial_registros_id_registro")
+  @@index([idEvento], map: "ix_historial_registros_id_evento")
+  @@index([idRegistro], map: "ix_historial_registros_id_registro")
   @@index([tabla], map: "ix_historial_registros_tabla")
+  @@map("historial_registros")
 }
 
-model suscripciones {
+model suscripcion {
   id             Int      @id(map: "PK__suscripc__3213E83F47A26104") @default(autoincrement())
-  id_dispositivo Int
+  idDispositivo  Int      @map("id_dispositivo")
   clave          String?  @db.UniqueIdentifier
-  fecha_inicial  DateTime @db.DateTime
-  fecha_final    DateTime @db.DateTime
+  fechaInicial   DateTime @map("fecha_inicial") @db.DateTime
+  fechaFinal     DateTime @map("fecha_final") @db.DateTime
   tipo           String   @db.Char(100)
+
+  @@map("suscripciones")
 }
 
+model eventoAdministrador {
+  id                Int           @id(map: "PK__eventos___3213E83FE00A5D31") @default(autoincrement())
+  fecha             DateTime      @default(now(), map: "DF__eventos_a__fecha__5441852A") @db.DateTime
+  descripcion       String        @db.VarChar(500)
+  idAdministrador   Int           @map("id_administrador")
 
-model eventos_administradores {
-  id               Int           @id(map: "PK__eventos___3213E83FE00A5D31") @default(autoincrement())
-  fecha            DateTime      @default(now(), map: "DF__eventos_a__fecha__5441852A") @db.DateTime
-  accion           String        @db.VarChar(500)
-  id_administrador Int
-
-  administrador    Administrador @relation(fields: [id_administrador], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  administrador     administrador @relation(fields: [idAdministrador], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([fecha(sort: Desc), id(sort: Desc)], map: "ix_eventos_administradores_fecha")
-  @@index([id_administrador], map: "ix_eventos_administradores_id_administrador")
-
+  @@index([idAdministrador], map: "ix_eventos_administradores_id_administrador")
   @@map("eventos_administradores")
 }

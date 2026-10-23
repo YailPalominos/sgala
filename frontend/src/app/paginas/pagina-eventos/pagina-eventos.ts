@@ -15,6 +15,8 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { NgxMaskDirective } from 'ngx-mask';
 import { DialogoServicio } from '../../recursos/dialogo.servicio';
 import { DialogoComparacion } from '../../dialogos/dilogo-comparacion/dialogo-comparacion';
+import { MatSelectModule } from '@angular/material/select';
+import { Autenticador } from '../../recursos/autenticador';
 
 interface EventoAdministrador {
   id: number;
@@ -40,13 +42,17 @@ interface EventoAdministrador {
     ReactiveFormsModule,
     TablaComponent,
     MatDatepickerModule,
-    NgxMaskDirective
+    NgxMaskDirective,
+    MatSelectModule,
   ],
   templateUrl: './pagina-eventos.html'
 })
 export class PaginaEventos implements OnInit {
   private readonly servicioEventos = inject(ServicioEvento);
   private readonly dialgo = inject(DialogoServicio);
+  private readonly autenticador = inject(Autenticador);
+
+  esAdministrador = this.autenticador.obtenerSesion()?.tipoCuenta === 'administrador';
 
   datos = signal<any[]>([]);
 
@@ -62,7 +68,8 @@ export class PaginaEventos implements OnInit {
     horaInicial: new FormControl(''),
     horaFinal: new FormControl(''),
     descripcion: new FormControl(''),
-    id: new FormControl('')
+    id: new FormControl(''),
+    tipo: new FormControl('')
   });
   readonly columnas: Columna[] = [
     { clave: 'id', titulo: 'Id', formato: 'texto' },
@@ -84,6 +91,7 @@ export class PaginaEventos implements OnInit {
 
   ngOnInit(): void {
     this.cargar();
+    this
   }
 
   intercalarFiltros(): void {
